@@ -5,7 +5,7 @@ on:
     workflows: ["CI/CD Pipeline"]
     types:
       - completed
-    branches: ["dev"]
+    branches: ["develop"]
 
 jobs:
   build-and-push:
@@ -41,27 +41,21 @@ jobs:
       - name: Save Docker image archive
         run: docker save cpt202program:${{ github.event.workflow_run.head_sha }} | gzip > cpt202program-image.tar.gz
 
-      - name: Pull MySQL image on runner
-        run: docker pull mysql:8.4
+      - name: Show Docker archive file
+        run: ls -lh cpt202program-image.tar.gz
 
-      - name: Save MySQL image archive
-        run: docker save mysql:8.4 | gzip > mysql-image.tar.gz
-
-      - name: Show Docker archive files
-        run: ls -lh cpt202program-image.tar.gz mysql-image.tar.gz
-
-      - name: Bundle Docker archives
-        run: tar -czf docker-images-bundle.tar.gz cpt202program-image.tar.gz mysql-image.tar.gz
-
-      - name: Upload Docker bundle to server
+      - name: Upload app image to server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.ALIYUN_HOST }}
           username: ${{ secrets.ALIYUN_USERNAME }}
           key: ${{ secrets.ALIYUN_SSH_KEY }}
           port: 22
-          source: docker-images-bundle.tar.gz
+          source: cpt202program-image.tar.gz
           target: /tmp/
+          timeout: 120s
+          command_timeout: 20m
+          debug: true
 
   deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' }}
@@ -98,13 +92,9 @@ jobs:
             docker network create cpt202-network || true
             docker volume create cpt202-mysql-data || true
 
-            ls -lh /tmp/docker-images-bundle.tar.gz
-            tar -xzf /tmp/docker-images-bundle.tar.gz -C /tmp/
-            rm -f /tmp/docker-images-bundle.tar.gz
-            ls -lh /tmp/cpt202program-image.tar.gz /tmp/mysql-image.tar.gz
+            ls -lh /tmp/cpt202program-image.tar.gz
 
-            gzip -dc /tmp/mysql-image.tar.gz | docker load
-            rm -f /tmp/mysql-image.tar.gz
+            docker image inspect mysql:8.4 >/dev/null 2>&1 || docker pull mysql:8.4
 
             cat > /tmp/cpt202-mysql.env <<EOF
             MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
@@ -118,6 +108,7 @@ jobs:
                 --name cpt202-mysql \
                 --restart unless-stopped \
                 --network cpt202-network \
+                -p 127.0.0.1:9001:3306 \
                 -v cpt202-mysql-data:/var/lib/mysql \
                 --env-file /tmp/cpt202-mysql.env \
                 mysql:8.4
@@ -126,9 +117,32 @@ jobs:
             fi
 
             until docker exec -e MYSQL_PWD="${{ secrets.MYSQL_ROOT_PASSWORD }}" cpt202-mysql mysqladmin ping -h 127.0.0.1 -u root --silent; do
-              sleep 5
+            sleep 5
             done
-
+  
+            APP_DB='${{ secrets.MYSQL_DATABASE }}'
+            APP_USER='${{ secrets.MYSQL_USERNAME }}'
+            APP_PASS='${{ secrets.MYSQL_PASSWORD }}'
+  
+            ESCAPED_APP_DB=$(printf "%s" "$APP_DB" | sed 's/`/``/g')
+            ESCAPED_APP_USER=$(printf "%s" "$APP_USER" | sed "s/'/''/g")
+            ESCAPED_APP_PASS=$(printf "%s" "$APP_PASS" | sed "s/'/''/g")
+  
+            docker exec -e MYSQL_PWD="${{ secrets.MYSQL_ROOT_PASSWORD }}" cpt202-mysql \
+            mysql -uroot <<SQL
+            CREATE DATABASE IF NOT EXISTS \`$ESCAPED_APP_DB\`
+            CHARACTER SET utf8mb4
+            COLLATE utf8mb4_unicode_ci;
+  
+            CREATE USER IF NOT EXISTS '$ESCAPED_APP_USER'@'%' IDENTIFIED BY '$ESCAPED_APP_PASS';
+  
+            ALTER USER '$ESCAPED_APP_USER'@'%' IDENTIFIED BY '$ESCAPED_APP_PASS';
+  
+            GRANT ALL PRIVILEGES ON \`$ESCAPED_APP_DB\`.* TO '$ESCAPED_APP_USER'@'%';
+  
+            FLUSH PRIVILEGES;
+            SQL
+  
             gzip -dc /tmp/cpt202program-image.tar.gz | docker load
             rm -f /tmp/cpt202program-image.tar.gz
 
@@ -150,7 +164,7 @@ jobs:
               --name cpt202program \
               --restart unless-stopped \
               --network cpt202-network \
-              -p 127.0.0.1:9001:3306 \
+              -p 8080:8080 \
               --env-file /tmp/cpt202program.env \
               cpt202program:${{ github.event.workflow_run.head_sha }}
 
