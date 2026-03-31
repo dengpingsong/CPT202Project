@@ -5,7 +5,7 @@ on:
     workflows: ["CI/CD Pipeline"]
     types:
       - completed
-    branches: ["main", "master"]
+    branches: ["dev"]
 
 jobs:
   build-and-push:
@@ -150,7 +150,7 @@ jobs:
               --name cpt202program \
               --restart unless-stopped \
               --network cpt202-network \
-              -p 8080:8080 \
+              -p 127.0.0.1:9001:3306 \
               --env-file /tmp/cpt202program.env \
               cpt202program:${{ github.event.workflow_run.head_sha }}
 
