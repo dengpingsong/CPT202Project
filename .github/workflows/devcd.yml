@@ -5,7 +5,7 @@ on:
     workflows: ["CI/CD Pipeline"]
     types:
       - completed
-    branches: ["main", "master"]
+    branches: ["develop"]
 
 jobs:
   build-and-push:
@@ -118,6 +118,7 @@ jobs:
                 --name cpt202-mysql \
                 --restart unless-stopped \
                 --network cpt202-network \
+                -p 127.0.0.1:9001:3306 \
                 -v cpt202-mysql-data:/var/lib/mysql \
                 --env-file /tmp/cpt202-mysql.env \
                 mysql:8.4
