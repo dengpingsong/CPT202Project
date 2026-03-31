@@ -42,7 +42,7 @@ jobs:
     name: Package JAR
     runs-on: ubuntu-latest
     needs: build-and-test
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/main/develop' || github.ref == 'refs/heads/master/develop'
     permissions:
       contents: read
 
