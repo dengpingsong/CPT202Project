@@ -1,10 +1,6 @@
 package com.cpt202.model.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
@@ -12,24 +8,46 @@ import java.time.LocalDateTime;
  * JPA entity representing a user in the system.
  */
 @Entity
-@Table(name = "user")
+@Table(name = "users")
 public class User {
+    public enum UserRole {
+        ADMIN,
+        TEACHER,
+        STUDENT
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "user_id")
     private Long userId;
+    @Column(name = "username")
     private String username;
+    @Column(name = "password_hash")
     private String passwordHash;
+    @Column(name = "email")
     private String email;
+    @Column(name = "full_name")
     private String fullName;
-    private String role;
+    @Column(name = "role")
+    @Enumerated(EnumType.STRING)
+    private UserRole role;
+    @Column(name = "account_status")
     private String accountStatus;
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @OneToOne(mappedBy = "user")
+    private StudentProfile studentProfile;
+
+    @OneToOne(mappedBy = "user")
+    private TeacherProfile teacherProfile;
 
     public User() {
     }
 
-    public User(Long userId, String username, String passwordHash, String email, String fullName, String role, String accountStatus, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public User(Long userId, String username, String passwordHash, String email, String fullName, UserRole role, String accountStatus, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.userId = userId;
         this.username = username;
         this.passwordHash = passwordHash;
@@ -81,11 +99,11 @@ public class User {
         this.fullName = fullName;
     }
 
-    public String getRole() {
+    public UserRole getRole() {
         return role;
     }
 
-    public void setRole(String role) {
+    public void setRole(UserRole role) {
         this.role = role;
     }
 
@@ -112,5 +130,29 @@ public class User {
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
+
+    public StudentProfile getStudentProfile() {
+        return studentProfile;
+    }
+
+    public void setStudentProfile(StudentProfile studentProfile) {
+        this.studentProfile = studentProfile;
+        if(studentProfile != null && studentProfile.getUser() != this) {
+            studentProfile.setUser(this);
+        }
+    }
+
+    public TeacherProfile getTeacherProfile() {
+        return teacherProfile;
+    }
+
+    public void setTeacherProfile(TeacherProfile teacherProfile) {
+        this.teacherProfile = teacherProfile;
+        if(teacherProfile != null && teacherProfile.getUser() != this) {
+            teacherProfile.setUser(this);
+        }
+    }
 }
+
+
 
