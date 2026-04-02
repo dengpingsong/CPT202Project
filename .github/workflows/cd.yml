@@ -150,7 +150,7 @@ jobs:
               --name cpt202program \
               --restart unless-stopped \
               --network cpt202-network \
-              -p 127.0.0.1:9001:3306 \
+              -p 8080:8080 \
               --env-file /tmp/cpt202program.env \
               cpt202program:${{ github.event.workflow_run.head_sha }}
 
