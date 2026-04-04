@@ -1,36 +1,57 @@
 package com.cpt202.model.entity;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "student_profile")
+@Getter
+@Setter
+@NoArgsConstructor
 public class StudentProfile {
+    /** Primary key shared with the related user account. */
     @Id
+    @Setter(AccessLevel.NONE)
     @Column(name = "student_id")
     private Long studentId;
+
+    /** Institutional student number. */
     @Column(name = "student_no")
     private String studentNo;
+
+    /** Academic programme of the student. */
     @Column(name = "programme")
     private String programme;
+
+    /** Current study year of the student. */
     @Column(name = "year")
     private int year;
+
+    /** Contact phone number of the student. */
     @Column(name = "phone")
     private String phone;
+
+    /** Personal interests or research preferences. */
     @Column(name = "interests")
     private String interests;
+
+    /** Timestamp when the profile was last updated. */
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    /** User account linked to this student profile. */
     @OneToOne
     @MapsId
     @JoinColumn(name = "student_id", referencedColumnName = "user_id")
     private User user;
 
-    public StudentProfile() {
-    }
-
+    @Builder
     public StudentProfile(String studentNo, String programme, int year, String phone, String interests, LocalDateTime updatedAt, User user) {
         this.studentNo = studentNo;
         this.programme = programme;
@@ -38,66 +59,6 @@ public class StudentProfile {
         this.phone = phone;
         this.interests = interests;
         this.updatedAt = updatedAt;
-        this.user = user;
-    }
-
-    public Long getStudentId() {
-        return studentId;
-    }
-
-    public String getStudentNo() {
-        return studentNo;
-    }
-
-    public void setStudentNo(String studentNo) {
-        this.studentNo = studentNo;
-    }
-
-    public String getProgramme() {
-        return programme;
-    }
-
-    public void setProgramme(String programme) {
-        this.programme = programme;
-    }
-
-    public int getYear() {
-        return year;
-    }
-
-    public void setYear(int year) {
-        this.year = year;
-    }
-
-    public String getPhone() {
-        return phone;
-    }
-
-    public void setPhone(String phone) {
-        this.phone = phone;
-    }
-
-    public String getInterests() {
-        return interests;
-    }
-
-    public void setInterests(String interests) {
-        this.interests = interests;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
         this.user = user;
     }
 }

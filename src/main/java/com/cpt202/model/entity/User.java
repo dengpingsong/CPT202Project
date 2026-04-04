@@ -1,6 +1,10 @@
 package com.cpt202.model.entity;
 
 import jakarta.persistence.*;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
@@ -9,44 +13,65 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "users")
+@Getter
+@Setter
+@NoArgsConstructor
 public class User {
+    /** Available system roles for a user account. */
     public enum UserRole {
         ADMIN,
         TEACHER,
         STUDENT
     }
 
+    /** Primary key of the user record. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
     private Long userId;
+
+    /** Unique login name of the user. */
     @Column(name = "username")
     private String username;
+
+    /** Persisted password hash of the user. */
     @Column(name = "password_hash")
     private String passwordHash;
+
+    /** Email address associated with the account. */
     @Column(name = "email")
     private String email;
+
+    /** Full display name of the user. */
     @Column(name = "full_name")
     private String fullName;
+
+    /** Role assigned to the user account. */
     @Column(name = "role")
     @Enumerated(EnumType.STRING)
     private UserRole role;
+
+    /** Current account status label. */
     @Column(name = "account_status")
     private String accountStatus;
+
+    /** Timestamp when the user record was created. */
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    /** Timestamp when the user record was last updated. */
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    /** Student profile linked to this user, if the role is student. */
     @OneToOne(mappedBy = "user")
     private StudentProfile studentProfile;
 
+    /** Teacher profile linked to this user, if the role is teacher. */
     @OneToOne(mappedBy = "user")
     private TeacherProfile teacherProfile;
 
-    public User() {
-    }
-
+    @Builder
     public User(Long userId, String username, String passwordHash, String email, String fullName, UserRole role, String accountStatus, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.userId = userId;
         this.username = username;
@@ -59,100 +84,17 @@ public class User {
         this.updatedAt = updatedAt;
     }
 
-    public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPasswordHash() {
-        return passwordHash;
-    }
-
-    public void setPasswordHash(String passwordHash) {
-        this.passwordHash = passwordHash;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getFullName() {
-        return fullName;
-    }
-
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
-    }
-
-    public UserRole getRole() {
-        return role;
-    }
-
-    public void setRole(UserRole role) {
-        this.role = role;
-    }
-
-    public String getAccountStatus() {
-        return accountStatus;
-    }
-
-    public void setAccountStatus(String accountStatus) {
-        this.accountStatus = accountStatus;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public StudentProfile getStudentProfile() {
-        return studentProfile;
-    }
-
     public void setStudentProfile(StudentProfile studentProfile) {
         this.studentProfile = studentProfile;
-        if(studentProfile != null && studentProfile.getUser() != this) {
+        if (studentProfile != null && studentProfile.getUser() != this) {
             studentProfile.setUser(this);
         }
     }
 
-    public TeacherProfile getTeacherProfile() {
-        return teacherProfile;
-    }
-
     public void setTeacherProfile(TeacherProfile teacherProfile) {
         this.teacherProfile = teacherProfile;
-        if(teacherProfile != null && teacherProfile.getUser() != this) {
+        if (teacherProfile != null && teacherProfile.getUser() != this) {
             teacherProfile.setUser(this);
         }
     }
 }
-
-
-

@@ -1,11 +1,19 @@
 package com.cpt202.model.entity;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "project_request")
+@Getter
+@Setter
+@NoArgsConstructor
 public class ProjectRequest {
     public enum RequestStatus {
         PENDING,
@@ -13,51 +21,63 @@ public class ProjectRequest {
         REJECTED,
         WITHDRAWN
     }
+
+    /** Primary key of the project request record. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Setter(AccessLevel.NONE)
     @Column(name = "request_id")
     private Long requestId;
 
+    /** Project that the student is applying for. */
     @ManyToOne
     @JoinColumn(name = "project_id", referencedColumnName = "project_id")
     private Project project;
 
+    /** Student who submitted the request. */
     @ManyToOne
     @JoinColumn(name = "student_id", referencedColumnName = "student_id")
     private StudentProfile student;
 
+    /** Teacher who reviewed the request, if applicable. */
     @ManyToOne
     @JoinColumn(name = "reviewed_by", referencedColumnName = "teacher_id")
     private TeacherProfile reviewedBy;
 
+    /** Ranking of this request among the student's preferences. */
     @Column(name = "preference_rank")
     private int preferenceRank;
 
+    /** Free-text notes submitted with the request. */
     @Column(name = "notes")
     private String notes;
 
+    /** Current review status of the request. */
     @Enumerated(EnumType.STRING)
     @Column(name = "request_status")
     private RequestStatus requestStatus;
 
+    /** Review decision comment from the teacher. */
     @Column(name = "decision_comment")
     private String decisionComment;
 
+    /** Time when the request was submitted. */
     @Column(name = "submitted_at")
     private LocalDateTime submittedAt;
 
+    /** Time when the request was reviewed. */
     @Column(name = "reviewed_at")
     private LocalDateTime reviewedAt;
 
+    /** Time when the request was withdrawn by the student. */
     @Column(name = "withdrawn_at")
     private LocalDateTime withdrawnAt;
 
+    /** Timestamp when the request record was last updated. */
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    public ProjectRequest() {
-    }
-
+    @Builder
     public ProjectRequest(Project project, StudentProfile student, TeacherProfile reviewedBy,
                           int preferenceRank, String notes, RequestStatus requestStatus,
                           String decisionComment, LocalDateTime submittedAt,
@@ -73,98 +93,6 @@ public class ProjectRequest {
         this.submittedAt = submittedAt;
         this.reviewedAt = reviewedAt;
         this.withdrawnAt = withdrawnAt;
-        this.updatedAt = updatedAt;
-    }
-
-    public Long getRequestId() {
-        return requestId;
-    }
-
-    public Project getProject() {
-        return project;
-    }
-
-    public void setProject(Project project) {
-        this.project = project;
-    }
-
-    public StudentProfile getStudent() {
-        return student;
-    }
-
-    public void setStudent(StudentProfile student) {
-        this.student = student;
-    }
-
-    public TeacherProfile getReviewedBy() {
-        return reviewedBy;
-    }
-
-    public void setReviewedBy(TeacherProfile reviewedBy) {
-        this.reviewedBy = reviewedBy;
-    }
-
-    public int getPreferenceRank() {
-        return preferenceRank;
-    }
-
-    public void setPreferenceRank(int preferenceRank) {
-        this.preferenceRank = preferenceRank;
-    }
-
-    public String getNotes() {
-        return notes;
-    }
-
-    public void setNotes(String notes) {
-        this.notes = notes;
-    }
-
-    public RequestStatus getRequestStatus() {
-        return requestStatus;
-    }
-
-    public void setRequestStatus(RequestStatus requestStatus) {
-        this.requestStatus = requestStatus;
-    }
-
-    public String getDecisionComment() {
-        return decisionComment;
-    }
-
-    public void setDecisionComment(String decisionComment) {
-        this.decisionComment = decisionComment;
-    }
-
-    public LocalDateTime getSubmittedAt() {
-        return submittedAt;
-    }
-
-    public void setSubmittedAt(LocalDateTime submittedAt) {
-        this.submittedAt = submittedAt;
-    }
-
-    public LocalDateTime getReviewedAt() {
-        return reviewedAt;
-    }
-
-    public void setReviewedAt(LocalDateTime reviewedAt) {
-        this.reviewedAt = reviewedAt;
-    }
-
-    public LocalDateTime getWithdrawnAt() {
-        return withdrawnAt;
-    }
-
-    public void setWithdrawnAt(LocalDateTime withdrawnAt) {
-        this.withdrawnAt = withdrawnAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
 }
