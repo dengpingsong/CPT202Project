@@ -1,11 +1,19 @@
 package com.cpt202.model.entity;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "project")
+@Getter
+@Setter
+@NoArgsConstructor
 public class Project {
     public enum ProjectStatus {
         AVAILABLE,
@@ -14,56 +22,70 @@ public class Project {
         CLOSED,
         ARCHIVED
     }
+
+    /** Primary key of the project record. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Setter(AccessLevel.NONE)
     @Column(name = "project_id")
     private Long projectId;
 
+    /** Teacher who publishes or owns the project. */
     @ManyToOne
     @JoinColumn(name = "teacher_id", referencedColumnName = "teacher_id")
     private TeacherProfile teacher;
 
+    /** Category assigned to the project. */
     @ManyToOne
     @JoinColumn(name = "category_id", referencedColumnName = "category_id")
     private Category category;
 
+    /** Title shown to students for the project. */
     @Column(name = "title")
     private String title;
 
+    /** Full description of the project content. */
     @Column(name = "description")
     private String description;
 
+    /** Skills expected from applicants. */
     @Column(name = "required_skills")
     private String requiredSkills;
 
+    /** Research or business topic area of the project. */
     @Column(name = "topic_area")
     private String topicArea;
 
+    /** Maximum number of students allowed in the project. */
     @Column(name = "max_students")
     private int maxStudents;
 
+    /** Current number of students already agreed for the project. */
     @Column(name = "current_agreed_count")
     private int currentAgreedCount;
 
+    /** Current lifecycle status of the project. */
     @Enumerated(EnumType.STRING)
     @Column(name = "project_status")
     private ProjectStatus projectStatus;
 
+    /** Time when the project becomes visible or published. */
     @Column(name = "publish_date")
     private LocalDateTime publishDate;
 
+    /** Time when the project is closed for new requests. */
     @Column(name = "close_date")
     private LocalDateTime closeDate;
 
+    /** Timestamp when the project record was created. */
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    /** Timestamp when the project record was last updated. */
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    public Project() {
-    }
-
+    @Builder
     public Project(TeacherProfile teacher, Category category, String title, String description,
                    String requiredSkills, String topicArea, int maxStudents, int currentAgreedCount,
                    ProjectStatus projectStatus, LocalDateTime publishDate, LocalDateTime closeDate,
@@ -80,114 +102,6 @@ public class Project {
         this.publishDate = publishDate;
         this.closeDate = closeDate;
         this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-    }
-
-    public Long getProjectId() {
-        return projectId;
-    }
-
-    public TeacherProfile getTeacher() {
-        return teacher;
-    }
-
-    public void setTeacher(TeacherProfile teacher) {
-        this.teacher = teacher;
-    }
-
-    public Category getCategory() {
-        return category;
-    }
-
-    public void setCategory(Category category) {
-        this.category = category;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public String getRequiredSkills() {
-        return requiredSkills;
-    }
-
-    public void setRequiredSkills(String requiredSkills) {
-        this.requiredSkills = requiredSkills;
-    }
-
-    public String getTopicArea() {
-        return topicArea;
-    }
-
-    public void setTopicArea(String topicArea) {
-        this.topicArea = topicArea;
-    }
-
-    public int getMaxStudents() {
-        return maxStudents;
-    }
-
-    public void setMaxStudents(int maxStudents) {
-        this.maxStudents = maxStudents;
-    }
-
-    public int getCurrentAgreedCount() {
-        return currentAgreedCount;
-    }
-
-    public void setCurrentAgreedCount(int currentAgreedCount) {
-        this.currentAgreedCount = currentAgreedCount;
-    }
-
-    public ProjectStatus getProjectStatus() {
-        return projectStatus;
-    }
-
-    public void setProjectStatus(ProjectStatus projectStatus) {
-        this.projectStatus = projectStatus;
-    }
-
-    public LocalDateTime getPublishDate() {
-        return publishDate;
-    }
-
-    public void setPublishDate(LocalDateTime publishDate) {
-        this.publishDate = publishDate;
-    }
-
-    public LocalDateTime getCloseDate() {
-        return closeDate;
-    }
-
-    public void setCloseDate(LocalDateTime closeDate) {
-        this.closeDate = closeDate;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
 }

@@ -1,36 +1,57 @@
 package com.cpt202.model.entity;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "teacher_profile")
+@Getter
+@Setter
+@NoArgsConstructor
 public class TeacherProfile {
+    /** Primary key shared with the related user account. */
     @Id
+    @Setter(AccessLevel.NONE)
     @Column(name = "teacher_id")
     private Long teacherId;
+
+    /** Institutional staff number. */
     @Column(name = "staff_no")
     private String staffNo;
+
+    /** Department that the teacher belongs to. */
     @Column(name = "department")
     private String department;
+
+    /** Academic or professional title of the teacher. */
     @Column(name = "title")
     private String title;
+
+    /** Main research area of the teacher. */
     @Column(name = "research_area")
     private String researchArea;
+
+    /** Office location of the teacher. */
     @Column(name = "office")
     private String office;
+
+    /** Timestamp when the profile was last updated. */
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    /** User account linked to this teacher profile. */
     @OneToOne
     @MapsId
     @JoinColumn(name = "teacher_id", referencedColumnName = "user_id")
     private User user;
 
-    public TeacherProfile() {
-    }
-
+    @Builder
     public TeacherProfile(String staffNo, String department, String title, String researchArea, String office, LocalDateTime updatedAt, User user) {
         this.staffNo = staffNo;
         this.department = department;
@@ -40,65 +61,4 @@ public class TeacherProfile {
         this.updatedAt = updatedAt;
         this.user = user;
     }
-
-    public Long getTeacherId() {
-        return teacherId;
-    }
-
-    public String getStaffNo() {
-        return staffNo;
-    }
-
-    public void setStaffNo(String staffNo) {
-        this.staffNo = staffNo;
-    }
-
-    public String getDepartment() {
-        return department;
-    }
-
-    public void setDepartment(String department) {
-        this.department = department;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getResearchArea() {
-        return researchArea;
-    }
-
-    public void setResearchArea(String researchArea) {
-        this.researchArea = researchArea;
-    }
-
-    public String getOffice() {
-        return office;
-    }
-
-    public void setOffice(String office) {
-        this.office = office;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
 }
-
