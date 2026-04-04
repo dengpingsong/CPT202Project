@@ -54,6 +54,12 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
         <!-- Testing: Spring Boot Test (includes JUnit 5, Mockito, MockMvc) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
