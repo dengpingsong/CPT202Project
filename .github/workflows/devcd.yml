@@ -2,7 +2,7 @@
 #Different from cd.yml, devcd.yml will only be triggered when files are pushed to develop branch.
 #The database built by devcd, which is cpt202-mysql, will open the port 9001 to host machine.
 
-name: Docker CD
+name: CD (Develop) - Docker Deploy
 
 on:
   workflow_run:
