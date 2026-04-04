@@ -23,7 +23,7 @@ public class ProjectStatusHistory {
     private String newStatus;
 
     @ManyToOne
-    @JoinColumn(name = "changed_by", referencedColumnName = "user_id")
+    @JoinColumn(name = "changed_by", referencedColumnName = "teacher_id")
     private TeacherProfile changedBy;
 
     @Column(name = "remark")

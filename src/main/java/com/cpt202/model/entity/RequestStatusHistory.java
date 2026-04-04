@@ -23,8 +23,8 @@ public class RequestStatusHistory {
     private String newStatus;
 
     @ManyToOne
-    @JoinColumn(name = "changed_by", referencedColumnName = "user_id")
-    private User changedBy;
+    @JoinColumn(name = "changed_by", referencedColumnName = "student_id")
+    private StudentProfile changedBy;
 
     @Column(name = "remark")
     private String remark;
@@ -36,7 +36,7 @@ public class RequestStatusHistory {
     }
 
     public RequestStatusHistory(ProjectRequest request, String oldStatus, String newStatus,
-                                User changedBy, String remark, LocalDateTime changedAt) {
+                                StudentProfile changedBy, String remark, LocalDateTime changedAt) {
         this.request = request;
         this.oldStatus = oldStatus;
         this.newStatus = newStatus;
@@ -73,11 +73,11 @@ public class RequestStatusHistory {
         this.newStatus = newStatus;
     }
 
-    public User getChangedBy() {
+    public StudentProfile getChangedBy() {
         return changedBy;
     }
 
-    public void setChangedBy(User changedBy) {
+    public void setChangedBy(StudentProfile changedBy) {
         this.changedBy = changedBy;
     }
 
