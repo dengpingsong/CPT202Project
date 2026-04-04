@@ -24,7 +24,7 @@ public class ProjectStatusHistory {
 
     @ManyToOne
     @JoinColumn(name = "changed_by", referencedColumnName = "user_id")
-    private User changedBy;
+    private TeacherProfile changedBy;
 
     @Column(name = "remark")
     private String remark;
@@ -36,7 +36,7 @@ public class ProjectStatusHistory {
     }
 
     public ProjectStatusHistory(Project project, String oldStatus, String newStatus,
-                                User changedBy, String remark, LocalDateTime changedAt) {
+                                TeacherProfile changedBy, String remark, LocalDateTime changedAt) {
         this.project = project;
         this.oldStatus = oldStatus;
         this.newStatus = newStatus;
@@ -73,11 +73,11 @@ public class ProjectStatusHistory {
         this.newStatus = newStatus;
     }
 
-    public User getChangedBy() {
+    public TeacherProfile getChangedBy() {
         return changedBy;
     }
 
-    public void setChangedBy(User changedBy) {
+    public void setChangedBy(TeacherProfile changedBy) {
         this.changedBy = changedBy;
     }
 
