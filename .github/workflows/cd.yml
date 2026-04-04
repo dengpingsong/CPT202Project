@@ -2,7 +2,7 @@ name: CD (Main) - Docker Deploy
 
 on:
   workflow_run:
-    workflows: ["CI/CD Pipeline"]
+    workflows: ["CI - Build & Test"]
     types:
       - completed
     branches: ["main", "master"]
