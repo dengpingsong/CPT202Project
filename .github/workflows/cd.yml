@@ -1,4 +1,4 @@
-name: Docker CD
+name: CD (Main) - Docker Deploy
 
 on:
   workflow_run:
