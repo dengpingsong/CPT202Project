@@ -9,7 +9,6 @@ import java.util.List;
 
 /**
  * 项目服务接口。
- * <p>
  * 负责学生端与教师端项目查询，以及教师端项目维护操作。
  */
 public interface ProjectService {
