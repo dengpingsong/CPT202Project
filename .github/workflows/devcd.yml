@@ -172,6 +172,10 @@ jobs:
               --env-file /tmp/cpt202program.env \
               cpt202program:${{ github.event.workflow_run.head_sha }}
 
+            until curl -fsS http://127.0.0.1:8080/doc.html >/dev/null; do
+              sleep 5
+            done
+
             rm -f /tmp/cpt202-mysql.env /tmp/cpt202program.env
 
             docker ps -a --filter name=cpt202-mysql --filter name=cpt202program
