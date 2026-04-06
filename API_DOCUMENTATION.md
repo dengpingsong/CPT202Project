@@ -58,7 +58,7 @@
   "role": "STUDENT",
   "studentNo": "20240001",
   "programme": "Software Engineering",
-  "year": 3,
+  "academicYear": 3,
   "phone": "13800000000",
   "interests": "AI"
 }
@@ -491,7 +491,7 @@
     "fullName": "Alice",
     "studentNo": "20240001",
     "programme": "Software Engineering",
-    "year": 3,
+    "academicYear": 3,
     "phone": "13800000000",
     "interests": "AI",
     "updatedAt": "2026-04-05T12:00:00"
@@ -512,7 +512,7 @@
   "fullName": "Alice",
   "email": "alice@example.com",
   "programme": "Software Engineering",
-  "year": 3,
+  "academicYear": 3,
   "phone": "13800000000",
   "interests": "AI"
 }
