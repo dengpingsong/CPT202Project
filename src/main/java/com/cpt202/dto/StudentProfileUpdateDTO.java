@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 
 /**
  * 学生资料更新参数。
+ * <p>
  * 同时包含用户主表中的基础信息与学生资料表中的扩展信息。
  */
 @Data
