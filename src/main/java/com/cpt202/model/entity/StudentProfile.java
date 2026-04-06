@@ -30,8 +30,8 @@ public class StudentProfile {
     private String programme;
 
     /** Current study year of the student. */
-    @Column(name = "year")
-    private int year;
+    @Column(name = "academic_year")
+    private Integer academicYear;
 
     /** Contact phone number of the student. */
     @Column(name = "phone")
@@ -52,10 +52,10 @@ public class StudentProfile {
     private User user;
 
     @Builder
-    public StudentProfile(String studentNo, String programme, int year, String phone, String interests, LocalDateTime updatedAt, User user) {
+    public StudentProfile(String studentNo, String programme, Integer academicYear, String phone, String interests, LocalDateTime updatedAt, User user) {
         this.studentNo = studentNo;
         this.programme = programme;
-        this.year = year;
+        this.academicYear = academicYear;
         this.phone = phone;
         this.interests = interests;
         this.updatedAt = updatedAt;
