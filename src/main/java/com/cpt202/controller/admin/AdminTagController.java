@@ -14,7 +14,6 @@ import java.util.List;
 
 /**
  * 管理端标签接口控制器。
- * <p>
  * 负责标签的查询、创建、修改和删除。
  */
 @RestController

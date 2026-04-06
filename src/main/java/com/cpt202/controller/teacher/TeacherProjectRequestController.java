@@ -14,7 +14,6 @@ import java.util.List;
 
 /**
  * 教师端申请审核接口控制器。
- * <p>
  * 教师可通过该控制器查看待审核申请，并执行审核动作。
  */
 @RestController

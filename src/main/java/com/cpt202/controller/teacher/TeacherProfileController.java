@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.*;
 
 /**
  * 教师端资料接口控制器。
- * <p>
  * 用于查询和维护教师个人资料。
  */
 @RestController

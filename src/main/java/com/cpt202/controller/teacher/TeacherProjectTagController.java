@@ -14,7 +14,6 @@ import java.util.List;
 
 /**
  * 教师端项目标签接口控制器。
- * <p>
  * 用于查询项目标签与执行项目标签重绑定。
  */
 @RestController
