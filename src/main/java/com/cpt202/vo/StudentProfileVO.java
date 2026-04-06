@@ -30,8 +30,8 @@ public class StudentProfileVO {
     private String studentNo;
     /** 专业。 */
     private String programme;
-    /** 年级。 */
-    private Integer year;
+    /** 学年。 */
+    private Integer academicYear;
     /** 联系电话。 */
     private String phone;
     /** 兴趣方向。 */
