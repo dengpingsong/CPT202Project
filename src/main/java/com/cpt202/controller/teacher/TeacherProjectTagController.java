@@ -1,11 +1,7 @@
 package com.cpt202.controller.teacher;
 
 import com.cpt202.dto.ProjectTagBindDTO;
-import com.cpt202.exception.UnauthorizedAccessException;
-import com.cpt202.model.entity.User;
 import com.cpt202.result.Result;
-import com.cpt202.security.AuthContext;
-import com.cpt202.service.CallbackAuthService;
 import com.cpt202.service.ProjectTagService;
 import com.cpt202.vo.ProjectTagVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,9 +41,7 @@ public class TeacherProjectTagController {
      */
     @GetMapping("/{projectId}")
     @Operation(summary = "List project tags")
-    public Result<List<ProjectTagVO>> listProjectTags(@PathVariable Long projectId,
-                                                      @RequestHeader("Authorization") String authorization) {
-        callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
+    public Result<List<ProjectTagVO>> listProjectTags(@PathVariable Long projectId) {
         log.info("List project tags: {}", projectId);
         return Result.success(projectTagService.listProjectTags(projectId));
     }
@@ -62,19 +56,10 @@ public class TeacherProjectTagController {
     @PutMapping("/{projectId}")
     @Operation(summary = "Bind tags to a project")
     public Result<Void> bindProjectTags(@PathVariable Long projectId,
-                                        @Valid @RequestBody ProjectTagBindDTO bindDTO,
-                                        @RequestHeader("Authorization") String authorization) {
-        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
-        ensureCurrentTeacher(bindDTO.getTeacherId(), authContext);
+                                        @Valid @RequestBody ProjectTagBindDTO bindDTO) {
         log.info("Bind project tags, projectId: {}, teacherId: {}, tagIds: {}",
                 projectId, bindDTO.getTeacherId(), bindDTO.getTagIds());
         projectTagService.bindProjectTags(projectId, bindDTO.getTeacherId(), bindDTO.getTagIds());
         return Result.success();
-    }
-
-    private void ensureCurrentTeacher(Long teacherId, AuthContext authContext) {
-        if (!authContext.userId().equals(teacherId)) {
-            throw new UnauthorizedAccessException("不能修改其他教师名下项目的标签。");
-        }
     }
 }

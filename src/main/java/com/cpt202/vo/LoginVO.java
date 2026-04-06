@@ -27,6 +27,4 @@ public class LoginVO {
     private User.UserRole role;
     /** 账号状态。 */
     private String accountStatus;
-    /** JWT 访问令牌。 */
-    private String token;
 }

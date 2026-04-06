@@ -54,22 +54,7 @@ public class ProfileServiceImpl implements ProfileService {
      */
     @Override
     public void updateStudentProfile(Long studentId, StudentProfileUpdateDTO studentProfileUpdateDTO) {
-        StudentProfile profile = studentProfileRepository.findById(studentId)
-                .orElseThrow(() -> new NotFoundException("学生资料未找到。"));
-
-        if (profile.getUser() == null || profile.getUser().getRole() != User.UserRole.STUDENT) {
-            throw new BusinessException("该用户不是学生角色。无法修改学生资料。" );
-        }
-
-        profile.getUser().setFullName(studentProfileUpdateDTO.getFullName());
-        profile.getUser().setEmail(studentProfileUpdateDTO.getEmail());
-        profile.setProgramme(studentProfileUpdateDTO.getProgramme());
-        profile.setEnrollmentDate(studentProfileUpdateDTO.getEnrollmentDate());
-        profile.setPhone(studentProfileUpdateDTO.getPhone());
-        profile.setInterests(studentProfileUpdateDTO.getInterests());
-        profile.setUpdatedAt(LocalDateTime.now());
-
-        studentProfileRepository.save(profile);
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     /**
