@@ -129,6 +129,29 @@ jobs:
               sleep 5
             done
 
+            APP_DB='${{ secrets.MYSQL_DATABASE }}'
+            APP_USER='${{ secrets.MYSQL_USERNAME }}'
+            APP_PASS='${{ secrets.MYSQL_PASSWORD }}'
+
+            ESCAPED_APP_DB=$(printf "%s" "$APP_DB" | sed 's/`/``/g')
+            ESCAPED_APP_USER=$(printf "%s" "$APP_USER" | sed "s/'/''/g")
+            ESCAPED_APP_PASS=$(printf "%s" "$APP_PASS" | sed "s/'/''/g")
+
+            docker exec -e MYSQL_PWD="${{ secrets.MYSQL_ROOT_PASSWORD }}" cpt202-mysql \
+            mysql -uroot <<SQL
+            CREATE DATABASE IF NOT EXISTS \`$ESCAPED_APP_DB\`
+            CHARACTER SET utf8mb4
+            COLLATE utf8mb4_unicode_ci;
+
+            CREATE USER IF NOT EXISTS '$ESCAPED_APP_USER'@'%' IDENTIFIED BY '$ESCAPED_APP_PASS';
+
+            ALTER USER '$ESCAPED_APP_USER'@'%' IDENTIFIED BY '$ESCAPED_APP_PASS';
+
+            GRANT ALL PRIVILEGES ON \`$ESCAPED_APP_DB\`.* TO '$ESCAPED_APP_USER'@'%';
+
+            FLUSH PRIVILEGES;
+            SQL
+
             gzip -dc /tmp/cpt202program-image.tar.gz | docker load
             rm -f /tmp/cpt202program-image.tar.gz
 
@@ -153,6 +176,10 @@ jobs:
               -p 8080:8080 \
               --env-file /tmp/cpt202program.env \
               cpt202program:${{ github.event.workflow_run.head_sha }}
+
+            until curl -fsS http://127.0.0.1:8080/doc.html >/dev/null; do
+              sleep 5
+            done
 
             rm -f /tmp/cpt202-mysql.env /tmp/cpt202program.env
 
