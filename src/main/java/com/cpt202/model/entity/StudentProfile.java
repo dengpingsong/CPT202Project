@@ -31,9 +31,9 @@ public class StudentProfile {
     @Column(name = "programme")
     private String programme;
 
-    /** 入学日期，用于动态计算学年。 */
-    @Column(name = "enrollment_date")
-    private LocalDate enrollmentDate;
+    /** Current study year of the student. */
+    @Column(name = "academic_year")
+    private Integer academicYear;
 
     /** Contact phone number of the student. */
     @Column(name = "phone")
@@ -66,10 +66,10 @@ public class StudentProfile {
     }
 
     @Builder
-    public StudentProfile(String studentNo, String programme, LocalDate enrollmentDate, String phone, String interests, LocalDateTime updatedAt, User user) {
+    public StudentProfile(String studentNo, String programme, Integer academicYear, String phone, String interests, LocalDateTime updatedAt, User user) {
         this.studentNo = studentNo;
         this.programme = programme;
-        this.enrollmentDate = enrollmentDate;
+        this.academicYear = academicYear;
         this.phone = phone;
         this.interests = interests;
         this.updatedAt = updatedAt;

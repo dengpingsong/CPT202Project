@@ -3,8 +3,6 @@ package com.cpt202.dto;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
-import java.time.LocalDate;
-
 /**
  * 学生资料更新参数。
  * 同时包含用户主表中的基础信息与学生资料表中的扩展信息。
@@ -22,8 +20,8 @@ public class StudentProfileUpdateDTO {
 
     /** 专业。 */
     private String programme;
-    /** 入学日期。 */
-    private LocalDate enrollmentDate;
+    /** 学年。 */
+    private Integer academicYear;
     /** 联系电话。 */
     private String phone;
     /** 兴趣方向。 */
