@@ -31,9 +31,9 @@ public class StudentProfile {
     @Column(name = "programme")
     private String programme;
 
-    /** Current study year of the student. */
-    @Column(name = "academic_year")
-    private Integer academicYear;
+    /** 入学日期，用于动态计算学年。 */
+    @Column(name = "enrollment_date")
+    private LocalDate enrollmentDate;
 
     /** Contact phone number of the student. */
     @Column(name = "phone")
@@ -53,11 +53,23 @@ public class StudentProfile {
     @JoinColumn(name = "student_id", referencedColumnName = "user_id")
     private User user;
 
+    /**
+     * 根据入学日期与当前时间计算学年（第几学年）。
+     * 入学当年为第 1 学年。
+     */
+    @Transient
+    public int getAcademicYear() {
+        if (enrollmentDate == null) {
+            return 0;
+        }
+        return (int) ChronoUnit.YEARS.between(enrollmentDate, LocalDate.now()) + 1;
+    }
+
     @Builder
-    public StudentProfile(String studentNo, String programme, Integer academicYear, String phone, String interests, LocalDateTime updatedAt, User user) {
+    public StudentProfile(String studentNo, String programme, LocalDate enrollmentDate, String phone, String interests, LocalDateTime updatedAt, User user) {
         this.studentNo = studentNo;
         this.programme = programme;
-        this.academicYear = academicYear;
+        this.enrollmentDate = enrollmentDate;
         this.phone = phone;
         this.interests = interests;
         this.updatedAt = updatedAt;
