@@ -16,16 +16,19 @@ import com.cpt202.repository.TeacherProfileRepository;
 import com.cpt202.service.ProjectRequestValidationService;
 import com.cpt202.service.ProjectRequestService;
 import com.cpt202.vo.ProjectRequestVO;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 项目申请服务实现类。
- * <p>
- * 当前阶段仅完成接口定义，后续将在此落地申请提交、撤回与审核的业务逻辑。
+ * Project Request Service Implementation.
+ * Integrates Module 8 business rules for project selection.
  */
 @Service
+@RequiredArgsConstructor
 public class ProjectRequestServiceImpl implements ProjectRequestService {
 
     private final ProjectRequestRepository requestRepository;
@@ -61,27 +64,31 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
     }
 
     /**
-     * 查询学生申请列表。
+     * Student submits a project request. (PBI 1 & 2)
      */
     @Override
-    public List<ProjectRequestVO> listStudentRequests(Long studentId) {
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
+    @Transactional
+    public void create(ProjectRequestCreateDTO dto) {
+        // 1. 调用 Module 8 校验：检查截止日期和“一人一选”限制
+        module8Service.validateRequest(dto.getStudentId());
 
-    /**
-     * 查询教师待审核申请列表。
-     */
-    @Override
-    public List<ProjectRequestVO> listTeacherRequests(Long teacherId, ProjectRequest.RequestStatus status) {
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
+        // 2. 查找关联实体
+        StudentProfile student = studentRepository.findById(dto.getStudentId())
+                .orElseThrow(() -> new RuleViolationException("Student record not found."));
+        Project project = projectRepository.findById(dto.getProjectId())
+                .orElseThrow(() -> new RuleViolationException("Project record not found."));
 
-    /**
-     * 学生撤回项目申请。
-     */
-    @Override
-    public void withdraw(Long requestId, Long studentId) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        // 3. 构建并保存申请记录
+        ProjectRequest request = ProjectRequest.builder()
+                .student(student)
+                .project(project)
+                .preferenceRank(dto.getPreferenceRank())
+                .notes(dto.getNotes())
+                .requestStatus(ProjectRequest.RequestStatus.PENDING) // 初始状态为待处理
+                .submittedAt(LocalDateTime.now())
+                .build();
+
+        requestRepository.save(request);
     }
 
     /**
