@@ -58,7 +58,7 @@ public class Project {
 
     /** Maximum number of students allowed in the project. */
     @Column(name = "max_students")
-    private int maxStudents;
+    private Integer maxStudents;
 
     /** Current number of students already agreed for the project. */
     @Column(name = "current_agreed_count")
@@ -87,7 +87,7 @@ public class Project {
 
     @Builder
     public Project(TeacherProfile teacher, Category category, String title, String description,
-                   String requiredSkills, String topicArea, int maxStudents, int currentAgreedCount,
+                   String requiredSkills, String topicArea, Integer maxStudents, Integer currentAgreedCount,
                    ProjectStatus projectStatus, LocalDateTime publishDate, LocalDateTime closeDate,
                    LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.teacher = teacher;
