@@ -1,6 +1,7 @@
 package com.cpt202.model.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -57,10 +58,12 @@ public class Project {
     private String topicArea;
 
     /** Maximum number of students allowed in the project. */
+    @Min(1)
     @Column(name = "max_students")
     private Integer maxStudents;
 
     /** Current number of students already agreed for the project. */
+    @Min(0)
     @Column(name = "current_agreed_count")
     private Integer currentAgreedCount;
 
