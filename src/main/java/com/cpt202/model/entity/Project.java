@@ -62,7 +62,7 @@ public class Project {
 
     /** Current number of students already agreed for the project. */
     @Column(name = "current_agreed_count")
-    private int currentAgreedCount;
+    private Integer currentAgreedCount = 0;
 
     /** Current lifecycle status of the project. */
     @Enumerated(EnumType.STRING)
