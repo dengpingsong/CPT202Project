@@ -41,10 +41,10 @@ public class AdminCategoryController {
      */
     @GetMapping
     @Operation(summary = "List categories")
-    public Result<List<CategoryVO>> list(@RequestParam Long operatorId) {
-        log.info("List categories, operatorId: {}", operatorId);
+    public Result<List<CategoryVO>> list(@RequestHeader("Authorization") String authorization) {
+        log.info("List categories");
         return Result.success(
-                callbackAuthService.doWithAuthCheck(operatorId, User.UserRole.ADMIN,
+                callbackAuthService.doWithAuthCheck(authorization, User.UserRole.ADMIN,
                         () -> categoryService.listAll()));
     }
 
@@ -58,10 +58,10 @@ public class AdminCategoryController {
     @GetMapping("/{categoryId}")
     @Operation(summary = "Get category by ID")
     public Result<CategoryVO> getById(@PathVariable Long categoryId,
-                                      @RequestParam Long operatorId) {
-        log.info("Get category by id: {}, operatorId: {}", categoryId, operatorId);
+                                      @RequestHeader("Authorization") String authorization) {
+        log.info("Get category by id: {}", categoryId);
         return Result.success(
-                callbackAuthService.doWithAuthCheck(operatorId, User.UserRole.ADMIN,
+                callbackAuthService.doWithAuthCheck(authorization, User.UserRole.ADMIN,
                         () -> categoryService.getById(categoryId)));
     }
 
@@ -75,9 +75,9 @@ public class AdminCategoryController {
     @PostMapping
     @Operation(summary = "Create a category")
     public Result<Void> create(@Valid @RequestBody CategoryDTO categoryDTO,
-                               @RequestParam Long operatorId) {
-        log.info("Create category: {}, operatorId: {}", categoryDTO, operatorId);
-        callbackAuthService.doWithAuthCheck(operatorId, User.UserRole.ADMIN,
+                               @RequestHeader("Authorization") String authorization) {
+        log.info("Create category: {}", categoryDTO);
+        callbackAuthService.doWithAuthCheck(authorization, User.UserRole.ADMIN,
                 () -> categoryService.create(categoryDTO));
         return Result.success();
     }
@@ -94,9 +94,9 @@ public class AdminCategoryController {
     @Operation(summary = "Update a category")
     public Result<Void> update(@PathVariable Long categoryId,
                                @Valid @RequestBody CategoryDTO categoryDTO,
-                               @RequestParam Long operatorId) {
-        log.info("Update category: {}, payload: {}, operatorId: {}", categoryId, categoryDTO, operatorId);
-        callbackAuthService.doWithAuthCheck(operatorId, User.UserRole.ADMIN,
+                               @RequestHeader("Authorization") String authorization) {
+        log.info("Update category: {}, payload: {}", categoryId, categoryDTO);
+        callbackAuthService.doWithAuthCheck(authorization, User.UserRole.ADMIN,
                 () -> categoryService.update(categoryId, categoryDTO));
         return Result.success();
     }
@@ -111,9 +111,9 @@ public class AdminCategoryController {
     @DeleteMapping("/{categoryId}")
     @Operation(summary = "Delete a category")
     public Result<Void> delete(@PathVariable Long categoryId,
-                               @RequestParam Long operatorId) {
-        log.info("Delete category: {}, operatorId: {}", categoryId, operatorId);
-        callbackAuthService.doWithAuthCheck(operatorId, User.UserRole.ADMIN,
+                               @RequestHeader("Authorization") String authorization) {
+        log.info("Delete category: {}", categoryId);
+        callbackAuthService.doWithAuthCheck(authorization, User.UserRole.ADMIN,
                 () -> categoryService.delete(categoryId));
         return Result.success();
     }

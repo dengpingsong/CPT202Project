@@ -38,29 +38,29 @@ public class AdminRecordController {
 
     @GetMapping("/projects")
     @Operation(summary = "List project records")
-    public Result<List<ProjectVO>> listProjectRecords(@RequestParam Long operatorId) {
-        log.info("List project records, operatorId: {}", operatorId);
+        public Result<List<ProjectVO>> listProjectRecords(@RequestHeader("Authorization") String authorization) {
+                log.info("List project records");
         return Result.success(
-                callbackAuthService.doWithAuthCheck(operatorId, User.UserRole.ADMIN,
+                                callbackAuthService.doWithAuthCheck(authorization, User.UserRole.ADMIN,
                         () -> recordService.listProjectRecords()));
     }
 
     @GetMapping("/requests")
     @Operation(summary = "List request records")
     public Result<List<ProjectRequestVO>> listRequestRecords(AdminRequestRecordQueryDTO queryDTO,
-                                                             @RequestParam Long operatorId) {
-        log.info("List request records, status: {}, operatorId: {}", queryDTO.getStatus(), operatorId);
+                                                             @RequestHeader("Authorization") String authorization) {
+        log.info("List request records, status: {}", queryDTO.getStatus());
         return Result.success(
-                callbackAuthService.doWithAuthCheck(operatorId, User.UserRole.ADMIN,
+                callbackAuthService.doWithAuthCheck(authorization, User.UserRole.ADMIN,
                         () -> recordService.listRequestRecords(queryDTO.getStatus())));
     }
 
     @GetMapping("/request-history")
     @Operation(summary = "List request history records")
-    public Result<List<RequestStatusHistoryVO>> listRequestHistoryRecords(@RequestParam Long operatorId) {
-        log.info("List request history records, operatorId: {}", operatorId);
+        public Result<List<RequestStatusHistoryVO>> listRequestHistoryRecords(@RequestHeader("Authorization") String authorization) {
+                log.info("List request history records");
         return Result.success(
-                callbackAuthService.doWithAuthCheck(operatorId, User.UserRole.ADMIN,
+                                callbackAuthService.doWithAuthCheck(authorization, User.UserRole.ADMIN,
                         () -> recordService.listRequestHistoryRecords()));
     }
 }

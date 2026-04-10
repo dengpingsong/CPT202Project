@@ -42,10 +42,10 @@ public class TeacherProjectTagController {
     @GetMapping("/{projectId}")
     @Operation(summary = "List project tags")
     public Result<List<ProjectTagVO>> listProjectTags(@PathVariable Long projectId,
-                                                      @RequestParam Long teacherId) {
-        log.info("List project tags: {}, teacherId: {}", projectId, teacherId);
+                                                      @RequestHeader("Authorization") String authorization) {
+        log.info("List project tags: {}", projectId);
         return Result.success(
-                callbackAuthService.doWithAuthCheck(teacherId, User.UserRole.TEACHER,
+                callbackAuthService.doWithAuthCheck(authorization, User.UserRole.TEACHER,
                         () -> projectTagService.listProjectTags(projectId)));
     }
 
@@ -59,10 +59,11 @@ public class TeacherProjectTagController {
     @PutMapping("/{projectId}")
     @Operation(summary = "Bind tags to a project")
     public Result<Void> bindProjectTags(@PathVariable Long projectId,
-                                        @Valid @RequestBody ProjectTagBindDTO bindDTO) {
+                                        @Valid @RequestBody ProjectTagBindDTO bindDTO,
+                                        @RequestHeader("Authorization") String authorization) {
         log.info("Bind project tags, projectId: {}, teacherId: {}, tagIds: {}",
                 projectId, bindDTO.getTeacherId(), bindDTO.getTagIds());
-        callbackAuthService.doWithAuthCheck(bindDTO.getTeacherId(), User.UserRole.TEACHER,
+        callbackAuthService.doWithAuthCheck(authorization, User.UserRole.TEACHER,
                 () -> projectTagService.bindProjectTags(projectId, bindDTO.getTeacherId(), bindDTO.getTagIds()));
         return Result.success();
     }

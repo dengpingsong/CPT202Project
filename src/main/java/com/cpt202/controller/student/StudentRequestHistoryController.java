@@ -41,10 +41,10 @@ public class StudentRequestHistoryController {
     @GetMapping("/{requestId}")
     @Operation(summary = "Get request status history")
     public Result<List<RequestStatusHistoryVO>> getRequestHistory(@PathVariable Long requestId,
-                                                                  @RequestParam Long studentId) {
-        log.info("Get request history: {}, studentId: {}", requestId, studentId);
+                                      @RequestHeader("Authorization") String authorization) {
+        log.info("Get request history: {}", requestId);
         return Result.success(
-                callbackAuthService.doWithAuthCheck(studentId, User.UserRole.STUDENT,
+            callbackAuthService.doWithAuthCheck(authorization, User.UserRole.STUDENT,
                         () -> historyService.getRequestHistory(requestId)));
     }
 }
