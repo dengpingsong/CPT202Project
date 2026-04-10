@@ -25,8 +25,10 @@ import java.time.LocalDateTime;
 public class ProfileServiceImpl implements ProfileService {
 
     private final StudentProfileRepository studentProfileRepository;
-    private final TeacherProfileRepository teacherProfileRepository;
 
+    public ProfileServiceImpl(StudentProfileRepository studentProfileRepository) {
+        this.studentProfileRepository = studentProfileRepository;
+    }
     /**
      * 查询学生资料。
      *
