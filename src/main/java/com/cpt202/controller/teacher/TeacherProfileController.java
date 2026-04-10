@@ -39,9 +39,12 @@ public class TeacherProfileController {
      */
     @GetMapping("/{teacherId}")
     @Operation(summary = "Get teacher profile")
-    public Result<TeacherProfileVO> getById(@PathVariable Long teacherId) {
+    public Result<TeacherProfileVO> getById(@PathVariable Long teacherId,
+                                            @RequestHeader("Authorization") String authorization) {
         log.info("Get teacher profile: {}", teacherId);
-        return Result.success(profileService.getTeacherProfile(teacherId));
+        return Result.success(
+                callbackAuthService.doWithAuthCheck(authorization, User.UserRole.TEACHER,
+                        () -> profileService.getTeacherProfile(teacherId)));
     }
 
     /**
@@ -54,9 +57,11 @@ public class TeacherProfileController {
     @PutMapping("/{teacherId}")
     @Operation(summary = "Update teacher profile")
     public Result<Void> update(@PathVariable Long teacherId,
-                               @Valid @RequestBody TeacherProfileUpdateDTO teacherProfileUpdateDTO) {
+                               @Valid @RequestBody TeacherProfileUpdateDTO teacherProfileUpdateDTO,
+                               @RequestHeader("Authorization") String authorization) {
         log.info("Update teacher profile: {}, payload: {}", teacherId, teacherProfileUpdateDTO);
-        profileService.updateTeacherProfile(teacherId, teacherProfileUpdateDTO);
+        callbackAuthService.doWithAuthCheck(authorization, User.UserRole.TEACHER,
+                () -> profileService.updateTeacherProfile(teacherId, teacherProfileUpdateDTO));
         return Result.success();
     }
 }

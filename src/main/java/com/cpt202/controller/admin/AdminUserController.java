@@ -38,8 +38,11 @@ public class AdminUserController {
      */
     @GetMapping
     @Operation(summary = "List users")
-    public Result<List<UserVO>> list(AdminUserQueryDTO queryDTO) {
-        return Result.success(userAdminService.listUsers(queryDTO.getRole(), queryDTO.getAccountStatus()));
+    public Result<List<UserVO>> list(AdminUserQueryDTO queryDTO,
+                         @RequestHeader("Authorization") String authorization) {
+        return Result.success(
+            callbackAuthService.doWithAuthCheck(authorization, User.UserRole.ADMIN,
+                        () -> userAdminService.listUsers(queryDTO.getRole(), queryDTO.getAccountStatus())));
     }
 
     /**
@@ -52,8 +55,10 @@ public class AdminUserController {
     @PutMapping("/{userId}/status")
     @Operation(summary = "Update user status")
     public Result<Void> updateStatus(@PathVariable Long userId,
-                                     @RequestParam String accountStatus) {
-        userAdminService.updateStatus(userId, accountStatus);
+                                     @RequestParam String accountStatus,
+                                     @RequestHeader("Authorization") String authorization) {
+        callbackAuthService.doWithAuthCheck(authorization, User.UserRole.ADMIN,
+                () -> userAdminService.updateStatus(userId, accountStatus));
         return Result.success();
     }
 }

@@ -40,8 +40,11 @@ public class StudentProjectRequestController {
      */
     @GetMapping
     @Operation(summary = "List student requests")
-    public Result<List<ProjectRequestVO>> list(@Valid StudentProjectRequestQueryDTO queryDTO) {
-        return Result.success(projectRequestService.listStudentRequests(queryDTO.getStudentId()));
+    public Result<List<ProjectRequestVO>> list(@Valid StudentProjectRequestQueryDTO queryDTO,
+                                               @RequestHeader("Authorization") String authorization) {
+        return Result.success(
+                callbackAuthService.doWithAuthCheck(authorization, User.UserRole.STUDENT,
+                        () -> projectRequestService.listStudentRequests(queryDTO.getStudentId())));
     }
 
     /**
@@ -52,8 +55,10 @@ public class StudentProjectRequestController {
      */
     @PostMapping
     @Operation(summary = "Submit a project request")
-    public Result<Void> create(@Valid @RequestBody ProjectRequestCreateDTO projectRequestCreateDTO) {
-        projectRequestService.create(projectRequestCreateDTO);
+    public Result<Void> create(@Valid @RequestBody ProjectRequestCreateDTO projectRequestCreateDTO,
+                               @RequestHeader("Authorization") String authorization) {
+        callbackAuthService.doWithAuthCheck(authorization, User.UserRole.STUDENT,
+                () -> projectRequestService.create(projectRequestCreateDTO));
         return Result.success();
     }
 
@@ -67,8 +72,10 @@ public class StudentProjectRequestController {
     @PutMapping("/{requestId}/withdraw")
     @Operation(summary = "Withdraw a project request")
     public Result<Void> withdraw(@PathVariable Long requestId,
-                                 @RequestParam Long studentId) {
-        projectRequestService.withdraw(requestId, studentId);
+                                 @RequestParam Long studentId,
+                                 @RequestHeader("Authorization") String authorization) {
+        callbackAuthService.doWithAuthCheck(authorization, User.UserRole.STUDENT,
+                () -> projectRequestService.withdraw(requestId, studentId));
         return Result.success();
     }
 }

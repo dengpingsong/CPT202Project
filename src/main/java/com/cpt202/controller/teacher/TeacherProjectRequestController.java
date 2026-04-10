@@ -40,8 +40,11 @@ public class TeacherProjectRequestController {
      */
     @GetMapping
     @Operation(summary = "List teacher requests for review")
-    public Result<List<ProjectRequestVO>> list(@Valid TeacherProjectRequestQueryDTO queryDTO) {
-        return Result.success(projectRequestService.listTeacherRequests(queryDTO.getTeacherId(), queryDTO.getStatus()));
+    public Result<List<ProjectRequestVO>> list(@Valid TeacherProjectRequestQueryDTO queryDTO,
+                                               @RequestHeader("Authorization") String authorization) {
+        return Result.success(
+                callbackAuthService.doWithAuthCheck(authorization, User.UserRole.TEACHER,
+                        () -> projectRequestService.listTeacherRequests(queryDTO.getTeacherId(), queryDTO.getStatus())));
     }
 
     /**
@@ -54,8 +57,10 @@ public class TeacherProjectRequestController {
     @PutMapping("/{requestId}/review")
     @Operation(summary = "Review a project request")
     public Result<Void> review(@PathVariable Long requestId,
-                               @Valid @RequestBody ProjectRequestReviewDTO projectRequestReviewDTO) {
-        projectRequestService.review(requestId, projectRequestReviewDTO);
+                               @Valid @RequestBody ProjectRequestReviewDTO projectRequestReviewDTO,
+                               @RequestHeader("Authorization") String authorization) {
+        callbackAuthService.doWithAuthCheck(authorization, User.UserRole.TEACHER,
+                () -> projectRequestService.review(requestId, projectRequestReviewDTO));
         return Result.success();
     }
 }
