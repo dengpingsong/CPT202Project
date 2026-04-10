@@ -1,15 +1,14 @@
 package com.cpt202.controller.student;
 
+import com.cpt202.model.entity.User;
 import com.cpt202.result.Result;
+import com.cpt202.service.CallbackAuthService;
 import com.cpt202.service.HistoryService;
 import com.cpt202.vo.RequestStatusHistoryVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -24,26 +23,28 @@ import java.util.List;
 public class StudentRequestHistoryController {
 
     private final HistoryService historyService;
+    private final CallbackAuthService callbackAuthService;
 
-    /**
-     * 构造器注入历史记录服务。
-     *
-     * @param historyService 历史记录服务
-     */
-    public StudentRequestHistoryController(HistoryService historyService) {
+    public StudentRequestHistoryController(HistoryService historyService,
+                                           CallbackAuthService callbackAuthService) {
         this.historyService = historyService;
+        this.callbackAuthService = callbackAuthService;
     }
 
     /**
      * 根据申请主键查询其状态历史记录。
      *
      * @param requestId 申请主键
+     * @param studentId 学生主键
      * @return 申请状态历史列表
      */
     @GetMapping("/{requestId}")
     @Operation(summary = "Get request status history")
-    public Result<List<RequestStatusHistoryVO>> getRequestHistory(@PathVariable Long requestId) {
-        log.info("Get request history: {}", requestId);
-        return Result.success(historyService.getRequestHistory(requestId));
+    public Result<List<RequestStatusHistoryVO>> getRequestHistory(@PathVariable Long requestId,
+                                                                  @RequestParam Long studentId) {
+        log.info("Get request history: {}, studentId: {}", requestId, studentId);
+        return Result.success(
+                callbackAuthService.doWithAuthCheck(studentId, User.UserRole.STUDENT,
+                        () -> historyService.getRequestHistory(requestId)));
     }
 }

@@ -1,8 +1,10 @@
 package com.cpt202.controller.admin;
 
 import com.cpt202.dto.AdminRequestRecordQueryDTO;
+import com.cpt202.model.entity.User;
 import com.cpt202.model.entity.ProjectRequest;
 import com.cpt202.result.Result;
+import com.cpt202.service.CallbackAuthService;
 import com.cpt202.service.RecordService;
 import com.cpt202.vo.ProjectVO;
 import com.cpt202.vo.ProjectRequestVO;
@@ -10,9 +12,7 @@ import com.cpt202.vo.RequestStatusHistoryVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -28,34 +28,39 @@ import java.util.List;
 public class AdminRecordController {
 
     private final RecordService recordService;
+    private final CallbackAuthService callbackAuthService;
 
-    /**
-     * 构造器注入记录服务。
-     *
-     * @param recordService 记录服务
-     */
-    public AdminRecordController(RecordService recordService) {
+    public AdminRecordController(RecordService recordService,
+                                 CallbackAuthService callbackAuthService) {
         this.recordService = recordService;
+        this.callbackAuthService = callbackAuthService;
     }
 
     @GetMapping("/projects")
     @Operation(summary = "List project records")
-    public Result<List<ProjectVO>> listProjectRecords() {
-        log.info("List project records");
-        return Result.success(recordService.listProjectRecords());
+    public Result<List<ProjectVO>> listProjectRecords(@RequestParam Long operatorId) {
+        log.info("List project records, operatorId: {}", operatorId);
+        return Result.success(
+                callbackAuthService.doWithAuthCheck(operatorId, User.UserRole.ADMIN,
+                        () -> recordService.listProjectRecords()));
     }
 
     @GetMapping("/requests")
     @Operation(summary = "List request records")
-    public Result<List<ProjectRequestVO>> listRequestRecords(AdminRequestRecordQueryDTO queryDTO) {
-        log.info("List request records, status: {}", queryDTO.getStatus());
-        return Result.success(recordService.listRequestRecords(queryDTO.getStatus()));
+    public Result<List<ProjectRequestVO>> listRequestRecords(AdminRequestRecordQueryDTO queryDTO,
+                                                             @RequestParam Long operatorId) {
+        log.info("List request records, status: {}, operatorId: {}", queryDTO.getStatus(), operatorId);
+        return Result.success(
+                callbackAuthService.doWithAuthCheck(operatorId, User.UserRole.ADMIN,
+                        () -> recordService.listRequestRecords(queryDTO.getStatus())));
     }
 
     @GetMapping("/request-history")
     @Operation(summary = "List request history records")
-    public Result<List<RequestStatusHistoryVO>> listRequestHistoryRecords() {
-        log.info("List request history records");
-        return Result.success(recordService.listRequestHistoryRecords());
+    public Result<List<RequestStatusHistoryVO>> listRequestHistoryRecords(@RequestParam Long operatorId) {
+        log.info("List request history records, operatorId: {}", operatorId);
+        return Result.success(
+                callbackAuthService.doWithAuthCheck(operatorId, User.UserRole.ADMIN,
+                        () -> recordService.listRequestHistoryRecords()));
     }
 }
