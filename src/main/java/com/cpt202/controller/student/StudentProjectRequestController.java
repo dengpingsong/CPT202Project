@@ -2,7 +2,9 @@ package com.cpt202.controller.student;
 
 import com.cpt202.dto.ProjectRequestCreateDTO;
 import com.cpt202.dto.StudentProjectRequestQueryDTO;
+import com.cpt202.model.entity.User;
 import com.cpt202.result.Result;
+import com.cpt202.service.CallbackAuthService;
 import com.cpt202.service.ProjectRequestService;
 import com.cpt202.vo.ProjectRequestVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,14 +24,12 @@ import java.util.List;
 public class StudentProjectRequestController {
 
     private final ProjectRequestService projectRequestService;
+    private final CallbackAuthService callbackAuthService;
 
-    /**
-     * 构造器注入项目申请服务。
-     *
-     * @param projectRequestService 项目申请服务
-     */
-    public StudentProjectRequestController(ProjectRequestService projectRequestService) {
+    public StudentProjectRequestController(ProjectRequestService projectRequestService,
+                                           CallbackAuthService callbackAuthService) {
         this.projectRequestService = projectRequestService;
+        this.callbackAuthService = callbackAuthService;
     }
 
     /**
@@ -41,7 +41,9 @@ public class StudentProjectRequestController {
     @GetMapping
     @Operation(summary = "List student requests")
     public Result<List<ProjectRequestVO>> list(@Valid StudentProjectRequestQueryDTO queryDTO) {
-        return Result.success(projectRequestService.listStudentRequests(queryDTO.getStudentId()));
+        return Result.success(
+                callbackAuthService.doWithAuthCheck(queryDTO.getStudentId(), User.UserRole.STUDENT,
+                        () -> projectRequestService.listStudentRequests(queryDTO.getStudentId())));
     }
 
     /**
@@ -53,7 +55,8 @@ public class StudentProjectRequestController {
     @PostMapping
     @Operation(summary = "Submit a project request")
     public Result<Void> create(@Valid @RequestBody ProjectRequestCreateDTO projectRequestCreateDTO) {
-        projectRequestService.create(projectRequestCreateDTO);
+        callbackAuthService.doWithAuthCheck(projectRequestCreateDTO.getStudentId(), User.UserRole.STUDENT,
+                () -> projectRequestService.create(projectRequestCreateDTO));
         return Result.success();
     }
 
@@ -68,7 +71,8 @@ public class StudentProjectRequestController {
     @Operation(summary = "Withdraw a project request")
     public Result<Void> withdraw(@PathVariable Long requestId,
                                  @RequestParam Long studentId) {
-        projectRequestService.withdraw(requestId, studentId);
+        callbackAuthService.doWithAuthCheck(studentId, User.UserRole.STUDENT,
+                () -> projectRequestService.withdraw(requestId, studentId));
         return Result.success();
     }
 }
