@@ -9,6 +9,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -17,13 +18,14 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
+import java.util.function.Supplier;
 
 /**
  * 回调式权限认证服务实现类。
  * <p>
  * 自动从当前 HTTP 请求的 Authorization 头中提取 JWT 令牌，
  * 解析并校验身份一致性、角色与账号状态，
- * 通过后返回当前用户上下文，否则抛出 {@link UnauthorizedAccessException}。
+ * 通过后回调执行业务逻辑，否则抛出 {@link UnauthorizedAccessException}。
  */
 @Service
 @Slf4j
@@ -33,14 +35,17 @@ public class CallbackAuthServiceImpl implements CallbackAuthService {
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final UserRepository userRepository;
+    private final HttpServletRequest httpServletRequest;
     private final String secret;
     private final long expirationSeconds;
     private SecretKey signingKey;
 
     public CallbackAuthServiceImpl(UserRepository userRepository,
+                                   HttpServletRequest httpServletRequest,
                                    @Value("${jwt.secret}") String secret,
                                    @Value("${jwt.expiration-seconds}") long expirationSeconds) {
         this.userRepository = userRepository;
+        this.httpServletRequest = httpServletRequest;
         this.secret = secret;
         this.expirationSeconds = expirationSeconds;
     }
@@ -57,8 +62,15 @@ public class CallbackAuthServiceImpl implements CallbackAuthService {
     // ==================== 接口方法 ====================
 
     @Override
-    public AuthContext requireAuth(String authorization, User.UserRole requiredRole) {
-        return verify(authorization, requiredRole);
+    public <T> T doWithAuthCheck(Long userId, User.UserRole requiredRole, Supplier<T> action) {
+        verify(userId, requiredRole);
+        return action.get();
+    }
+
+    @Override
+    public void doWithAuthCheck(Long userId, User.UserRole requiredRole, Runnable action) {
+        verify(userId, requiredRole);
+        action.run();
     }
 
     @Override
@@ -78,19 +90,19 @@ public class CallbackAuthServiceImpl implements CallbackAuthService {
 
     // ==================== 私有方法 ====================
 
-    /**
-     * 从 Authorization 头值中提取并解析 JWT，返回解析结果。
-     */
-    private ParsedToken extractToken(String authorization) {
+    private void verify(Long userId, User.UserRole requiredRole) {
+        String authorization = httpServletRequest.getHeader("Authorization");
         if (authorization == null || !authorization.startsWith(BEARER_PREFIX)) {
             throw new UnauthorizedAccessException("缺少有效的 Authorization Bearer Token。");
         }
-        String jwt = authorization.substring(BEARER_PREFIX.length()).trim();
-        return parseToken(jwt);
-    }
 
-    private AuthContext verify(String authorization, User.UserRole requiredRole) {
-        ParsedToken parsed = extractToken(authorization);
+        String jwt = authorization.substring(BEARER_PREFIX.length()).trim();
+        ParsedToken parsed = parseToken(jwt);
+
+        if (userId == null || !parsed.userId.equals(userId)) {
+            log.warn("越权访问：请求 userId={}，令牌 userId={}", userId, parsed.userId);
+            throw new UnauthorizedAccessException("不允许操作其他用户的数据。");
+        }
 
         User user = userRepository.findById(parsed.userId)
                 .orElseThrow(() -> {
@@ -110,6 +122,38 @@ public class CallbackAuthServiceImpl implements CallbackAuthService {
         }
 
         return new AuthContext(user.getUserId(), user.getRole());
+    }
+
+    private ParsedToken parseToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(signingKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+
+            Long tokenUserId = Long.parseLong(claims.getSubject());
+            String username = claims.get("username", String.class);
+            User.UserRole role = User.UserRole.valueOf(claims.get("role", String.class));
+            return new ParsedToken(tokenUserId, role, username);
+        } catch (UnauthorizedAccessException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new UnauthorizedAccessException("登录状态无效或已过期，请重新登录。");
+        }
+    }
+
+    /** JWT 解析结果——仅内部使用。 */
+    private static class ParsedToken {
+        final Long userId;
+        final User.UserRole role;
+        final String username;
+
+        ParsedToken(Long userId, User.UserRole role, String username) {
+            this.userId = userId;
+            this.role = role;
+            this.username = username;
+        }
     }
 
     private ParsedToken parseToken(String token) {
