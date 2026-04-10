@@ -42,8 +42,11 @@ public class TeacherProjectController {
      */
     @GetMapping
     @Operation(summary = "List teacher projects")
-    public Result<List<ProjectVO>> list(@Valid TeacherProjectQueryDTO queryDTO) {
-        return Result.success(projectService.listTeacherProjects(queryDTO.getTeacherId(), queryDTO.getStatus()));
+        public Result<List<ProjectVO>> list(@Valid TeacherProjectQueryDTO queryDTO,
+                                                                                @RequestHeader("Authorization") String authorization) {
+        return Result.success(
+                                callbackAuthService.doWithAuthCheck(authorization, User.UserRole.TEACHER,
+                        () -> projectService.listTeacherProjects(queryDTO.getTeacherId(), queryDTO.getStatus())));
     }
 
     /**
@@ -54,8 +57,11 @@ public class TeacherProjectController {
      */
     @GetMapping("/{projectId}")
     @Operation(summary = "Get teacher project details")
-    public Result<ProjectVO> getById(@PathVariable Long projectId) {
-        return Result.success(projectService.getProject(projectId));
+    public Result<ProjectVO> getById(@PathVariable Long projectId,
+                                     @RequestHeader("Authorization") String authorization) {
+        return Result.success(
+                callbackAuthService.doWithAuthCheck(authorization, User.UserRole.TEACHER,
+                        () -> projectService.getProject(projectId)));
     }
 
     /**
@@ -66,8 +72,10 @@ public class TeacherProjectController {
      */
     @PostMapping
     @Operation(summary = "Create a project")
-    public Result<Void> create(@Valid @RequestBody ProjectDTO projectDTO) {
-        projectService.create(projectDTO);
+        public Result<Void> create(@Valid @RequestBody ProjectDTO projectDTO,
+                                                           @RequestHeader("Authorization") String authorization) {
+                callbackAuthService.doWithAuthCheck(authorization, User.UserRole.TEACHER,
+                () -> projectService.create(projectDTO));
         return Result.success();
     }
 
@@ -81,8 +89,10 @@ public class TeacherProjectController {
     @PutMapping("/{projectId}")
     @Operation(summary = "Update a project")
     public Result<Void> update(@PathVariable Long projectId,
-                               @Valid @RequestBody ProjectDTO projectDTO) {
-        projectService.update(projectId, projectDTO);
+                                                           @Valid @RequestBody ProjectDTO projectDTO,
+                                                           @RequestHeader("Authorization") String authorization) {
+                callbackAuthService.doWithAuthCheck(authorization, User.UserRole.TEACHER,
+                () -> projectService.update(projectId, projectDTO));
         return Result.success();
     }
 
@@ -96,8 +106,10 @@ public class TeacherProjectController {
     @PutMapping("/{projectId}/status")
     @Operation(summary = "Change project status")
     public Result<Void> changeStatus(@PathVariable Long projectId,
-                                     @Valid @RequestBody ProjectStatusUpdateDTO projectStatusUpdateDTO) {
-        projectService.changeStatus(projectId, projectStatusUpdateDTO);
+                                                                         @Valid @RequestBody ProjectStatusUpdateDTO projectStatusUpdateDTO,
+                                                                         @RequestHeader("Authorization") String authorization) {
+                callbackAuthService.doWithAuthCheck(authorization, User.UserRole.TEACHER,
+                () -> projectService.changeStatus(projectId, projectStatusUpdateDTO));
         return Result.success();
     }
 }
