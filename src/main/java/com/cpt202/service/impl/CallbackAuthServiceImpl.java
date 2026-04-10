@@ -8,7 +8,6 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -34,17 +33,14 @@ public class CallbackAuthServiceImpl implements CallbackAuthService {
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final UserRepository userRepository;
-    private final HttpServletRequest httpServletRequest;
     private final String secret;
     private final long expirationSeconds;
     private SecretKey signingKey;
 
     public CallbackAuthServiceImpl(UserRepository userRepository,
-                                   HttpServletRequest httpServletRequest,
                                    @Value("${jwt.secret}") String secret,
                                    @Value("${jwt.expiration-seconds}") long expirationSeconds) {
         this.userRepository = userRepository;
-        this.httpServletRequest = httpServletRequest;
         this.secret = secret;
         this.expirationSeconds = expirationSeconds;
     }
@@ -61,14 +57,19 @@ public class CallbackAuthServiceImpl implements CallbackAuthService {
     // ==================== 接口方法 ====================
 
     @Override
-    public <T> T doWithAuthCheck(Long userId, User.UserRole requiredRole, Supplier<T> action) {
-        verify(userId, requiredRole);
+    public Long getCurrentUserId(String authorization) {
+        return extractToken(authorization).userId;
+    }
+
+    @Override
+    public <T> T doWithAuthCheck(String authorization, User.UserRole requiredRole, Supplier<T> action) {
+        verify(authorization, requiredRole);
         return action.get();
     }
 
     @Override
-    public void doWithAuthCheck(Long userId, User.UserRole requiredRole, Runnable action) {
-        verify(userId, requiredRole);
+    public void doWithAuthCheck(String authorization, User.UserRole requiredRole, Runnable action) {
+        verify(authorization, requiredRole);
         action.run();
     }
 
@@ -89,19 +90,19 @@ public class CallbackAuthServiceImpl implements CallbackAuthService {
 
     // ==================== 私有方法 ====================
 
-    private void verify(Long userId, User.UserRole requiredRole) {
-        String authorization = httpServletRequest.getHeader("Authorization");
+    /**
+     * 从 Authorization 头值中提取并解析 JWT，返回解析结果。
+     */
+    private ParsedToken extractToken(String authorization) {
         if (authorization == null || !authorization.startsWith(BEARER_PREFIX)) {
             throw new UnauthorizedAccessException("缺少有效的 Authorization Bearer Token。");
         }
-
         String jwt = authorization.substring(BEARER_PREFIX.length()).trim();
-        ParsedToken parsed = parseToken(jwt);
+        return parseToken(jwt);
+    }
 
-        if (userId == null || !parsed.userId.equals(userId)) {
-            log.warn("越权访问：请求 userId={}，令牌 userId={}", userId, parsed.userId);
-            throw new UnauthorizedAccessException("不允许操作其他用户的数据。");
-        }
+    private void verify(String authorization, User.UserRole requiredRole) {
+        ParsedToken parsed = extractToken(authorization);
 
         User user = userRepository.findById(parsed.userId)
                 .orElseThrow(() -> {
