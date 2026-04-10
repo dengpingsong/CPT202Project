@@ -45,7 +45,9 @@ public class StudentProfileController {
         AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.STUDENT);
         Long studentId = authContext.userId();
         log.info("Get student profile: {}", studentId);
-        return Result.success(profileService.getStudentProfile(studentId));
+        return Result.success(
+                callbackAuthService.doWithAuthCheck(authorization, User.UserRole.STUDENT,
+                        () -> profileService.getStudentProfile(studentId)));
     }
 
     /**
@@ -61,7 +63,8 @@ public class StudentProfileController {
         AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.STUDENT);
         Long studentId = authContext.userId();
         log.info("Update student profile: {}, payload: {}", studentId, studentProfileUpdateDTO);
-        profileService.updateStudentProfile(studentId, studentProfileUpdateDTO);
+        callbackAuthService.doWithAuthCheck(authorization, User.UserRole.STUDENT,
+                () -> profileService.updateStudentProfile(studentId, studentProfileUpdateDTO));
         return Result.success();
     }
 }

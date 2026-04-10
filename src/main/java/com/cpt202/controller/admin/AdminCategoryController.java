@@ -44,7 +44,9 @@ public class AdminCategoryController {
     public Result<List<CategoryVO>> list(@RequestHeader("Authorization") String authorization) {
         callbackAuthService.requireAuth(authorization, User.UserRole.ADMIN);
         log.info("List categories");
-        return Result.success(categoryService.listAll());
+        return Result.success(
+                callbackAuthService.doWithAuthCheck(authorization, User.UserRole.ADMIN,
+                        () -> categoryService.listAll()));
     }
 
     /**
@@ -59,7 +61,9 @@ public class AdminCategoryController {
                                       @RequestHeader("Authorization") String authorization) {
         callbackAuthService.requireAuth(authorization, User.UserRole.ADMIN);
         log.info("Get category by id: {}", categoryId);
-        return Result.success(categoryService.getById(categoryId));
+        return Result.success(
+                callbackAuthService.doWithAuthCheck(authorization, User.UserRole.ADMIN,
+                        () -> categoryService.getById(categoryId)));
     }
 
     /**
@@ -74,7 +78,8 @@ public class AdminCategoryController {
                                @RequestHeader("Authorization") String authorization) {
         callbackAuthService.requireAuth(authorization, User.UserRole.ADMIN);
         log.info("Create category: {}", categoryDTO);
-        categoryService.create(categoryDTO);
+        callbackAuthService.doWithAuthCheck(authorization, User.UserRole.ADMIN,
+                () -> categoryService.create(categoryDTO));
         return Result.success();
     }
 
@@ -92,7 +97,8 @@ public class AdminCategoryController {
                                @RequestHeader("Authorization") String authorization) {
         callbackAuthService.requireAuth(authorization, User.UserRole.ADMIN);
         log.info("Update category: {}, payload: {}", categoryId, categoryDTO);
-        categoryService.update(categoryId, categoryDTO);
+        callbackAuthService.doWithAuthCheck(authorization, User.UserRole.ADMIN,
+                () -> categoryService.update(categoryId, categoryDTO));
         return Result.success();
     }
 
@@ -108,7 +114,8 @@ public class AdminCategoryController {
                                @RequestHeader("Authorization") String authorization) {
         callbackAuthService.requireAuth(authorization, User.UserRole.ADMIN);
         log.info("Delete category: {}", categoryId);
-        categoryService.delete(categoryId);
+        callbackAuthService.doWithAuthCheck(authorization, User.UserRole.ADMIN,
+                () -> categoryService.delete(categoryId));
         return Result.success();
     }
 }

@@ -45,7 +45,9 @@ public class TeacherProfileController {
         AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
         Long teacherId = authContext.userId();
         log.info("Get teacher profile: {}", teacherId);
-        return Result.success(profileService.getTeacherProfile(teacherId));
+        return Result.success(
+                callbackAuthService.doWithAuthCheck(authorization, User.UserRole.TEACHER,
+                        () -> profileService.getTeacherProfile(teacherId)));
     }
 
     /**
@@ -61,7 +63,8 @@ public class TeacherProfileController {
         AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
         Long teacherId = authContext.userId();
         log.info("Update teacher profile: {}, payload: {}", teacherId, teacherProfileUpdateDTO);
-        profileService.updateTeacherProfile(teacherId, teacherProfileUpdateDTO);
+        callbackAuthService.doWithAuthCheck(authorization, User.UserRole.TEACHER,
+                () -> profileService.updateTeacherProfile(teacherId, teacherProfileUpdateDTO));
         return Result.success();
     }
 }

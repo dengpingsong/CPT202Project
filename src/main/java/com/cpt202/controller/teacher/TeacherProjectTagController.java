@@ -49,7 +49,9 @@ public class TeacherProjectTagController {
                                                       @RequestHeader("Authorization") String authorization) {
         callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
         log.info("List project tags: {}", projectId);
-        return Result.success(projectTagService.listProjectTags(projectId));
+        return Result.success(
+                callbackAuthService.doWithAuthCheck(authorization, User.UserRole.TEACHER,
+                        () -> projectTagService.listProjectTags(projectId)));
     }
 
     /**
@@ -68,7 +70,8 @@ public class TeacherProjectTagController {
         ensureCurrentTeacher(bindDTO.getTeacherId(), authContext);
         log.info("Bind project tags, projectId: {}, teacherId: {}, tagIds: {}",
                 projectId, bindDTO.getTeacherId(), bindDTO.getTagIds());
-        projectTagService.bindProjectTags(projectId, bindDTO.getTeacherId(), bindDTO.getTagIds());
+        callbackAuthService.doWithAuthCheck(authorization, User.UserRole.TEACHER,
+                () -> projectTagService.bindProjectTags(projectId, bindDTO.getTeacherId(), bindDTO.getTagIds()));
         return Result.success();
     }
 

@@ -46,6 +46,8 @@ public class StudentRequestHistoryController {
                                       @RequestHeader("Authorization") String authorization) {
         callbackAuthService.requireAuth(authorization, User.UserRole.STUDENT);
         log.info("Get request history: {}", requestId);
-        return Result.success(historyService.getRequestHistory(requestId));
+        return Result.success(
+            callbackAuthService.doWithAuthCheck(authorization, User.UserRole.STUDENT,
+                        () -> historyService.getRequestHistory(requestId)));
     }
 }

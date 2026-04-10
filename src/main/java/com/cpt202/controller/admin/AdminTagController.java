@@ -58,7 +58,9 @@ public class AdminTagController {
                                  @RequestHeader("Authorization") String authorization) {
         callbackAuthService.requireAuth(authorization, User.UserRole.ADMIN);
         log.info("Get tag by id: {}", tagId);
-        return Result.success(tagService.getById(tagId));
+        return Result.success(
+                callbackAuthService.doWithAuthCheck(authorization, User.UserRole.ADMIN,
+                        () -> tagService.getById(tagId)));
     }
 
     /**
