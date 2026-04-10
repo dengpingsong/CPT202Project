@@ -2,17 +2,34 @@ package com.cpt202.service.impl;
 
 import com.cpt202.dto.LoginDTO;
 import com.cpt202.dto.RegisterUserDTO;
+import com.cpt202.exception.BusinessException;
+import com.cpt202.exception.RuleViolationException;
+import com.cpt202.model.entity.StudentProfile;
+import com.cpt202.model.entity.TeacherProfile;
+import com.cpt202.model.entity.User;
+import com.cpt202.repository.StudentProfileRepository;
+import com.cpt202.repository.TeacherProfileRepository;
+import com.cpt202.repository.UserRepository;
 import com.cpt202.service.AuthService;
 import com.cpt202.service.CallbackAuthService;
 import com.cpt202.vo.LoginVO;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
+import java.util.HexFormat;
 
 /**
  * 认证服务实现类。
  * <p>
- * 后续将在该类中实现注册、登录、账号校验与登录态生成等逻辑。
+ * 负责处理用户注册、登录、账号校验与登录态生成等逻辑。
  */
 @Service
+@RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
     private static final String DEFAULT_ACCOUNT_STATUS = "ACTIVE";
@@ -28,8 +45,57 @@ public class AuthServiceImpl implements AuthService {
      * @return 登录展示对象
      */
     @Override
+    @Transactional
     public LoginVO register(RegisterUserDTO registerUserDTO) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        validateRegisterPayload(registerUserDTO);
+
+        if (userRepository.existsByUsername(registerUserDTO.getUsername())) {
+            throw new RuleViolationException("用户名已存在，请更换后重试。");
+        }
+        if (userRepository.existsByEmail(registerUserDTO.getEmail())) {
+            throw new RuleViolationException("邮箱已被注册，请更换后重试。");
+        }
+
+        User user = User.builder()
+                .username(registerUserDTO.getUsername())
+                .passwordHash(hashPassword(registerUserDTO.getPassword()))
+                .email(registerUserDTO.getEmail())
+                .fullName(registerUserDTO.getFullName())
+                .role(registerUserDTO.getRole())
+                .accountStatus(DEFAULT_ACCOUNT_STATUS)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+
+        user = userRepository.save(user);
+
+        if (user.getRole() == User.UserRole.STUDENT) {
+            StudentProfile studentProfile = StudentProfile.builder()
+                    .studentNo(registerUserDTO.getStudentNo())
+                    .programme(registerUserDTO.getProgramme())
+                    .enrollmentDate(registerUserDTO.getEnrollmentDate())
+                    .phone(registerUserDTO.getPhone())
+                    .interests(registerUserDTO.getInterests())
+                    .updatedAt(LocalDateTime.now())
+                    .user(user)
+                    .build();
+            studentProfileRepository.save(studentProfile);
+            user.setStudentProfile(studentProfile);
+        } else if (user.getRole() == User.UserRole.TEACHER) {
+            TeacherProfile teacherProfile = TeacherProfile.builder()
+                    .staffNo(registerUserDTO.getStaffNo())
+                    .department(registerUserDTO.getDepartment())
+                    .title(registerUserDTO.getTitle())
+                    .researchArea(registerUserDTO.getResearchArea())
+                    .office(registerUserDTO.getOffice())
+                    .updatedAt(LocalDateTime.now())
+                    .user(user)
+                    .build();
+            teacherProfileRepository.save(teacherProfile);
+            user.setTeacherProfile(teacherProfile);
+        }
+
+        return buildLoginVO(user);
     }
 
     /**
