@@ -2,6 +2,9 @@ package com.cpt202.service.impl;
 
 import com.cpt202.dto.StudentProfileUpdateDTO;
 import com.cpt202.dto.TeacherProfileUpdateDTO;
+import com.cpt202.exception.NotFoundException;
+import com.cpt202.model.entity.StudentProfile;
+import com.cpt202.repository.StudentProfileRepository;
 import com.cpt202.service.ProfileService;
 import com.cpt202.vo.StudentProfileVO;
 import com.cpt202.vo.TeacherProfileVO;
@@ -15,6 +18,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class ProfileServiceImpl implements ProfileService {
 
+    private final StudentProfileRepository studentProfileRepository;
+
+    public ProfileServiceImpl(StudentProfileRepository studentProfileRepository) {
+        this.studentProfileRepository = studentProfileRepository;
+    }
     /**
      * 查询学生资料。
      *
@@ -23,7 +31,23 @@ public class ProfileServiceImpl implements ProfileService {
      */
     @Override
     public StudentProfileVO getStudentProfile(Long studentId) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        StudentProfile studentProfile = studentProfileRepository.findById(studentId)
+                .orElseThrow(() -> new NotFoundException("Student profile not found"));
+
+        StudentProfileVO studentProfileVO = new StudentProfileVO();
+        studentProfileVO.setStudentId(studentProfile.getStudentId());
+        studentProfileVO.setStudentNo(studentProfile.getStudentNo());
+        studentProfileVO.setPhone(studentProfile.getPhone());
+        studentProfileVO.setInterests(studentProfile.getInterests());
+        studentProfileVO.setAcademicYear(studentProfile.getAcademicYear());
+        studentProfileVO.setEnrollmentDate(studentProfile.getEnrollmentDate());
+        studentProfileVO.setProgramme(studentProfile.getProgramme());
+        studentProfileVO.setUpdatedAt(studentProfile.getUpdatedAt());
+        studentProfileVO.setFullName(studentProfile.getUser().getFullName());
+        studentProfileVO.setUsername(studentProfile.getUser().getUsername());
+        studentProfileVO.setEmail(studentProfile.getUser().getEmail());
+
+        return studentProfileVO;
     }
 
     /**
