@@ -4,54 +4,152 @@ import com.cpt202.exception.UnauthorizedAccessException;
 import com.cpt202.model.entity.User;
 import com.cpt202.repository.UserRepository;
 import com.cpt202.service.CallbackAuthService;
-import lombok.RequiredArgsConstructor;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.Date;
 import java.util.function.Supplier;
 
 /**
  * 回调式权限认证服务实现类。
  * <p>
- * 根据 userId 查找用户，校验角色是否匹配以及账号是否可用，
+ * 自动从当前 HTTP 请求的 Authorization 头中提取 JWT 令牌，
+ * 解析并校验身份一致性、角色与账号状态，
  * 通过后回调执行业务逻辑，否则抛出 {@link UnauthorizedAccessException}。
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class CallbackAuthServiceImpl implements CallbackAuthService {
 
     private static final String ACTIVE_STATUS = "ACTIVE";
+    private static final String BEARER_PREFIX = "Bearer ";
+
     private final UserRepository userRepository;
+    private final HttpServletRequest httpServletRequest;
+    private final String secret;
+    private final long expirationSeconds;
+    private SecretKey signingKey;
+
+    public CallbackAuthServiceImpl(UserRepository userRepository,
+                                   HttpServletRequest httpServletRequest,
+                                   @Value("${jwt.secret}") String secret,
+                                   @Value("${jwt.expiration-seconds}") long expirationSeconds) {
+        this.userRepository = userRepository;
+        this.httpServletRequest = httpServletRequest;
+        this.secret = secret;
+        this.expirationSeconds = expirationSeconds;
+    }
+
+    @PostConstruct
+    public void init() {
+        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+        if (keyBytes.length < 32) {
+            throw new IllegalStateException("jwt.secret length must be at least 32 bytes");
+        }
+        this.signingKey = Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    // ==================== 接口方法 ====================
 
     @Override
     public <T> T doWithAuthCheck(Long userId, User.UserRole requiredRole, Supplier<T> action) {
-        verifyUserRole(userId, requiredRole);
+        verify(userId, requiredRole);
         return action.get();
     }
 
     @Override
     public void doWithAuthCheck(Long userId, User.UserRole requiredRole, Runnable action) {
-        verifyUserRole(userId, requiredRole);
+        verify(userId, requiredRole);
         action.run();
     }
 
-    private void verifyUserRole(Long userId, User.UserRole requiredRole) {
-        User user = userRepository.findById(userId)
+    @Override
+    public String generateToken(User user) {
+        Instant now = Instant.now();
+        Instant expireAt = now.plusSeconds(expirationSeconds);
+
+        return Jwts.builder()
+                .subject(String.valueOf(user.getUserId()))
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(expireAt))
+                .claim("username", user.getUsername())
+                .claim("role", user.getRole().name())
+                .signWith(signingKey)
+                .compact();
+    }
+
+    // ==================== 私有方法 ====================
+
+    private void verify(Long userId, User.UserRole requiredRole) {
+        String authorization = httpServletRequest.getHeader("Authorization");
+        if (authorization == null || !authorization.startsWith(BEARER_PREFIX)) {
+            throw new UnauthorizedAccessException("缺少有效的 Authorization Bearer Token。");
+        }
+
+        String jwt = authorization.substring(BEARER_PREFIX.length()).trim();
+        ParsedToken parsed = parseToken(jwt);
+
+        if (userId == null || !parsed.userId.equals(userId)) {
+            log.warn("越权访问：请求 userId={}，令牌 userId={}", userId, parsed.userId);
+            throw new UnauthorizedAccessException("不允许操作其他用户的数据。");
+        }
+
+        User user = userRepository.findById(parsed.userId)
                 .orElseThrow(() -> {
-                    log.warn("越权访问：用户 {} 不存在", userId);
+                    log.warn("越权访问：用户 {} 不存在", parsed.userId);
                     return new UnauthorizedAccessException("用户不存在，拒绝访问。");
                 });
 
-        if (user.getRole() != requiredRole) {
-            log.warn("越权访问：用户 {} 角色为 {}，需要 {}", userId, user.getRole(), requiredRole);
+        if (user.getRole() != requiredRole || parsed.role != requiredRole) {
+            log.warn("越权访问：用户 {} 角色为 {}，需要 {}", parsed.userId, user.getRole(), requiredRole);
             throw new UnauthorizedAccessException(
                     String.format("权限不足：当前角色为 %s，该操作需要 %s 角色。", user.getRole(), requiredRole));
         }
 
         if (!ACTIVE_STATUS.equalsIgnoreCase(user.getAccountStatus())) {
-            log.warn("越权访问：用户 {} 账号状态为 {}", userId, user.getAccountStatus());
+            log.warn("越权访问：用户 {} 账号状态为 {}", parsed.userId, user.getAccountStatus());
             throw new UnauthorizedAccessException("账号当前不可用，拒绝访问。");
+        }
+    }
+
+    private ParsedToken parseToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(signingKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+
+            Long tokenUserId = Long.parseLong(claims.getSubject());
+            String username = claims.get("username", String.class);
+            User.UserRole role = User.UserRole.valueOf(claims.get("role", String.class));
+            return new ParsedToken(tokenUserId, role, username);
+        } catch (UnauthorizedAccessException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new UnauthorizedAccessException("登录状态无效或已过期，请重新登录。");
+        }
+    }
+
+    /** JWT 解析结果——仅内部使用。 */
+    private static class ParsedToken {
+        final Long userId;
+        final User.UserRole role;
+        final String username;
+
+        ParsedToken(Long userId, User.UserRole role, String username) {
+            this.userId = userId;
+            this.role = role;
+            this.username = username;
         }
     }
 }

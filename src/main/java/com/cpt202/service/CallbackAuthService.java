@@ -7,9 +7,9 @@ import java.util.function.Supplier;
 /**
  * 回调式权限认证服务。
  * <p>
- * 在执行受保护的业务操作前，先验证用户身份与角色是否匹配，
- * 验证通过后再回调执行实际的业务逻辑；不通过则抛出越权异常。
- * 
+ * 在执行受保护的业务操作前，从请求中的 JWT 令牌获取登录身份，
+ * 校验身份一致性、角色与账号状态，通过后回调执行实际的业务逻辑；
+ * 不通过则抛出越权异常。
  */
 public interface CallbackAuthService {
 
@@ -32,4 +32,12 @@ public interface CallbackAuthService {
      * @param action       通过验证后执行的回调操作
      */
     void doWithAuthCheck(Long userId, User.UserRole requiredRole, Runnable action);
+
+    /**
+     * 为指定用户生成 JWT 访问令牌。
+     *
+     * @param user 用户实体
+     * @return JWT 字符串
+     */
+    String generateToken(User user);
 }
