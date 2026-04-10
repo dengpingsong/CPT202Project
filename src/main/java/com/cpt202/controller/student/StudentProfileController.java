@@ -1,7 +1,9 @@
 package com.cpt202.controller.student;
 
 import com.cpt202.dto.StudentProfileUpdateDTO;
+import com.cpt202.model.entity.User;
 import com.cpt202.result.Result;
+import com.cpt202.service.CallbackAuthService;
 import com.cpt202.service.ProfileService;
 import com.cpt202.vo.StudentProfileVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,14 +23,11 @@ import org.springframework.web.bind.annotation.*;
 public class StudentProfileController {
 
     private final ProfileService profileService;
+    private final CallbackAuthService callbackAuthService;
 
-    /**
-     * 构造器注入资料服务。
-     *
-     * @param profileService 资料服务
-     */
-    public StudentProfileController(ProfileService profileService) {
+    public StudentProfileController(ProfileService profileService, CallbackAuthService callbackAuthService) {
         this.profileService = profileService;
+        this.callbackAuthService = callbackAuthService;
     }
 
     /**
@@ -41,7 +40,9 @@ public class StudentProfileController {
     @Operation(summary = "Get student profile")
     public Result<StudentProfileVO> getById(@PathVariable Long studentId) {
         log.info("Get student profile: {}", studentId);
-        return Result.success(profileService.getStudentProfile(studentId));
+        return Result.success(
+                callbackAuthService.doWithAuthCheck(studentId, User.UserRole.STUDENT,
+                        () -> profileService.getStudentProfile(studentId)));
     }
 
     /**
@@ -56,7 +57,8 @@ public class StudentProfileController {
     public Result<Void> update(@PathVariable Long studentId,
                                @Valid @RequestBody StudentProfileUpdateDTO studentProfileUpdateDTO) {
         log.info("Update student profile: {}, payload: {}", studentId, studentProfileUpdateDTO);
-        profileService.updateStudentProfile(studentId, studentProfileUpdateDTO);
+        callbackAuthService.doWithAuthCheck(studentId, User.UserRole.STUDENT,
+                () -> profileService.updateStudentProfile(studentId, studentProfileUpdateDTO));
         return Result.success();
     }
 }

@@ -1,7 +1,9 @@
 package com.cpt202.controller.teacher;
 
 import com.cpt202.dto.ProjectTagBindDTO;
+import com.cpt202.model.entity.User;
 import com.cpt202.result.Result;
+import com.cpt202.service.CallbackAuthService;
 import com.cpt202.service.ProjectTagService;
 import com.cpt202.vo.ProjectTagVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,14 +25,12 @@ import java.util.List;
 public class TeacherProjectTagController {
 
     private final ProjectTagService projectTagService;
+    private final CallbackAuthService callbackAuthService;
 
-    /**
-     * 构造器注入项目标签服务。
-     *
-     * @param projectTagService 项目标签服务
-     */
-    public TeacherProjectTagController(ProjectTagService projectTagService) {
+    public TeacherProjectTagController(ProjectTagService projectTagService,
+                                       CallbackAuthService callbackAuthService) {
         this.projectTagService = projectTagService;
+        this.callbackAuthService = callbackAuthService;
     }
 
     /**
@@ -41,9 +41,12 @@ public class TeacherProjectTagController {
      */
     @GetMapping("/{projectId}")
     @Operation(summary = "List project tags")
-    public Result<List<ProjectTagVO>> listProjectTags(@PathVariable Long projectId) {
-        log.info("List project tags: {}", projectId);
-        return Result.success(projectTagService.listProjectTags(projectId));
+    public Result<List<ProjectTagVO>> listProjectTags(@PathVariable Long projectId,
+                                                      @RequestParam Long teacherId) {
+        log.info("List project tags: {}, teacherId: {}", projectId, teacherId);
+        return Result.success(
+                callbackAuthService.doWithAuthCheck(teacherId, User.UserRole.TEACHER,
+                        () -> projectTagService.listProjectTags(projectId)));
     }
 
     /**
@@ -59,7 +62,8 @@ public class TeacherProjectTagController {
                                         @Valid @RequestBody ProjectTagBindDTO bindDTO) {
         log.info("Bind project tags, projectId: {}, teacherId: {}, tagIds: {}",
                 projectId, bindDTO.getTeacherId(), bindDTO.getTagIds());
-        projectTagService.bindProjectTags(projectId, bindDTO.getTeacherId(), bindDTO.getTagIds());
+        callbackAuthService.doWithAuthCheck(bindDTO.getTeacherId(), User.UserRole.TEACHER,
+                () -> projectTagService.bindProjectTags(projectId, bindDTO.getTeacherId(), bindDTO.getTagIds()));
         return Result.success();
     }
 }

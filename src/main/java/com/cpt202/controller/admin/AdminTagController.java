@@ -1,7 +1,9 @@
 package com.cpt202.controller.admin;
 
 import com.cpt202.dto.TagDTO;
+import com.cpt202.model.entity.User;
 import com.cpt202.result.Result;
+import com.cpt202.service.CallbackAuthService;
 import com.cpt202.service.TagService;
 import com.cpt202.vo.TagVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,14 +25,12 @@ import java.util.List;
 public class AdminTagController {
 
     private final TagService tagService;
+    private final CallbackAuthService callbackAuthService;
 
-    /**
-     * 构造器注入标签服务。
-     *
-     * @param tagService 标签服务
-     */
-    public AdminTagController(TagService tagService) {
+    public AdminTagController(TagService tagService,
+                              CallbackAuthService callbackAuthService) {
         this.tagService = tagService;
+        this.callbackAuthService = callbackAuthService;
     }
 
     /**
@@ -40,35 +40,44 @@ public class AdminTagController {
      */
     @GetMapping
     @Operation(summary = "List tags")
-    public Result<List<TagVO>> list() {
-        log.info("List tags");
-        return Result.success(tagService.listAll());
+    public Result<List<TagVO>> list(@RequestParam Long operatorId) {
+        log.info("List tags, operatorId: {}", operatorId);
+        return Result.success(
+                callbackAuthService.doWithAuthCheck(operatorId, User.UserRole.ADMIN,
+                        () -> tagService.listAll()));
     }
 
     /**
      * 根据标签主键查询标签详情。
      *
      * @param tagId 标签主键
+     * @param operatorId 操作人主键
      * @return 标签展示对象
      */
     @GetMapping("/{tagId}")
     @Operation(summary = "Get tag by ID")
-    public Result<TagVO> getById(@PathVariable Long tagId) {
-        log.info("Get tag by id: {}", tagId);
-        return Result.success(tagService.getById(tagId));
+    public Result<TagVO> getById(@PathVariable Long tagId,
+                                 @RequestParam Long operatorId) {
+        log.info("Get tag by id: {}, operatorId: {}", tagId, operatorId);
+        return Result.success(
+                callbackAuthService.doWithAuthCheck(operatorId, User.UserRole.ADMIN,
+                        () -> tagService.getById(tagId)));
     }
 
     /**
      * 新增标签。
      *
      * @param tagDTO 标签新增参数
+     * @param operatorId 操作人主键
      * @return 统一成功响应
      */
     @PostMapping
     @Operation(summary = "Create a tag")
-    public Result<Void> create(@Valid @RequestBody TagDTO tagDTO) {
-        log.info("Create tag: {}", tagDTO);
-        tagService.create(tagDTO);
+    public Result<Void> create(@Valid @RequestBody TagDTO tagDTO,
+                               @RequestParam Long operatorId) {
+        log.info("Create tag: {}, operatorId: {}", tagDTO, operatorId);
+        callbackAuthService.doWithAuthCheck(operatorId, User.UserRole.ADMIN,
+                () -> tagService.create(tagDTO));
         return Result.success();
     }
 
@@ -77,13 +86,17 @@ public class AdminTagController {
      *
      * @param tagId 标签主键
      * @param tagDTO 标签更新参数
+     * @param operatorId 操作人主键
      * @return 统一成功响应
      */
     @PutMapping("/{tagId}")
     @Operation(summary = "Update a tag")
-    public Result<Void> update(@PathVariable Long tagId, @Valid @RequestBody TagDTO tagDTO) {
-        log.info("Update tag: {}, payload: {}", tagId, tagDTO);
-        tagService.update(tagId, tagDTO);
+    public Result<Void> update(@PathVariable Long tagId,
+                               @Valid @RequestBody TagDTO tagDTO,
+                               @RequestParam Long operatorId) {
+        log.info("Update tag: {}, payload: {}, operatorId: {}", tagId, tagDTO, operatorId);
+        callbackAuthService.doWithAuthCheck(operatorId, User.UserRole.ADMIN,
+                () -> tagService.update(tagId, tagDTO));
         return Result.success();
     }
 
@@ -91,13 +104,16 @@ public class AdminTagController {
      * 删除标签。
      *
      * @param tagId 标签主键
+     * @param operatorId 操作人主键
      * @return 统一成功响应
      */
     @DeleteMapping("/{tagId}")
     @Operation(summary = "Delete a tag")
-    public Result<Void> delete(@PathVariable Long tagId) {
-        log.info("Delete tag: {}", tagId);
-        tagService.delete(tagId);
+    public Result<Void> delete(@PathVariable Long tagId,
+                               @RequestParam Long operatorId) {
+        log.info("Delete tag: {}, operatorId: {}", tagId, operatorId);
+        callbackAuthService.doWithAuthCheck(operatorId, User.UserRole.ADMIN,
+                () -> tagService.delete(tagId));
         return Result.success();
     }
 }

@@ -3,7 +3,9 @@ package com.cpt202.controller.teacher;
 import com.cpt202.dto.ProjectDTO;
 import com.cpt202.dto.ProjectStatusUpdateDTO;
 import com.cpt202.dto.TeacherProjectQueryDTO;
+import com.cpt202.model.entity.User;
 import com.cpt202.result.Result;
+import com.cpt202.service.CallbackAuthService;
 import com.cpt202.service.ProjectService;
 import com.cpt202.vo.ProjectVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,14 +26,12 @@ import java.util.List;
 public class TeacherProjectController {
 
     private final ProjectService projectService;
+    private final CallbackAuthService callbackAuthService;
 
-    /**
-     * 构造器注入项目服务。
-     *
-     * @param projectService 项目服务
-     */
-    public TeacherProjectController(ProjectService projectService) {
+    public TeacherProjectController(ProjectService projectService,
+                                    CallbackAuthService callbackAuthService) {
         this.projectService = projectService;
+        this.callbackAuthService = callbackAuthService;
     }
 
     /**
@@ -43,19 +43,25 @@ public class TeacherProjectController {
     @GetMapping
     @Operation(summary = "List teacher projects")
     public Result<List<ProjectVO>> list(@Valid TeacherProjectQueryDTO queryDTO) {
-        return Result.success(projectService.listTeacherProjects(queryDTO.getTeacherId(), queryDTO.getStatus()));
+        return Result.success(
+                callbackAuthService.doWithAuthCheck(queryDTO.getTeacherId(), User.UserRole.TEACHER,
+                        () -> projectService.listTeacherProjects(queryDTO.getTeacherId(), queryDTO.getStatus())));
     }
 
     /**
      * 查询项目详情。
      *
      * @param projectId 项目主键
+     * @param teacherId 教师主键
      * @return 项目展示对象
      */
     @GetMapping("/{projectId}")
     @Operation(summary = "Get teacher project details")
-    public Result<ProjectVO> getById(@PathVariable Long projectId) {
-        return Result.success(projectService.getProject(projectId));
+    public Result<ProjectVO> getById(@PathVariable Long projectId,
+                                     @RequestParam Long teacherId) {
+        return Result.success(
+                callbackAuthService.doWithAuthCheck(teacherId, User.UserRole.TEACHER,
+                        () -> projectService.getProject(projectId)));
     }
 
     /**
@@ -67,7 +73,8 @@ public class TeacherProjectController {
     @PostMapping
     @Operation(summary = "Create a project")
     public Result<Void> create(@Valid @RequestBody ProjectDTO projectDTO) {
-        projectService.create(projectDTO);
+        callbackAuthService.doWithAuthCheck(projectDTO.getTeacherId(), User.UserRole.TEACHER,
+                () -> projectService.create(projectDTO));
         return Result.success();
     }
 
@@ -82,7 +89,8 @@ public class TeacherProjectController {
     @Operation(summary = "Update a project")
     public Result<Void> update(@PathVariable Long projectId,
                                @Valid @RequestBody ProjectDTO projectDTO) {
-        projectService.update(projectId, projectDTO);
+        callbackAuthService.doWithAuthCheck(projectDTO.getTeacherId(), User.UserRole.TEACHER,
+                () -> projectService.update(projectId, projectDTO));
         return Result.success();
     }
 
@@ -97,7 +105,8 @@ public class TeacherProjectController {
     @Operation(summary = "Change project status")
     public Result<Void> changeStatus(@PathVariable Long projectId,
                                      @Valid @RequestBody ProjectStatusUpdateDTO projectStatusUpdateDTO) {
-        projectService.changeStatus(projectId, projectStatusUpdateDTO);
+        callbackAuthService.doWithAuthCheck(projectStatusUpdateDTO.getTeacherId(), User.UserRole.TEACHER,
+                () -> projectService.changeStatus(projectId, projectStatusUpdateDTO));
         return Result.success();
     }
 }
