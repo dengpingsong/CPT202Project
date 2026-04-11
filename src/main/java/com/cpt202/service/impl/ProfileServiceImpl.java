@@ -70,7 +70,7 @@ public class ProfileServiceImpl implements ProfileService {
     @Transactional
     public void updateStudentProfile(Long studentId, StudentProfileUpdateDTO studentProfileUpdateDTO) {
         StudentProfile profile = studentProfileRepository.findById(studentId)
-                .orElseThrow(() -> new BusinessException("学生资料未找到。"));
+                .orElseThrow(() -> new NotFoundException("学生资料未找到。"));
 
         if (profile.getUser() == null || profile.getUser().getRole() != User.UserRole.STUDENT) {
             throw new BusinessException("该用户不是学生角色。无法修改学生资料。" );
