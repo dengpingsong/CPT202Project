@@ -38,15 +38,13 @@ public class StudentProfileController {
     /**
      * 查询学生资料详情。
      *
-     * @param studentId 学生主键
      * @return 学生资料展示对象
      */
-    @GetMapping("/{studentId}")
+    @GetMapping("/me")
     @Operation(summary = "Get student profile")
-    public Result<StudentProfileVO> getById(@PathVariable Long studentId,
-                                            @RequestHeader("Authorization") String authorization) {
+    public Result<StudentProfileVO> getMyProfile(@RequestHeader("Authorization") String authorization) {
         AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.STUDENT);
-        ensureCurrentStudent(studentId, authContext);
+        Long studentId = authContext.userId();
         log.info("Get student profile: {}", studentId);
         return Result.success(profileService.getStudentProfile(studentId));
     }
