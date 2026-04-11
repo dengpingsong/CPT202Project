@@ -45,9 +45,7 @@ public class TeacherProfileController {
         AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
         Long teacherId = authContext.userId();
         log.info("Get teacher profile: {}", teacherId);
-        return Result.success(
-                callbackAuthService.doWithAuthCheck(authorization, User.UserRole.TEACHER,
-                        () -> profileService.getTeacherProfile(teacherId)));
+        return Result.success(profileService.getTeacherProfile(teacherId));
     }
 
     /**
@@ -63,8 +61,13 @@ public class TeacherProfileController {
         AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
         Long teacherId = authContext.userId();
         log.info("Update teacher profile: {}, payload: {}", teacherId, teacherProfileUpdateDTO);
-        callbackAuthService.doWithAuthCheck(authorization, User.UserRole.TEACHER,
-                () -> profileService.updateTeacherProfile(teacherId, teacherProfileUpdateDTO));
+        profileService.updateTeacherProfile(teacherId, teacherProfileUpdateDTO);
         return Result.success();
+    }
+
+    private void ensureCurrentTeacher(Long teacherId, AuthContext authContext) {
+        if (!authContext.userId().equals(teacherId)) {
+            throw new UnauthorizedAccessException("不能访问或修改其他教师的资料。");
+        }
     }
 }

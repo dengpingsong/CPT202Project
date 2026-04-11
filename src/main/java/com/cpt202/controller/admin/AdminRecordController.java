@@ -52,9 +52,7 @@ public class AdminRecordController {
                                                              @RequestHeader("Authorization") String authorization) {
         callbackAuthService.requireAuth(authorization, User.UserRole.ADMIN);
         log.info("List request records, status: {}", queryDTO.getStatus());
-        return Result.success(
-                callbackAuthService.doWithAuthCheck(authorization, User.UserRole.ADMIN,
-                        () -> recordService.listRequestRecords(queryDTO.getStatus())));
+        return Result.success(recordService.listRequestRecords(queryDTO.getStatus()));
     }
 
     @GetMapping("/request-history")
