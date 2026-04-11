@@ -1,8 +1,10 @@
 package com.cpt202.controller.teacher;
 
 import com.cpt202.dto.TeacherProfileUpdateDTO;
+import com.cpt202.exception.UnauthorizedAccessException;
 import com.cpt202.model.entity.User;
 import com.cpt202.result.Result;
+import com.cpt202.security.AuthContext;
 import com.cpt202.service.CallbackAuthService;
 import com.cpt202.service.ProfileService;
 import com.cpt202.vo.TeacherProfileVO;
@@ -40,10 +42,10 @@ public class TeacherProfileController {
     @Operation(summary = "Get teacher profile")
     public Result<TeacherProfileVO> getById(@PathVariable Long teacherId,
                                             @RequestHeader("Authorization") String authorization) {
+        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
+        ensureCurrentTeacher(teacherId, authContext);
         log.info("Get teacher profile: {}", teacherId);
-        return Result.success(
-                callbackAuthService.doWithAuthCheck(authorization, User.UserRole.TEACHER,
-                        () -> profileService.getTeacherProfile(teacherId)));
+        return Result.success(profileService.getTeacherProfile(teacherId));
     }
 
     /**
@@ -58,9 +60,16 @@ public class TeacherProfileController {
     public Result<Void> update(@PathVariable Long teacherId,
                                @Valid @RequestBody TeacherProfileUpdateDTO teacherProfileUpdateDTO,
                                @RequestHeader("Authorization") String authorization) {
+        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
+        ensureCurrentTeacher(teacherId, authContext);
         log.info("Update teacher profile: {}, payload: {}", teacherId, teacherProfileUpdateDTO);
-        callbackAuthService.doWithAuthCheck(authorization, User.UserRole.TEACHER,
-                () -> profileService.updateTeacherProfile(teacherId, teacherProfileUpdateDTO));
+        profileService.updateTeacherProfile(teacherId, teacherProfileUpdateDTO);
         return Result.success();
+    }
+
+    private void ensureCurrentTeacher(Long teacherId, AuthContext authContext) {
+        if (!authContext.userId().equals(teacherId)) {
+            throw new UnauthorizedAccessException("不能访问或修改其他教师的资料。");
+        }
     }
 }
