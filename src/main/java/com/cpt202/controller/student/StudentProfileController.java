@@ -64,10 +64,4 @@ public class StudentProfileController {
         profileService.updateStudentProfile(studentId, studentProfileUpdateDTO);
         return Result.success();
     }
-
-    private void ensureCurrentStudent(Long studentId, AuthContext authContext) {
-        if (!authContext.userId().equals(studentId)) {
-            throw new UnauthorizedAccessException("不能访问或修改其他学生的资料。");
-        }
-    }
 }
