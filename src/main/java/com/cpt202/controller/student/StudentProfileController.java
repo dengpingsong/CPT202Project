@@ -1,7 +1,6 @@
 package com.cpt202.controller.student;
 
 import com.cpt202.dto.StudentProfileUpdateDTO;
-import com.cpt202.exception.UnauthorizedAccessException;
 import com.cpt202.model.entity.User;
 import com.cpt202.result.Result;
 import com.cpt202.security.AuthContext;
@@ -38,7 +37,7 @@ public class StudentProfileController {
      * @return 学生资料展示对象
      */
     @GetMapping("/me")
-    @Operation(summary = "Get student profile")
+    @Operation(summary = "Get current student profile")
     public Result<StudentProfileVO> getMyProfile(@RequestHeader("Authorization") String authorization) {
         AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.STUDENT);
         Long studentId = authContext.userId();
@@ -49,25 +48,17 @@ public class StudentProfileController {
     /**
      * 修改学生资料。
      *
-     * @param studentId 学生主键
      * @param studentProfileUpdateDTO 学生资料更新参数
      * @return 统一成功响应
      */
-    @PutMapping("/{studentId}")
-    @Operation(summary = "Update student profile")
-    public Result<Void> update(@PathVariable Long studentId,
-                               @Valid @RequestBody StudentProfileUpdateDTO studentProfileUpdateDTO,
+    @PutMapping("/me")
+    @Operation(summary = "Update current student profile")
+    public Result<Void> updateMyProfile(@Valid @RequestBody StudentProfileUpdateDTO studentProfileUpdateDTO,
                                @RequestHeader("Authorization") String authorization) {
         AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.STUDENT);
-        ensureCurrentStudent(studentId, authContext);
+        Long studentId = authContext.userId();
         log.info("Update student profile: {}, payload: {}", studentId, studentProfileUpdateDTO);
         profileService.updateStudentProfile(studentId, studentProfileUpdateDTO);
         return Result.success();
-    }
-
-    private void ensureCurrentStudent(Long studentId, AuthContext authContext) {
-        if (!authContext.userId().equals(studentId)) {
-            throw new UnauthorizedAccessException("不能访问或修改其他学生的资料。");
-        }
     }
 }
