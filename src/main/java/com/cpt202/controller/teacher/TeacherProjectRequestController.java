@@ -2,7 +2,11 @@ package com.cpt202.controller.teacher;
 
 import com.cpt202.dto.ProjectRequestReviewDTO;
 import com.cpt202.dto.TeacherProjectRequestQueryDTO;
+import com.cpt202.exception.UnauthorizedAccessException;
+import com.cpt202.model.entity.User;
 import com.cpt202.result.Result;
+import com.cpt202.security.AuthContext;
+import com.cpt202.service.CallbackAuthService;
 import com.cpt202.service.ProjectRequestService;
 import com.cpt202.vo.ProjectRequestVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,9 +46,9 @@ public class TeacherProjectRequestController {
     @Operation(summary = "List teacher requests for review")
     public Result<List<ProjectRequestVO>> list(@Valid TeacherProjectRequestQueryDTO queryDTO,
                                                @RequestHeader("Authorization") String authorization) {
-        return Result.success(
-                callbackAuthService.doWithAuthCheck(authorization, User.UserRole.TEACHER,
-                        () -> projectRequestService.listTeacherRequests(queryDTO.getTeacherId(), queryDTO.getStatus())));
+        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
+        ensureCurrentTeacher(queryDTO.getTeacherId(), authContext);
+        return Result.success(projectRequestService.listTeacherRequests(queryDTO.getTeacherId(), queryDTO.getStatus()));
     }
 
     /**
@@ -59,8 +63,14 @@ public class TeacherProjectRequestController {
     public Result<Void> review(@PathVariable Long requestId,
                                @Valid @RequestBody ProjectRequestReviewDTO projectRequestReviewDTO,
                                @RequestHeader("Authorization") String authorization) {
-        callbackAuthService.doWithAuthCheck(authorization, User.UserRole.TEACHER,
-                () -> projectRequestService.review(requestId, projectRequestReviewDTO));
+        callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
+        projectRequestService.review(requestId, projectRequestReviewDTO);
         return Result.success();
+    }
+
+    private void ensureCurrentTeacher(Long teacherId, AuthContext authContext) {
+        if (!authContext.userId().equals(teacherId)) {
+            throw new UnauthorizedAccessException("不能查看其他教师的申请列表。");
+        }
     }
 }
