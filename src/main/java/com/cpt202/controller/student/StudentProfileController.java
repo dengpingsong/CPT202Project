@@ -1,8 +1,10 @@
 package com.cpt202.controller.student;
 
 import com.cpt202.dto.StudentProfileUpdateDTO;
+import com.cpt202.exception.UnauthorizedAccessException;
 import com.cpt202.model.entity.User;
 import com.cpt202.result.Result;
+import com.cpt202.security.AuthContext;
 import com.cpt202.service.CallbackAuthService;
 import com.cpt202.service.ProfileService;
 import com.cpt202.vo.StudentProfileVO;
@@ -40,10 +42,10 @@ public class StudentProfileController {
     @Operation(summary = "Get student profile")
     public Result<StudentProfileVO> getById(@PathVariable Long studentId,
                                             @RequestHeader("Authorization") String authorization) {
+        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.STUDENT);
+        ensureCurrentStudent(studentId, authContext);
         log.info("Get student profile: {}", studentId);
-        return Result.success(
-                callbackAuthService.doWithAuthCheck(authorization, User.UserRole.STUDENT,
-                        () -> profileService.getStudentProfile(studentId)));
+        return Result.success(profileService.getStudentProfile(studentId));
     }
 
     /**
@@ -58,9 +60,16 @@ public class StudentProfileController {
     public Result<Void> update(@PathVariable Long studentId,
                                @Valid @RequestBody StudentProfileUpdateDTO studentProfileUpdateDTO,
                                @RequestHeader("Authorization") String authorization) {
+        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.STUDENT);
+        ensureCurrentStudent(studentId, authContext);
         log.info("Update student profile: {}, payload: {}", studentId, studentProfileUpdateDTO);
-        callbackAuthService.doWithAuthCheck(authorization, User.UserRole.STUDENT,
-                () -> profileService.updateStudentProfile(studentId, studentProfileUpdateDTO));
+        profileService.updateStudentProfile(studentId, studentProfileUpdateDTO);
         return Result.success();
+    }
+
+    private void ensureCurrentStudent(Long studentId, AuthContext authContext) {
+        if (!authContext.userId().equals(studentId)) {
+            throw new UnauthorizedAccessException("不能访问或修改其他学生的资料。");
+        }
     }
 }

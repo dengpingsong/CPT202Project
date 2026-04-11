@@ -2,8 +2,10 @@ package com.cpt202.controller.student;
 
 import com.cpt202.dto.ProjectRequestCreateDTO;
 import com.cpt202.dto.StudentProjectRequestQueryDTO;
+import com.cpt202.exception.UnauthorizedAccessException;
 import com.cpt202.model.entity.User;
 import com.cpt202.result.Result;
+import com.cpt202.security.AuthContext;
 import com.cpt202.service.CallbackAuthService;
 import com.cpt202.service.ProjectRequestService;
 import com.cpt202.vo.ProjectRequestVO;
@@ -42,9 +44,9 @@ public class StudentProjectRequestController {
     @Operation(summary = "List student requests")
     public Result<List<ProjectRequestVO>> list(@Valid StudentProjectRequestQueryDTO queryDTO,
                                                @RequestHeader("Authorization") String authorization) {
-        return Result.success(
-                callbackAuthService.doWithAuthCheck(authorization, User.UserRole.STUDENT,
-                        () -> projectRequestService.listStudentRequests(queryDTO.getStudentId())));
+        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.STUDENT);
+        ensureCurrentStudent(queryDTO.getStudentId(), authContext);
+        return Result.success(projectRequestService.listStudentRequests(queryDTO.getStudentId()));
     }
 
     /**
@@ -57,8 +59,9 @@ public class StudentProjectRequestController {
     @Operation(summary = "Submit a project request")
     public Result<Void> create(@Valid @RequestBody ProjectRequestCreateDTO projectRequestCreateDTO,
                                @RequestHeader("Authorization") String authorization) {
-        callbackAuthService.doWithAuthCheck(authorization, User.UserRole.STUDENT,
-                () -> projectRequestService.create(projectRequestCreateDTO));
+        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.STUDENT);
+        ensureCurrentStudent(projectRequestCreateDTO.getStudentId(), authContext);
+        projectRequestService.create(projectRequestCreateDTO);
         return Result.success();
     }
 
@@ -74,8 +77,15 @@ public class StudentProjectRequestController {
     public Result<Void> withdraw(@PathVariable Long requestId,
                                  @RequestParam Long studentId,
                                  @RequestHeader("Authorization") String authorization) {
-        callbackAuthService.doWithAuthCheck(authorization, User.UserRole.STUDENT,
-                () -> projectRequestService.withdraw(requestId, studentId));
+        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.STUDENT);
+        ensureCurrentStudent(studentId, authContext);
+        projectRequestService.withdraw(requestId, studentId);
         return Result.success();
+    }
+
+    private void ensureCurrentStudent(Long studentId, AuthContext authContext) {
+        if (!authContext.userId().equals(studentId)) {
+            throw new UnauthorizedAccessException("不能操作其他学生的申请记录。");
+        }
     }
 }

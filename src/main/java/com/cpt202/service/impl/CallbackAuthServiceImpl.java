@@ -3,6 +3,7 @@ package com.cpt202.service.impl;
 import com.cpt202.exception.UnauthorizedAccessException;
 import com.cpt202.model.entity.User;
 import com.cpt202.repository.UserRepository;
+import com.cpt202.security.AuthContext;
 import com.cpt202.service.CallbackAuthService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -16,14 +17,13 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Date;
-import java.util.function.Supplier;
 
 /**
  * 回调式权限认证服务实现类。
  * <p>
  * 自动从当前 HTTP 请求的 Authorization 头中提取 JWT 令牌，
  * 解析并校验身份一致性、角色与账号状态，
- * 通过后回调执行业务逻辑，否则抛出 {@link UnauthorizedAccessException}。
+ * 通过后返回当前用户上下文，否则抛出 {@link UnauthorizedAccessException}。
  */
 @Service
 @Slf4j
@@ -57,20 +57,8 @@ public class CallbackAuthServiceImpl implements CallbackAuthService {
     // ==================== 接口方法 ====================
 
     @Override
-    public Long getCurrentUserId(String authorization) {
-        return extractToken(authorization).userId;
-    }
-
-    @Override
-    public <T> T doWithAuthCheck(String authorization, User.UserRole requiredRole, Supplier<T> action) {
-        verify(authorization, requiredRole);
-        return action.get();
-    }
-
-    @Override
-    public void doWithAuthCheck(String authorization, User.UserRole requiredRole, Runnable action) {
-        verify(authorization, requiredRole);
-        action.run();
+    public AuthContext requireAuth(String authorization, User.UserRole requiredRole) {
+        return verify(authorization, requiredRole);
     }
 
     @Override
@@ -101,7 +89,7 @@ public class CallbackAuthServiceImpl implements CallbackAuthService {
         return parseToken(jwt);
     }
 
-    private void verify(String authorization, User.UserRole requiredRole) {
+    private AuthContext verify(String authorization, User.UserRole requiredRole) {
         ParsedToken parsed = extractToken(authorization);
 
         User user = userRepository.findById(parsed.userId)
@@ -120,6 +108,8 @@ public class CallbackAuthServiceImpl implements CallbackAuthService {
             log.warn("越权访问：用户 {} 账号状态为 {}", parsed.userId, user.getAccountStatus());
             throw new UnauthorizedAccessException("账号当前不可用，拒绝访问。");
         }
+
+        return new AuthContext(user.getUserId(), user.getRole());
     }
 
     private ParsedToken parseToken(String token) {
