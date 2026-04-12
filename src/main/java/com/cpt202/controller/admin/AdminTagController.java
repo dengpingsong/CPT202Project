@@ -40,11 +40,10 @@ public class AdminTagController {
      */
     @GetMapping
     @Operation(summary = "List tags")
-    public Result<List<TagVO>> list(@RequestParam Long operatorId) {
-        log.info("List tags, operatorId: {}", operatorId);
-        return Result.success(
-                callbackAuthService.doWithAuthCheck(operatorId, User.UserRole.ADMIN,
-                        () -> tagService.listAll()));
+    public Result<List<TagVO>> list(@RequestHeader("Authorization") String authorization) {
+        callbackAuthService.requireAuth(authorization, User.UserRole.ADMIN);
+        log.info("List tags");
+        return Result.success(tagService.listAll());
     }
 
     /**
@@ -57,11 +56,10 @@ public class AdminTagController {
     @GetMapping("/{tagId}")
     @Operation(summary = "Get tag by ID")
     public Result<TagVO> getById(@PathVariable Long tagId,
-                                 @RequestParam Long operatorId) {
-        log.info("Get tag by id: {}, operatorId: {}", tagId, operatorId);
-        return Result.success(
-                callbackAuthService.doWithAuthCheck(operatorId, User.UserRole.ADMIN,
-                        () -> tagService.getById(tagId)));
+                                 @RequestHeader("Authorization") String authorization) {
+        callbackAuthService.requireAuth(authorization, User.UserRole.ADMIN);
+        log.info("Get tag by id: {}", tagId);
+        return Result.success(tagService.getById(tagId));
     }
 
     /**
@@ -74,10 +72,10 @@ public class AdminTagController {
     @PostMapping
     @Operation(summary = "Create a tag")
     public Result<Void> create(@Valid @RequestBody TagDTO tagDTO,
-                               @RequestParam Long operatorId) {
-        log.info("Create tag: {}, operatorId: {}", tagDTO, operatorId);
-        callbackAuthService.doWithAuthCheck(operatorId, User.UserRole.ADMIN,
-                () -> tagService.create(tagDTO));
+                               @RequestHeader("Authorization") String authorization) {
+        callbackAuthService.requireAuth(authorization, User.UserRole.ADMIN);
+        log.info("Create tag: {}", tagDTO);
+        tagService.create(tagDTO);
         return Result.success();
     }
 
@@ -93,10 +91,10 @@ public class AdminTagController {
     @Operation(summary = "Update a tag")
     public Result<Void> update(@PathVariable Long tagId,
                                @Valid @RequestBody TagDTO tagDTO,
-                               @RequestParam Long operatorId) {
-        log.info("Update tag: {}, payload: {}, operatorId: {}", tagId, tagDTO, operatorId);
-        callbackAuthService.doWithAuthCheck(operatorId, User.UserRole.ADMIN,
-                () -> tagService.update(tagId, tagDTO));
+                               @RequestHeader("Authorization") String authorization) {
+        callbackAuthService.requireAuth(authorization, User.UserRole.ADMIN);
+        log.info("Update tag: {}, payload: {}", tagId, tagDTO);
+        tagService.update(tagId, tagDTO);
         return Result.success();
     }
 
@@ -110,10 +108,10 @@ public class AdminTagController {
     @DeleteMapping("/{tagId}")
     @Operation(summary = "Delete a tag")
     public Result<Void> delete(@PathVariable Long tagId,
-                               @RequestParam Long operatorId) {
-        log.info("Delete tag: {}, operatorId: {}", tagId, operatorId);
-        callbackAuthService.doWithAuthCheck(operatorId, User.UserRole.ADMIN,
-                () -> tagService.delete(tagId));
+                               @RequestHeader("Authorization") String authorization) {
+        callbackAuthService.requireAuth(authorization, User.UserRole.ADMIN);
+        log.info("Delete tag: {}", tagId);
+        tagService.delete(tagId);
         return Result.success();
     }
 }

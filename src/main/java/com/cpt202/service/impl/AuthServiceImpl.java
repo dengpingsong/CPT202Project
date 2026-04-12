@@ -11,6 +11,7 @@ import com.cpt202.repository.StudentProfileRepository;
 import com.cpt202.repository.TeacherProfileRepository;
 import com.cpt202.repository.UserRepository;
 import com.cpt202.service.AuthService;
+import com.cpt202.service.CallbackAuthService;
 import com.cpt202.vo.LoginVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final StudentProfileRepository studentProfileRepository;
     private final TeacherProfileRepository teacherProfileRepository;
+    private final CallbackAuthService callbackAuthService;
 
     /**
      * 注册新用户。
@@ -159,6 +161,7 @@ public class AuthServiceImpl implements AuthService {
                 .fullName(user.getFullName())
                 .role(user.getRole())
                 .accountStatus(user.getAccountStatus())
+                .token(callbackAuthService.generateToken(user))
                 .build();
     }
 

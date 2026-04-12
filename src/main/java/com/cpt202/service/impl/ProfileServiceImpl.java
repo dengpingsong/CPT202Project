@@ -3,6 +3,7 @@ package com.cpt202.service.impl;
 import com.cpt202.dto.StudentProfileUpdateDTO;
 import com.cpt202.dto.TeacherProfileUpdateDTO;
 import com.cpt202.exception.BusinessException;
+import com.cpt202.exception.NotFoundException;
 import com.cpt202.model.entity.StudentProfile;
 import com.cpt202.model.entity.TeacherProfile;
 import com.cpt202.model.entity.User;
@@ -38,7 +39,7 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     public StudentProfileVO getStudentProfile(Long studentId) {
         StudentProfile profile = studentProfileRepository.findById(studentId)
-                .orElseThrow(() -> new BusinessException("学生资料未找到。"));
+                .orElseThrow(() -> new NotFoundException("学生资料未找到。"));
 
         if (profile.getUser() == null || profile.getUser().getRole() != User.UserRole.STUDENT) {
             throw new BusinessException("该用户不是学生角色。无法查询学生资料。" );
@@ -69,7 +70,7 @@ public class ProfileServiceImpl implements ProfileService {
     @Transactional
     public void updateStudentProfile(Long studentId, StudentProfileUpdateDTO studentProfileUpdateDTO) {
         StudentProfile profile = studentProfileRepository.findById(studentId)
-                .orElseThrow(() -> new BusinessException("学生资料未找到。"));
+                .orElseThrow(() -> new NotFoundException("学生资料未找到。"));
 
         if (profile.getUser() == null || profile.getUser().getRole() != User.UserRole.STUDENT) {
             throw new BusinessException("该用户不是学生角色。无法修改学生资料。" );
