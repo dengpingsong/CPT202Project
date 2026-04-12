@@ -64,10 +64,4 @@ public class TeacherProfileController {
         profileService.updateTeacherProfile(teacherId, teacherProfileUpdateDTO);
         return Result.success();
     }
-
-    private void ensureCurrentTeacher(Long teacherId, AuthContext authContext) {
-        if (!authContext.userId().equals(teacherId)) {
-            throw new UnauthorizedAccessException("不能访问或修改其他教师的资料。");
-        }
-    }
 }
