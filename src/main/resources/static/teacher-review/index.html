@@ -34,7 +34,14 @@
             padding-top: 30px; 
             flex-shrink: 0; 
             box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            transition: width 0.3s ease;
         }
+        .sidebar.collapsed { width: 80px; }
+        .sidebar.collapsed .menu-text { display: none; }
+        .sidebar.collapsed .sidebar-header { justify-content: center; padding: 0 0 20px 0; }
+        .sidebar.collapsed .sidebar-menu li { justify-content: center; padding: 16px 0; }
+        .sidebar-collapsed .sidebar-menu li::before { display: none; }
+        
         .sidebar-header { 
             padding: 0 24px 20px; 
             opacity: 0.8; 
@@ -42,8 +49,11 @@
             cursor: pointer; 
             border-bottom: 1px solid rgba(255,255,255,0.05);
             margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
-        .sidebar-menu { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
+        .sidebar-menu { list-style: none; padding: 0; margin: 0; flex-grow: 1; overflow: hidden; }
         .sidebar-menu li { 
             padding: 16px 24px; 
             cursor: pointer; 
@@ -54,6 +64,7 @@
             gap: 12px; 
             font-size: 15px; 
             position: relative;
+            white-space: nowrap;
         }
         .sidebar-menu li:hover { background-color: var(--sidebar-hover); color: white; }
         .sidebar-menu li.active { 
@@ -138,16 +149,16 @@
 <body>
 
     <!-- 左侧菜单栏 -->
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <i class="bi bi-list"></i> 收起菜单
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header" onclick="toggleSidebar()">
+            <i class="bi bi-list"></i> <span class="menu-text">收起菜单</span>
         </div>
         <ul class="sidebar-menu">
-            <li><i class="bi bi-kanban"></i> 我的项目</li>
-            <li class="active"><i class="bi bi-file-earmark-check"></i> 审批申请</li>
-            <li><i class="bi bi-clock-history"></i> 历史记录</li>
-            <li><i class="bi bi-chat-dots"></i> 消息/通知</li>
-            <li><i class="bi bi-person-gear"></i> 个人设置</li>
+            <li onclick="window.location.href='projects.html'"><i class="bi bi-kanban"></i> <span class="menu-text">我的项目</span></li>
+            <li class="active" onclick="window.location.href='index.html'"><i class="bi bi-file-earmark-check"></i> <span class="menu-text">审批申请</span></li>
+            <li onclick="window.location.href='history.html'"><i class="bi bi-clock-history"></i> <span class="menu-text">历史记录</span></li>
+            <li onclick="window.location.href='notifications.html'"><i class="bi bi-chat-dots"></i> <span class="menu-text">消息/通知</span></li>
+            <li onclick="window.location.href='settings.html'"><i class="bi bi-person-gear"></i> <span class="menu-text">个人设置</span></li>
         </ul>
     </div>
 
@@ -159,7 +170,7 @@
                 <h1>欢迎，王老师</h1>
                 <p>这是你的教师审批工作台。你可以查看当前学生提交的项目申请、处理待审批项目，或者查看以往的请求记录及项目分配情况。</p>
             </div>
-            <button class="btn-primary-custom">快速发布新项目</button>
+            <button class="btn-primary-custom" onclick="window.location.href='create-project.html'">快速发布新项目</button>
         </div>
 
         <!-- 状态卡片 -->

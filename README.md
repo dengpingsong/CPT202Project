@@ -40,7 +40,9 @@ CPT202Program/
 │   │   │   └── repository/
 │   │   │       └── ItemRepository.java       # Spring Data JPA repo
 │   │   └── resources/
-│   │       └── application.properties
+│   │       ├── application.properties        # General properties & DB config
+│   │       ├── firstPage_front/              # Basic HTML views (Login/Register)
+│   │       └── static/teacher-review/        # Teacher frontend application
 │   └── test/
 │       └── java/com/cpt202/
 │           ├── CPT202ApplicationTests.java   # Context smoke test
