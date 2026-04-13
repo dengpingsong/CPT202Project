@@ -302,7 +302,7 @@
                 <td><a href="mailto:${proj.piEmail}" style="color:var(--deep);">${proj.piEmail}</a></td>
                 <td>${proj.school}</td><td>${proj.department}</td><td>${proj.requiredStudents}</td>
                 <td><span style="background:rgba(90,43,152,0.1); padding:4px 10px; border-radius:30px;">${proj.internalExternal}</span></td>
-                <td><a class="view-btn" href="student-project-detail.html?code=${encodeURIComponent(proj.surfCode)}">View</a></td>
+                <td><a class="view-btn" href="student-project-search-list-detail.html?code=${encodeURIComponent(proj.surfCode)}">View</a></td>
             </tr>`;
         });
         tbody.innerHTML = html;
