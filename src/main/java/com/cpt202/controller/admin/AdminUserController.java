@@ -1,7 +1,9 @@
 package com.cpt202.controller.admin;
 
 import com.cpt202.dto.AdminUserQueryDTO;
+import com.cpt202.model.entity.User;
 import com.cpt202.result.Result;
+import com.cpt202.service.CallbackAuthService;
 import com.cpt202.service.UserAdminService;
 import com.cpt202.vo.UserVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,14 +22,12 @@ import java.util.List;
 public class AdminUserController {
 
     private final UserAdminService userAdminService;
+    private final CallbackAuthService callbackAuthService;
 
-    /**
-     * 构造器注入管理端用户服务。
-     *
-     * @param userAdminService 用户管理服务
-     */
-    public AdminUserController(UserAdminService userAdminService) {
+    public AdminUserController(UserAdminService userAdminService,
+                               CallbackAuthService callbackAuthService) {
         this.userAdminService = userAdminService;
+        this.callbackAuthService = callbackAuthService;
     }
 
     /**
@@ -38,7 +38,9 @@ public class AdminUserController {
      */
     @GetMapping
     @Operation(summary = "List users")
-    public Result<List<UserVO>> list(AdminUserQueryDTO queryDTO) {
+    public Result<List<UserVO>> list(AdminUserQueryDTO queryDTO,
+                                     @RequestHeader("Authorization") String authorization) {
+        callbackAuthService.requireAuth(authorization, User.UserRole.ADMIN);
         return Result.success(userAdminService.listUsers(queryDTO.getRole(), queryDTO.getAccountStatus()));
     }
 
@@ -47,12 +49,15 @@ public class AdminUserController {
      *
      * @param userId 用户主键
      * @param accountStatus 账号状态
+     * @param operatorId 操作人主键
      * @return 统一成功响应
      */
     @PutMapping("/{userId}/status")
     @Operation(summary = "Update user status")
     public Result<Void> updateStatus(@PathVariable Long userId,
-                                     @RequestParam String accountStatus) {
+                                     @RequestParam String accountStatus,
+                                     @RequestHeader("Authorization") String authorization) {
+        callbackAuthService.requireAuth(authorization, User.UserRole.ADMIN);
         userAdminService.updateStatus(userId, accountStatus);
         return Result.success();
     }

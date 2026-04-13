@@ -46,7 +46,7 @@ public class ProjectRequest {
 
     /** Ranking of this request among the student's preferences. */
     @Column(name = "preference_rank")
-    private int preferenceRank;
+    private Integer preferenceRank;
 
     /** Free-text notes submitted with the request. */
     @Column(name = "notes")
@@ -79,7 +79,7 @@ public class ProjectRequest {
 
     @Builder
     public ProjectRequest(Project project, StudentProfile student, TeacherProfile reviewedBy,
-                          int preferenceRank, String notes, RequestStatus requestStatus,
+                          Integer preferenceRank, String notes, RequestStatus requestStatus,
                           String decisionComment, LocalDateTime submittedAt,
                           LocalDateTime reviewedAt, LocalDateTime withdrawnAt,
                           LocalDateTime updatedAt) {
