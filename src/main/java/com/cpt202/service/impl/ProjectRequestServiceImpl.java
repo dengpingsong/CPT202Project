@@ -40,9 +40,10 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
      * 学生提交项目申请。
      */
     @Override
-    public void create(ProjectRequestCreateDTO projectRequestCreateDTO) {
-        throw new UnsupportedOperationException("Not implemented yet");
-    }
+    @Transactional
+    public void create(ProjectRequestCreateDTO dto) {
+        // 1. 检查截止日期和“一人一选”限制
+        projectRequestValidationService.validateRequest(dto.getStudentId());
 
     /**
      * 查询学生申请列表。
