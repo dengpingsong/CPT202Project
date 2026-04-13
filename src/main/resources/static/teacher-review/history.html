@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard - 历史记录</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        :root { --sidebar-bg: #5f3391; --sidebar-color: #d1bced; --sidebar-hover: #7b4eb3; --main-bg: #f4f5f9; --card-radius: 16px; }
+        body { background-color: var(--main-bg); font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; display: flex; min-height: 100vh; margin: 0; color: #333; }
+        .sidebar { width: 240px; background-color: var(--sidebar-bg); color: white; display: flex; flex-direction: column; padding-top: 30px; flex-shrink: 0; transition: width 0.3s ease;}
+        .sidebar.collapsed { width: 80px; }
+        .sidebar.collapsed .menu-text { display: none; }
+        .sidebar.collapsed .sidebar-header { justify-content: center; padding: 0 0 20px 0; }
+        .sidebar.collapsed .sidebar-menu li { justify-content: center; padding: 16px 0; }
+        .sidebar-header { padding: 0 24px 20px; opacity: 0.8; font-size: 14px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+        .sidebar-menu { list-style: none; padding: 0; margin: 0; flex-grow: 1; overflow: hidden;}
+        .sidebar-menu li { padding: 16px 24px; cursor: pointer; color: var(--sidebar-color); transition: 0.2s; display: flex; align-items: center; gap: 12px; font-size: 15px; position: relative; white-space: nowrap;}
+        .sidebar-menu li:hover { background-color: var(--sidebar-hover); color: white; }
+        .sidebar-menu li.active { background-color: transparent; color: white; font-weight: bold; }
+        .sidebar-menu li.active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background-color: white; border-top-right-radius: 4px; border-bottom-right-radius: 4px; }
+        .main-content { flex-grow: 1; padding: 30px 40px; overflow-y: auto; height: 100vh; }
+        .page-title { font-size: 24px; font-weight: bold; margin-bottom: 24px; color: #222; }
+        .custom-card { background: white; border-radius: var(--card-radius); padding: 28px; margin-bottom: 24px; }
+        
+        .timeline { border-left: 2px solid #e0e0e0; padding-left: 20px; margin-left: 10px; }
+        .timeline-item { position: relative; margin-bottom: 25px; }
+        .timeline-item::before { content: ''; position: absolute; left: -27px; top: 5px; width: 12px; height: 12px; background: var(--sidebar-bg); border-radius: 50%; }
+        .timeline-date { font-size: 12px; color: #999; margin-bottom: 5px; }
+        .timeline-title { font-weight: bold; color: #333; font-size: 15px; }
+        .timeline-desc { font-size: 14px; color: #666; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header" onclick="toggleSidebar()">
+            <i class="bi bi-list"></i> <span class="menu-text">收起菜单</span>
+        </div>
+        <ul class="sidebar-menu">
+            <li onclick="window.location.href='projects.html'"><i class="bi bi-kanban"></i> <span class="menu-text">我的项目</span></li>
+            <li onclick="window.location.href='index.html'"><i class="bi bi-file-earmark-check"></i> <span class="menu-text">审批申请</span></li>
+            <li class="active" onclick="window.location.href='history.html'"><i class="bi bi-clock-history"></i> <span class="menu-text">历史记录</span></li>
+            <li onclick="window.location.href='notifications.html'"><i class="bi bi-chat-dots"></i> <span class="menu-text">消息/通知</span></li>
+            <li onclick="window.location.href='settings.html'"><i class="bi bi-person-gear"></i> <span class="menu-text">个人设置</span></li>
+        </ul>
+    </div>
+    <div class="main-content">
+        <h2 class="page-title">历史记录 (History Logs)</h2>
+        <div class="custom-card">
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-date">2026-04-10 10:30 AM</div>
+                    <div class="timeline-title">审批操作 - 同意</div>
+                    <div class="timeline-desc">您同意了学生 张三 (ID: 21) 对项目 "Campus Navigation App" 的申请。</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-date">2026-04-09 14:15 PM</div>
+                    <div class="timeline-title">审批操作 - 拒绝</div>
+                    <div class="timeline-desc">您拒绝了学生 李四 (ID: 35) 对项目 "An online project selection system" 的申请。</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-date">2026-04-02 09:00 AM</div>
+                    <div class="timeline-title">项目管理 - 发布新项目</div>
+                    <div class="timeline-desc">您成功发布了新项目 "AI Chatbot for Education"。</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
