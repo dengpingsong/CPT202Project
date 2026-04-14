@@ -12,7 +12,7 @@
             justify-content: center;
             align-items: center;
             font-family: "Helvetica Neue", Arial, sans-serif;
-            background: url("backimg2.png") center/cover no-repeat;
+            background: url("login/backimg2.png") center/cover no-repeat;
         }
         .card {
             width: 460px;
@@ -122,7 +122,7 @@
 
         <div id="studentSection" class="field-group">
             <div class="section-title required-star">Student Profile</div>
-            <div class="hint">Student role must provide student no, programme, year, phone, interests and enrollment date.</div>
+            <div class="hint">Student role must provide student no, programme, and enrollment date.</div>
 
             <label class="inline-label">Student No (unique)</label>
             <input type="text" id="studentNo" placeholder="Student No" required>
@@ -132,17 +132,17 @@
             <input type="text" id="programme" placeholder="Programme" required>
             <div class="helper" id="programmeHelper"></div>
 
-            <label class="inline-label">Year</label>
-            <input type="number" id="year" placeholder="Year" required min="1">
-            <div class="helper" id="yearHelper"></div>
+<!--            <label class="inline-label">Year</label>-->
+<!--            <input type="number" id="year" placeholder="Year" required min="1">-->
+<!--            <div class="helper" id="yearHelper"></div>-->
 
-            <label class="inline-label">Phone</label>
-            <input type="text" id="phone" placeholder="Phone" required>
-            <div class="helper" id="phoneHelper"></div>
+<!--            <label class="inline-label">Phone</label>-->
+<!--            <input type="text" id="phone" placeholder="Phone" required>-->
+<!--            <div class="helper" id="phoneHelper"></div>-->
 
-            <label class="inline-label">Interests</label>
-            <input type="text" id="interests" placeholder="Interests (comma separated)" required>
-            <div class="helper" id="interestsHelper"></div>
+<!--            <label class="inline-label">Interests</label>-->
+<!--            <input type="text" id="interests" placeholder="Interests (comma separated)" required>-->
+<!--            <div class="helper" id="interestsHelper"></div>-->
 
             <label class="inline-label">Enrollment Date</label>
             <input type="date" id="entryDate" required>
@@ -151,7 +151,7 @@
 
         <div id="teacherSection" class="field-group hidden">
             <div class="section-title required-star">Teacher Profile</div>
-            <div class="hint">Teacher role must provide staff no, department, title, research area and office.</div>
+            <div class="hint">Teacher role must provide staff no, department, and title.</div>
 
             <label class="inline-label">Staff No (unique)</label>
             <input type="text" id="staffNo" placeholder="Staff No" required>
@@ -165,17 +165,21 @@
             <input type="text" id="title" placeholder="Title" required>
             <div class="helper" id="titleHelper"></div>
 
-            <label class="inline-label">Research Area</label>
-            <input type="text" id="researchArea" placeholder="Research Area" required>
-            <div class="helper" id="researchAreaHelper"></div>
+<!--            <label class="inline-label">Research Area</label>-->
+<!--            <input type="text" id="researchArea" placeholder="Research Area" required>-->
+<!--            <div class="helper" id="researchAreaHelper"></div>-->
 
-            <label class="inline-label">Office</label>
-            <input type="text" id="office" placeholder="Office" required>
-            <div class="helper" id="officeHelper"></div>
+<!--            <label class="inline-label">Office</label>-->
+<!--            <input type="text" id="office" placeholder="Office" required>-->
+<!--            <div class="helper" id="officeHelper"></div>-->
         </div>
 
         <button type="submit" id="submitBtn">Register</button>
     </form>
+
+    <div class="links">
+        <a href="login.html" class="login-link">Back to Login</a>
+    </div>
 </div>
 
 <script>
@@ -195,22 +199,15 @@
         role: document.getElementById("roleHelper"),
         studentNo: document.getElementById("studentNoHelper"),
         programme: document.getElementById("programmeHelper"),
-        year: document.getElementById("yearHelper"),
-        phone: document.getElementById("phoneHelper"),
-        interests: document.getElementById("interestsHelper"),
+        // year: document.getElementById("yearHelper"),
+        // phone: document.getElementById("phoneHelper"),
+        // interests: document.getElementById("interestsHelper"),
         entryDate: document.getElementById("entryDateHelper"),
         staffNo: document.getElementById("staffNoHelper"),
         department: document.getElementById("departmentHelper"),
         title: document.getElementById("titleHelper"),
-        researchArea: document.getElementById("researchAreaHelper"),
-        office: document.getElementById("officeHelper")
-    };
-
-    const uniquenessPaths = {
-        username: "/check-username",
-        email: "/check-email",
-        studentNo: "/check-student-no",
-        staffNo: "/check-staff-no"
+        // researchArea: document.getElementById("researchAreaHelper"),
+        // office: document.getElementById("officeHelper")
     };
 
     const studentFields = studentSection.querySelectorAll("input");
@@ -228,53 +225,6 @@
         helper.className = message ? `helper ${type}`.trim() : "helper";
     }
 
-    async function checkUniqueness(field, value) {
-        if (!value || !uniquenessPaths[field]) return true;
-
-        try {
-            const res = await fetch(`${BASE_URL}${uniquenessPaths[field]}?value=${encodeURIComponent(value)}`);
-            if (res.status === 200) {
-                showHelper(field, "可用", "success");
-                return true;
-            }
-            if (res.status === 409) {
-                const payload = await res.json().catch(() => null);
-                showHelper(field, payload?.message || "已被占用", "error");
-                return false;
-            }
-            return false;
-        } catch (err) {
-            console.warn(err);
-            return false;
-        }
-    }
-
-    async function ensureUniqueFields() {
-        const role = roleSelect.value;
-        const usernameOk = await checkUniqueness("username", username.value.trim());
-        const emailOk = await checkUniqueness("email", email.value.trim());
-        let roleOk = true;
-        if (role === "STUDENT") {
-            roleOk = await checkUniqueness("studentNo", studentNo.value.trim());
-        } else {
-            roleOk = await checkUniqueness("staffNo", staffNo.value.trim());
-        }
-
-        if (!usernameOk) return { ok: false, field: "username" };
-        if (!emailOk) return { ok: false, field: "email" };
-        if (!roleOk) return { ok: false, field: role === "STUDENT" ? "studentNo" : "staffNo" };
-
-        return { ok: true };
-    }
-
-    function checkPermitted(role) {
-        if (!uniquenessCache.username) return { ok: false, field: "username" };
-        if (!uniquenessCache.email) return { ok: false, field: "email" };
-        if (role === "STUDENT" && !uniquenessCache.studentNo) return { ok: false, field: "studentNo" };
-        if (role === "TEACHER" && !uniquenessCache.staffNo) return { ok: false, field: "staffNo" };
-        return { ok: true };
-    }
-
     roleSelect.addEventListener("change", () => {
         const isStudent = roleSelect.value === "STUDENT";
         studentSection.classList.toggle("hidden", !isStudent);
@@ -287,11 +237,7 @@
     ["username", "email", "studentNo", "staffNo"].forEach(field => {
         const input = document.getElementById(field);
         if (input) {
-            input.addEventListener("blur", () => checkUniqueness(field, input.value.trim()));
-            input.addEventListener("input", () => {
-                showHelper(field, "");
-                uniquenessCache[field] = false;
-            });
+            input.addEventListener("input", () => showHelper(field, ""));
         }
     });
 
@@ -300,14 +246,6 @@
         submitBtn.disabled = true;
         generalError.textContent = "";
         Object.keys(helperMap).forEach(key => showHelper(key, ""));
-
-        const checkResult = await ensureUniqueFields();
-        if (!checkResult.ok) {
-            showHelper(checkResult.field, "请换一个再试", "error");
-            generalError.textContent = "请先确认唯一性后再提交";
-            submitBtn.disabled = false;
-            return;
-        }
 
         const payload = {
             username: document.getElementById("username").value.trim(),
@@ -320,16 +258,16 @@
         if (payload.role === "STUDENT") {
             payload.studentNo = document.getElementById("studentNo").value.trim();
             payload.programme = document.getElementById("programme").value.trim();
-            payload.year = parseInt(document.getElementById("year").value, 10);
-            payload.phone = document.getElementById("phone").value.trim();
-            payload.interests = document.getElementById("interests").value.trim();
+            // payload.year = parseInt(document.getElementById("year").value, 10);
+            // payload.phone = document.getElementById("phone").value.trim();
+            // payload.interests = document.getElementById("interests").value.trim();
             payload.enrollmentDate = document.getElementById("entryDate").value;
         } else {
             payload.staffNo = document.getElementById("staffNo").value.trim();
             payload.department = document.getElementById("department").value.trim();
             payload.title = document.getElementById("title").value.trim();
-            payload.researchArea = document.getElementById("researchArea").value.trim();
-            payload.office = document.getElementById("office").value.trim();
+            // payload.researchArea = document.getElementById("researchArea").value.trim();
+            // payload.office = document.getElementById("office").value.trim();
         }
 
         try {
@@ -340,7 +278,8 @@
             });
 
             const data = await res.json();
-            if (res.ok && (data.code === 0 || data.success === true)) {
+
+            if (data.code === 1) {
                 alert("Register success");
                 window.location.href = "login.html";
             } else {
