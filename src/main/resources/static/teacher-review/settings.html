@@ -7,19 +7,181 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
-        :root { --sidebar-bg: #5f3391; --sidebar-color: #d1bced; --sidebar-hover: #7b4eb3; --main-bg: #f4f5f9; --card-radius: 16px; }
-        body { background-color: var(--main-bg); font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; display: flex; min-height: 100vh; margin: 0; color: #333; }
-        .sidebar { width: 240px; background-color: var(--sidebar-bg); color: white; display: flex; flex-direction: column; padding-top: 30px; flex-shrink: 0; transition: width 0.3s ease;}
-        .sidebar.collapsed { width: 80px; }
-        .sidebar.collapsed .menu-text { display: none; }
-        .sidebar.collapsed .sidebar-header { justify-content: center; padding: 0 0 20px 0; }
-        .sidebar.collapsed .sidebar-menu li { justify-content: center; padding: 16px 0; }
-        .sidebar-header { padding: 0 24px 20px; opacity: 0.8; font-size: 14px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
-        .sidebar-menu { list-style: none; padding: 0; margin: 0; flex-grow: 1; overflow: hidden;}
-        .sidebar-menu li { padding: 16px 24px; cursor: pointer; color: var(--sidebar-color); transition: 0.2s; display: flex; align-items: center; gap: 12px; font-size: 15px; position: relative; white-space: nowrap;}
-        .sidebar-menu li:hover { background-color: var(--sidebar-hover); color: white; }
-        .sidebar-menu li.active { background-color: transparent; color: white; font-weight: bold; }
-        .sidebar-menu li.active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background-color: white; border-top-right-radius: 4px; border-bottom-right-radius: 4px; }
+
+        /* ----- 全局变量 & 基础样式 (完全沿用 dashboard 设计语言) ----- */
+        :root {
+            --bg: #f4f3f7;
+            --deep: #5a2b98;
+            --mid: #7b4fbd;
+            --panel: #ffffff;
+            --text: #1c1b33;
+            --muted: #6b6b82;
+            --accent: #24b3ff;
+            --orange: #f6a63d;
+            --green: #2fc5a8;
+            --border: rgba(28, 27, 51, 0.08);
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+        }
+
+        /* 经典双列布局 */
+        .layout {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            min-height: 100vh;
+            transition: grid-template-columns .3s ease;
+        }
+
+        .layout.collapsed {
+            grid-template-columns: 80px 1fr;
+        }
+
+        /* ---------- 侧边栏 (与 dashboard 完全一致) ---------- */
+        .sidebar {
+            background: linear-gradient(180deg, #3d1566, #631e97);
+            padding: 24px 16px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sidebar::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top, rgba(255, 255, 255, 0.2), transparent 60%);
+            pointer-events: none;
+        }
+
+        .toggle-wrap {
+            width: 48px;
+            height: 48px;
+            border-radius: 16px;
+            margin-bottom: 4px;
+        }
+
+        .toggle {
+            width: 100%;
+            height: 100%;
+            border-radius: 16px;
+            border: none;
+            background: rgba(255, 255, 255, 0.18);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background .3s ease;
+            position: relative;
+        }
+
+        .toggle span,
+        .toggle span::before,
+        .toggle span::after {
+            display: block;
+            width: 22px;
+            height: 2px;
+            background: white;
+            transition: all .3s ease;
+            position: absolute;
+        }
+
+        .toggle span {
+            background: transparent;
+        }
+
+        .toggle span::before {
+            content: "";
+            top: 0;
+            transform: rotate(45deg);
+        }
+
+        .toggle span::after {
+            content: "";
+            top: 0;
+            transform: rotate(-45deg);
+        }
+
+        .layout.collapsed .toggle span {
+            background: white;
+        }
+
+        .layout.collapsed .toggle span::before {
+            top: -8px;
+            transform: none;
+        }
+
+        .layout.collapsed .toggle span::after {
+            top: 8px;
+            transform: none;
+        }
+
+        .nav-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .nav-group a,
+        .nav-group button {
+            border: none;
+            background: transparent;
+            color: white;
+            font-size: 0.95rem;
+            padding: 10px 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background .2s, padding .2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: flex-start;
+            text-decoration: none;
+            font-weight: 400;
+            font-family: inherit;
+        }
+
+        .nav-group a.active,
+        .nav-group button.active,
+        .nav-group a:hover,
+        .nav-group button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .nav-icon {
+            font-size: 1.2rem;
+            width: 28px;
+            text-align: center;
+        }
+
+        .nav-label {
+            transition: opacity .3s ease;
+            white-space: nowrap;
+        }
+
+        .layout.collapsed .nav-group a,
+        .layout.collapsed .nav-group button {
+            justify-content: center;
+            padding: 12px;
+        }
+
+        .layout.collapsed .nav-label {
+            opacity: 0;
+            width: 0;
+            overflow: hidden;
+        }
+
+        
+        
         .main-content { flex-grow: 1; padding: 30px 40px; overflow-y: auto; height: 100vh; }
         .page-title { font-size: 24px; font-weight: bold; margin-bottom: 24px; color: #222; }
         .custom-card { background: white; border-radius: var(--card-radius); padding: 30px; max-width: 600px; box-shadow: 0 4px 20px rgba(0,0,0,0.02);}
@@ -29,18 +191,40 @@
     </style>
 </head>
 <body>
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header" onclick="toggleSidebar()">
-            <i class="bi bi-list"></i> <span class="menu-text">收起菜单</span>
+<div class="layout" id="layout">
+    <!-- 侧边栏 -->
+    <aside class="sidebar" id="sidebar">
+        <div class="toggle-wrap">
+            <button class="toggle" id="toggleSidebar" aria-label="切换菜单">
+                <span></span>
+            </button>
         </div>
-        <ul class="sidebar-menu">
-            <li onclick="window.location.href='projects.html'"><i class="bi bi-kanban"></i> <span class="menu-text">我的项目</span></li>
-            <li onclick="window.location.href='index.html'"><i class="bi bi-file-earmark-check"></i> <span class="menu-text">审批申请</span></li>
-            <li onclick="window.location.href='history.html'"><i class="bi bi-clock-history"></i> <span class="menu-text">历史记录</span></li>
-            <li onclick="window.location.href='notifications.html'"><i class="bi bi-chat-dots"></i> <span class="menu-text">消息/通知</span></li>
-            <li class="active" onclick="window.location.href='settings.html'"><i class="bi bi-person-gear"></i> <span class="menu-text">个人设置</span></li>
-        </ul>
-    </div>
+        <div class="nav-group">
+            <a href="projects.html" class="">
+                <i class="bi bi-kanban nav-icon"></i>
+                <span class="nav-label">我的项目</span>
+            </a>
+            <a href="index.html" class="">
+                <i class="bi bi-file-earmark-check nav-icon"></i>
+                <span class="nav-label">审批申请</span>
+            </a>
+            <a href="history.html" class="">
+                <i class="bi bi-clock-history nav-icon"></i>
+                <span class="nav-label">历史记录</span>
+            </a>
+            <a href="notifications.html" class="">
+                <i class="bi bi-chat-dots nav-icon"></i>
+                <span class="nav-label">消息/通知</span>
+            </a>
+            <a href="settings.html" class="active">
+                <i class="bi bi-person-gear nav-icon"></i>
+                <span class="nav-label">个人设置</span>
+            </a>
+        </div>
+    </aside>
+
+    
+        
     <div class="main-content">
         <h2 class="page-title">个人偏好与设置</h2>
         
@@ -66,5 +250,21 @@
         </div>
     </div>
     <script src="script.js"></script>
+</div>
+
+<script>
+    (function() {
+        "use strict";
+        const layout = document.getElementById("layout");
+        const toggle = document.getElementById("toggleSidebar");
+        if(layout && toggle) {
+            let isCollapsed = false;
+            toggle.addEventListener("click", () => {
+                isCollapsed = !isCollapsed;
+                layout.classList.toggle("collapsed", isCollapsed);
+            });
+        }
+    })();
+</script>
 </body>
 </html>
