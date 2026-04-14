@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <title>请求历史 · 学生选题系统</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Bootstrap Icons (与 dashboard 保持一致) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        /* ----- 全局变量 & 基础样式 (完全沿用 dashboard 设计语言) ----- */
+        :root {
+            --bg: #f4f3f7;
+            --deep: #5a2b98;
+            --mid: #7b4fbd;
+            --panel: #ffffff;
+            --text: #1c1b33;
+            --muted: #6b6b82;
+            --accent: #24b3ff;
+            --orange: #f6a63d;
+            --green: #2fc5a8;
+            --border: rgba(28, 27, 51, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+        }
+
+        /* 经典双列布局 */
+        .layout {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            min-height: 100vh;
+            transition: grid-template-columns .3s ease;
+        }
+
+        .layout.collapsed {
+            grid-template-columns: 80px 1fr;
+        }
+
+        /* ---------- 侧边栏 (与 dashboard 完全一致) ---------- */
+        .sidebar {
+            background: linear-gradient(180deg, #3d1566, #631e97);
+            padding: 24px 16px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sidebar::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top, rgba(255, 255, 255, 0.2), transparent 60%);
+            pointer-events: none;
+        }
+
+        .toggle-wrap {
+            width: 48px;
+            height: 48px;
+            border-radius: 16px;
+            margin-bottom: 4px;
+        }
+
+        .toggle {
+            width: 100%;
+            height: 100%;
+            border-radius: 16px;
+            border: none;
+            background: rgba(255, 255, 255, 0.18);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background .3s ease;
+            position: relative;
+        }
+
+        .toggle span,
+        .toggle span::before,
+        .toggle span::after {
+            display: block;
+            width: 22px;
+            height: 2px;
+            background: white;
+            transition: all .3s ease;
+            position: absolute;
+        }
+
+        .toggle span {
+            background: transparent;
+        }
+
+        .toggle span::before {
+            content: "";
+            top: 0;
+            transform: rotate(45deg);
+        }
+
+        .toggle span::after {
+            content: "";
+            top: 0;
+            transform: rotate(-45deg);
+        }
+
+        .layout.collapsed .toggle span {
+            background: white;
+        }
+
+        .layout.collapsed .toggle span::before {
+            top: -8px;
+            transform: none;
+        }
+
+        .layout.collapsed .toggle span::after {
+            top: 8px;
+            transform: none;
+        }
+
+        .nav-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        /* 导航按钮/链接统一使用 button 样式，但部分使用 <a> 便于跳转 */
+        .nav-group a,
+        .nav-group button {
+            border: none;
+            background: transparent;
+            color: white;
+            font-size: 0.95rem;
+            padding: 10px 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background .2s, padding .2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: flex-start;
+            text-decoration: none;
+            font-weight: 400;
+            font-family: inherit;
+        }
+
+        .nav-group a.active,
+        .nav-group button.active,
+        .nav-group a:hover,
+        .nav-group button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .nav-icon {
+            font-size: 1.2rem;
+            width: 28px;
+            text-align: center;
+        }
+
+        .nav-label {
+            transition: opacity .3s ease;
+            white-space: nowrap;
+        }
+
+        .layout.collapsed .nav-group a,
+        .layout.collapsed .nav-group button {
+            justify-content: center;
+            padding: 12px;
+        }
+
+        .layout.collapsed .nav-label {
+            opacity: 0;
+            width: 0;
+            overflow: hidden;
+        }
+
+        /* ---------- 主内容区域 ---------- */
+        .main {
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+        /* 页面头部 (包含返回按钮 + 标题) */
+        .page-header {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+
+        .back-link {
+            color: var(--deep);
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 40px;
+            background: rgba(90, 43, 152, 0.08);
+            transition: background 0.2s;
+            font-size: 0.95rem;
+            border: 1px solid rgba(90, 43, 152, 0.15);
+        }
+
+        .back-link:hover {
+            background: rgba(90, 43, 152, 0.18);
+        }
+
+        .page-header h1 {
+            font-weight: 600;
+            font-size: 1.9rem;
+            color: var(--text);
+            margin: 0;
+            letter-spacing: -0.02em;
+        }
+
+        /* 卡片面板 (与 dashboard .panel / .timeline 风格融合) */
+        .content-panel {
+            background: var(--panel);
+            border-radius: 28px;
+            box-shadow: 0 20px 60px rgba(21, 16, 45, 0.12);
+            padding: 24px 28px;
+            border: 1px solid var(--border);
+        }
+
+        /* 筛选栏 (简单设计) */
+        .filter-bar {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 28px;
+        }
+
+        .filter-select {
+            padding: 10px 16px;
+            border-radius: 30px;
+            border: 1.5px solid #d9d2e8;
+            background: white;
+            font-size: 0.9rem;
+            color: var(--text);
+            min-width: 160px;
+            cursor: pointer;
+            outline: none;
+            transition: border 0.2s;
+        }
+
+        .filter-select:focus {
+            border-color: var(--deep);
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: white;
+            border-radius: 40px;
+            border: 1.5px solid #d9d2e8;
+            padding: 4px 4px 4px 18px;
+            flex: 1 1 240px;
+        }
+
+        .search-box i {
+            color: var(--muted);
+            font-size: 1.1rem;
+        }
+
+        .search-box input {
+            border: none;
+            padding: 10px 10px;
+            font-size: 0.9rem;
+            width: 100%;
+            background: transparent;
+            outline: none;
+        }
+
+        .search-box button {
+            background: var(--deep);
+            border: none;
+            color: white;
+            padding: 8px 22px;
+            border-radius: 40px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+
+        .search-box button:hover {
+            background: #4a2380;
+        }
+
+        /* 表格容器 (支持横向滚动) */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 20px;
+            margin-top: 8px;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 880px;
+            font-size: 0.9rem;
+        }
+
+        .history-table th {
+            text-align: left;
+            padding: 16px 12px;
+            background: #f8f5ff;
+            font-weight: 600;
+            color: var(--deep);
+            border-bottom: 2px solid rgba(90, 43, 152, 0.2);
+            white-space: nowrap;
+        }
+
+        .history-table td {
+            padding: 18px 12px;
+            border-bottom: 1px solid rgba(156, 156, 178, 0.2);
+            vertical-align: middle;
+        }
+
+        .history-table tbody tr {
+            transition: background 0.15s;
+        }
+
+        .history-table tbody tr:hover {
+            background: rgba(90, 43, 152, 0.03);
+        }
+
+        /* 状态标签 (沿用 dashboard 状态色) */
+        .status-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: capitalize;
+            background: rgba(156, 156, 178, 0.2);
+            color: rgba(28, 27, 51, 0.75);
+        }
+
+        .status-pending {
+            background: rgba(246, 166, 61, 0.15);
+            color: var(--orange);
+        }
+
+        .status-accepted {
+            background: rgba(47, 197, 168, 0.12);
+            color: var(--green);
+        }
+
+        .status-rejected {
+            background: rgba(220, 80, 80, 0.12);
+            color: #c74545;
+        }
+
+        .status-withdrawn {
+            background: rgba(156, 156, 178, 0.2);
+            color: #5e5e7a;
+        }
+
+        /* 操作按钮 */
+        .action-btn {
+            background: transparent;
+            border: 1.5px solid var(--deep);
+            color: var(--deep);
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .action-btn:hover {
+            background: var(--deep);
+            color: white;
+        }
+
+        .action-btn.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+            border-color: var(--muted);
+            color: var(--muted);
+        }
+
+        /* 项目标题链接样式 */
+        .project-link {
+            color: var(--deep);
+            font-weight: 600;
+            text-decoration: none;
+            border-bottom: 1px dashed transparent;
+            transition: border 0.2s;
+        }
+
+        .project-link:hover {
+            border-bottom: 1px dashed var(--deep);
+        }
+
+        /* 脚注微文本 */
+        .footnote {
+            margin-top: 16px;
+            color: var(--muted);
+            font-size: 0.8rem;
+            text-align: right;
+        }
+
+        /* 响应式 */
+        @media (max-width: 960px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: relative;
+                flex-direction: row;
+                gap: 8px;
+                padding: 12px;
+            }
+
+            .sidebar::after {
+                display: none;
+            }
+
+            .layout.collapsed {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-group a,
+            .nav-group button {
+                justify-content: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="layout" id="layout">
+    <!-- 侧边栏 (与 dashboard 结构完全相同，仅高亮不同) -->
+    <aside class="sidebar" id="sidebar">
+        <div class="toggle-wrap">
+            <button class="toggle" id="toggleSidebar" aria-label="切换菜单">
+                <span></span>
+            </button>
+        </div>
+        <div class="nav-group">
+            <!-- 申请状态 —— 返回 dashboard -->
+            <a href="student-dashboard.html">
+                <i class="bi bi-kanban nav-icon"></i>
+                <span class="nav-label">申请状态</span>
+            </a>
+            <!-- 搜索项目 (可跳转到项目列表，此处保留链接示意) -->
+            <a href="student-project-search-list.html">
+                <i class="bi bi-search nav-icon"></i>
+                <span class="nav-label">搜索项目</span>
+            </a>
+            <!-- 热门导师 (占位) -->
+            <button>
+                <i class="bi bi-person-badge nav-icon"></i>
+                <span class="nav-label">热门导师</span>
+            </button>
+            <!-- 请求历史 —— 当前页面，高亮 active -->
+            <a href="#" class="active">
+                <i class="bi bi-clock-history nav-icon"></i>
+                <span class="nav-label">请求历史</span>
+            </a>
+            <!-- 消息/通知 -->
+            <a href="student-notification.html">
+                <i class="bi bi-chat-dots nav-icon"></i>
+                <span class="nav-label">消息/通知</span>
+            </a>
+            <!-- 个人设置 -->
+            <a href="student-profile.html">
+                <i class="bi bi-person-gear nav-icon"></i>
+                <span class="nav-label">个人设置</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- 主内容区域 -->
+    <main class="main">
+        <!-- 头部：返回 + 标题 (与 dashboard 风格一致) -->
+        <div class="page-header">
+            <a href="student-dashboard.html" class="back-link">
+                <i class="bi bi-arrow-left"></i> 返回工作台
+            </a>
+            <h1>📋 请求历史</h1>
+        </div>
+
+        <!-- 内容卡片 -->
+        <div class="content-panel">
+            <!-- 简易筛选栏 (增强可用性) -->
+            <div class="filter-bar">
+                <select class="filter-select" id="statusFilter" aria-label="按状态筛选">
+                    <option value="all">全部状态</option>
+                    <option value="Pending">待审批</option>
+                    <option value="Accepted">已同意</option>
+                    <option value="Rejected">已拒绝</option>
+                    <option value="Withdrawn">已撤回</option>
+                </select>
+                <div class="search-box">
+                    <i class="bi bi-search"></i>
+                    <input type="text" placeholder="搜索项目名称或导师" id="searchInput">
+                    <button id="searchBtn">搜索</button>
+                </div>
+                <span style="margin-left: auto; font-size: 0.85rem; color: var(--muted);">
+                    <i class="bi bi-info-circle"></i> 共 <span id="recordCount">6</span> 条记录
+                </span>
+            </div>
+
+            <!-- 历史记录表格 (数据通过 JS 动态渲染) -->
+            <div class="table-wrapper">
+                <table class="history-table" id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>项目名称</th>
+                            <th>导师</th>
+                            <th>申请时间</th>
+                            <th>最后更新</th>
+                            <th>状态</th>
+                            <th>备注/反馈</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- 数据将在此处渲染 -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="footnote">
+                <i class="bi bi-dot"></i> 点击项目名称可查看详情 (演示跳转)
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    (function() {
+        "use strict";
+
+        // ---------- 模拟请求历史数据 (与 dashboard 中“近期申请记录”相呼应) ----------
+        const historyData = [
+            {
+                id: 'req-001',
+                projectTitle: '智能教学系统研究',
+                projectId: 'proj-ai-01',
+                supervisor: '李老师',
+                applyDate: '2025-04-10',
+                lastUpdate: '2025-04-13',
+                status: 'Pending',
+                note: '希望参与可视化模块，有前端经验',
+                feedback: ''
+            },
+            {
+                id: 'req-002',
+                projectTitle: '校园智慧导航系统',
+                projectId: 'proj-gis-02',
+                supervisor: '王老师',
+                applyDate: '2025-03-28',
+                lastUpdate: '2025-04-02',
+                status: 'Rejected',
+                note: '补充了移动开发学习经历',
+                feedback: '名额已满，欢迎下次合作'
+            },
+            {
+                id: 'req-003',
+                projectTitle: '实验室管理大屏',
+                projectId: 'proj-dash-03',
+                supervisor: '赵老师',
+                applyDate: '2025-03-12',
+                lastUpdate: '2025-03-15',
+                status: 'Withdrawn',
+                note: '前端+交互设计，后因时间冲突撤回',
+                feedback: ''
+            },
+            {
+                id: 'req-004',
+                projectTitle: '区块链证书验证',
+                projectId: 'proj-bc-04',
+                supervisor: '周教授',
+                applyDate: '2025-02-20',
+                lastUpdate: '2025-03-01',
+                status: 'Accepted',
+                note: '熟悉Solidity和智能合约',
+                feedback: '欢迎加入课题组，请查看邮件'
+            },
+            {
+                id: 'req-005',
+                projectTitle: '水质监测IoT',
+                projectId: 'proj-iot-05',
+                supervisor: '郑老师',
+                applyDate: '2025-04-01',
+                lastUpdate: '2025-04-05',
+                status: 'Pending',
+                note: '有嵌入式开发经验，可参与硬件',
+                feedback: ''
+            },
+            {
+                id: 'req-006',
+                projectTitle: 'NLP课程问答系统',
+                projectId: 'proj-nlp-06',
+                supervisor: '孙老师',
+                applyDate: '2025-01-15',
+                lastUpdate: '2025-01-20',
+                status: 'Rejected',
+                note: '对BERT微调感兴趣',
+                feedback: '课题已结题，不再接收新成员'
+            }
+        ];
+
+        // DOM 元素
+        const tbody = document.getElementById('tableBody');
+        const recordCountSpan = document.getElementById('recordCount');
+        const statusFilter = document.getElementById('statusFilter');
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+
+        // 当前过滤后的数据
+        let filteredData = [...historyData];
+
+        // ---------- 渲染表格 ----------
+        function renderTable(data) {
+            if (!tbody) return;
+            
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:40px; color: var(--muted);">
+                    <i class="bi bi-inbox" style="font-size:2rem; opacity:0.6;"></i><br>暂无符合条件的请求记录
+                </td></tr>`;
+                recordCountSpan.textContent = '0';
+                return;
+            }
+
+            let html = '';
+            data.forEach(item => {
+                // 状态样式映射
+                let statusClass = 'status-badge';
+                if (item.status === 'Pending') statusClass += ' status-pending';
+                else if (item.status === 'Accepted') statusClass += ' status-accepted';
+                else if (item.status === 'Rejected') statusClass += ' status-rejected';
+                else if (item.status === 'Withdrawn') statusClass += ' status-withdrawn';
+
+                // 状态中文显示
+                const statusText = {
+                    'Pending': '待审批',
+                    'Accepted': '已同意',
+                    'Rejected': '已拒绝',
+                    'Withdrawn': '已撤回'
+                }[item.status] || item.status;
+
+                // 操作按钮 (根据状态决定是否可操作)
+                let actionBtn = '';
+                if (item.status === 'Pending') {
+                    actionBtn = `<button class="action-btn" data-id="${item.id}" data-action="withdraw">撤回申请</button>`;
+                } else if (item.status === 'Accepted') {
+                    actionBtn = `<a href="#" class="action-btn" style="background:transparent;">进入课题组</a>`;
+                } else {
+                    actionBtn = `<span class="action-btn disabled">—</span>`;
+                }
+
+                // 反馈信息展示
+                const feedbackDisplay = item.feedback ? item.feedback : '—';
+
+                html += `
+                    <tr>
+                        <td>
+                            <a href="student-project-search-list-detail.html?code=${item.projectId}" class="project-link" target="_blank">
+                                ${item.projectTitle}
+                            </a>
+                        </td>
+                        <td>${item.supervisor}</td>
+                        <td>${item.applyDate}</td>
+                        <td>${item.lastUpdate}</td>
+                        <td><span class="${statusClass}">${statusText}</span></td>
+                        <td style="max-width:220px;">
+                            <div style="font-size:0.85rem; color:var(--text);">${item.note || '—'}</div>
+                            ${item.feedback ? `<div style="font-size:0.75rem; color:var(--muted); margin-top:4px;"><i class="bi bi-chat"></i> ${item.feedback}</div>` : ''}
+                        </td>
+                        <td>${actionBtn}</td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+            recordCountSpan.textContent = data.length;
+
+            // 绑定撤回按钮事件 (简单模拟)
+            document.querySelectorAll('.action-btn[data-action="withdraw"]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const id = btn.getAttribute('data-id');
+                    const record = historyData.find(r => r.id === id);
+                    if (record && confirm(`确定要撤回对 "${record.projectTitle}" 的申请吗？`)) {
+                        record.status = 'Withdrawn';
+                        // 重新过滤并渲染
+                        applyFilterAndSearch();
+                        alert('申请已撤回');
+                    }
+                });
+            });
+        }
+
+        // ---------- 过滤与搜索逻辑 ----------
+        function applyFilterAndSearch() {
+            const statusVal = statusFilter.value;
+            const keyword = searchInput.value.trim().toLowerCase();
+
+            filteredData = historyData.filter(item => {
+                // 状态筛选
+                if (statusVal !== 'all' && item.status !== statusVal) return false;
+                // 关键词搜索 (项目名 / 导师)
+                if (keyword) {
+                    const inTitle = item.projectTitle.toLowerCase().includes(keyword);
+                    const inSupervisor = item.supervisor.toLowerCase().includes(keyword);
+                    if (!inTitle && !inSupervisor) return false;
+                }
+                return true;
+            });
+
+            renderTable(filteredData);
+        }
+
+        // ---------- 事件绑定 ----------
+        statusFilter.addEventListener('change', applyFilterAndSearch);
+        searchBtn.addEventListener('click', applyFilterAndSearch);
+        searchInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') applyFilterAndSearch();
+        });
+
+        // 初始化渲染
+        renderTable(filteredData);
+        recordCountSpan.textContent = filteredData.length;
+
+        // ---------- 侧边栏折叠功能 (与 dashboard 一致) ----------
+        const layout = document.getElementById("layout");
+        const toggle = document.getElementById("toggleSidebar");
+        let isCollapsed = false;
+        toggle.addEventListener("click", () => {
+            isCollapsed = !isCollapsed;
+            layout.classList.toggle("collapsed", isCollapsed);
+        });
+
+        // 小细节: 点击项目链接在新标签页打开 (target已设置)
+    })();
+</script>
+
+<!-- 注：项目详情链接指向 student-project-detail.html?code=... 
+     可根据实际文件名调整，目前作为演示。 -->
+</body>
+</html>
