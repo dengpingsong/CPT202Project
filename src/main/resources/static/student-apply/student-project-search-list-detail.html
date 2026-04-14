@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <title>项目详情 · SURF</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        /* ===== 统一风格 ===== */
+        :root {
+            --bg: #f4f3f7;
+            --deep: #5a2b98;
+            --mid: #7b4fbd;
+            --panel: #ffffff;
+            --text: #1c1b33;
+            --muted: #6b6b82;
+            --accent: #24b3ff;
+            --orange: #f6a63d;
+            --green: #2fc5a8;
+            --border: rgba(28, 27, 51, 0.08);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            min-height: 100vh;
+            transition: grid-template-columns .3s ease;
+        }
+        .layout.collapsed { grid-template-columns: 80px 1fr; }
+        .sidebar {
+            background: linear-gradient(180deg, #3d1566, #631e97);
+            padding: 24px 16px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .sidebar::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top, rgba(255,255,255,0.2), transparent 60%);
+            pointer-events: none;
+        }
+        .toggle-wrap { width: 48px; height: 48px; border-radius: 16px; margin-bottom: 4px; }
+        .toggle {
+            width: 100%; height: 100%; border-radius: 16px; border: none;
+            background: rgba(255, 255, 255, 0.18); display: flex; align-items: center;
+            justify-content: center; cursor: pointer; transition: background .3s; position: relative;
+        }
+        .toggle span, .toggle span::before, .toggle span::after {
+            display: block; width: 22px; height: 2px; background: white;
+            transition: all .3s; position: absolute;
+        }
+        .toggle span { background: transparent; }
+        .toggle span::before { content: ""; top: 0; transform: rotate(45deg); }
+        .toggle span::after { content: ""; top: 0; transform: rotate(-45deg); }
+        .layout.collapsed .toggle span { background: white; }
+        .layout.collapsed .toggle span::before { top: -8px; transform: none; }
+        .layout.collapsed .toggle span::after { top: 8px; transform: none; }
+        .nav-group { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+        .nav-group button, .nav-group a {
+            border: none; background: transparent; color: white; font-size: 0.95rem;
+            padding: 10px 14px; border-radius: 12px; cursor: pointer; transition: background .2s;
+            display: flex; align-items: center; gap: 10px; text-decoration: none;
+        }
+        .nav-group button:hover, .nav-group a:hover,
+        .nav-group a.active { background: rgba(255,255,255,0.2); }
+        .nav-icon { font-size: 1.2rem; width: 28px; text-align: center; }
+        .nav-label { white-space: nowrap; }
+        .layout.collapsed .nav-group button,
+        .layout.collapsed .nav-group a { justify-content: center; padding: 12px; }
+        .layout.collapsed .nav-label { opacity: 0; width: 0; overflow: hidden; }
+        .main { padding: 32px; display: flex; flex-direction: column; gap: 24px; }
+        .panel-card {
+            background: var(--panel); border-radius: 28px;
+            box-shadow: 0 20px 60px rgba(21,16,45,0.15); padding: 28px 30px;
+        }
+        .page-header {
+            display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+        .back-link {
+            color: var(--deep); text-decoration: none; font-weight: 500;
+            display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;
+            border-radius: 30px; background: rgba(90,43,152,0.1);
+        }
+        .back-link:hover { background: rgba(90,43,152,0.2); }
+        .detail-header {
+            display: flex; align-items: baseline; justify-content: space-between;
+            margin-bottom: 24px; border-bottom: 2px dashed rgba(90,43,152,0.2); padding-bottom: 18px;
+        }
+        .detail-header h2 { font-weight: 700; font-size: 1.8rem; color: var(--deep); }
+        .surf-badge {
+            background: var(--deep); color: white; padding: 6px 18px;
+            border-radius: 40px; font-weight: 500; font-size: 0.9rem;
+        }
+        .meta-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px 28px; background: #f9f5ff; border-radius: 20px;
+            padding: 18px 20px; margin-bottom: 28px;
+        }
+        .meta-item { display: flex; flex-direction: column; }
+        .meta-label {
+            font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;
+            color: var(--muted); font-weight: 600;
+        }
+        .meta-value { font-weight: 600; color: var(--text); margin-top: 2px; }
+        .detail-block { margin-bottom: 28px; }
+        .detail-block h3 {
+            font-weight: 600; font-size: 1.2rem; margin-bottom: 12px;
+            color: var(--deep); border-left: 5px solid var(--deep); padding-left: 18px;
+        }
+        .detail-text {
+            background: #faf9ff; padding: 18px 22px; border-radius: 18px;
+            line-height: 1.7; border: 1px solid rgba(90,43,152,0.15);
+        }
+        .action-buttons {
+            display: flex; gap: 16px; margin-top: 24px;
+            padding-top: 24px; border-top: 1px solid rgba(156,156,178,0.25);
+        }
+        .btn-primary {
+            background: var(--deep); color: white; border: none;
+            padding: 12px 28px; border-radius: 40px; font-weight: 600; cursor: pointer;
+        }
+        .btn-secondary {
+            background: transparent; border: 1.5px solid var(--muted);
+            color: var(--text); padding: 12px 24px; border-radius: 40px; font-weight: 500; cursor: pointer;
+        }
+        .footnote { margin-top: 16px; color: var(--muted); font-size: 0.8rem; text-align: right; }
+        @media (max-width: 960px) {
+            .layout { grid-template-columns: 1fr; }
+            .sidebar { flex-direction: row; }
+        }
+    </style>
+</head>
+<body>
+<div class="layout" id="layout">
+    <aside class="sidebar" id="sidebar">
+        <div class="toggle-wrap">
+            <button class="toggle" id="toggleSidebar"><span></span></button>
+        </div>
+        <div class="nav-group">
+            <a href="student-dashboard.html"><i class="bi bi-kanban nav-icon"></i><span class="nav-label">申请状态</span></a>
+            <a href="student-project-search-list.html"><i class="bi bi-search nav-icon"></i><span class="nav-label">搜索项目</span></a>
+            <button><i class="bi bi-person-badge nav-icon"></i><span class="nav-label">热门导师</span></button>
+            <a href="student-request-history.html"><i class="bi bi-clock-history nav-icon"></i><span class="nav-label">请求历史</span></a>
+            <a href="student-notification.html"><i class="bi bi-chat-dots nav-icon"></i><span class="nav-label">消息/通知</span></a>
+            <a href="student-profile.html"><i class="bi bi-person-gear nav-icon"></i><span class="nav-label">个人设置</span></a>
+        </div>
+    </aside>
+
+    <main class="main">
+        <div class="page-header">
+            <a href="student-project-search-list.html" class="back-link">← 返回项目列表</a>
+            <h1>📘 项目详情</h1>
+        </div>
+        <div class="panel-card" id="detailPanel">
+            <div style="text-align:center; padding:40px; color:var(--muted);">加载中...</div>
+        </div>
+        <div class="footnote">* Abstract (~150 words), Learning Outcomes (~200 words), Requirements (~100 words)</div>
+    </main>
+</div>
+
+<script>
+    (function() {
+        const projectsData = [
+            { surfCode: 'SURF-2025-01', title: 'Generative AI for Personalized Learning Pathways', pi: 'Dr. Elena Rodriguez', piEmail: 'e.rodriguez@university.edu', school: 'School of Computing', department: 'AI & Data Science', requiredStudents: 3, internalExternal: 'Internal', coInvestigator: 'Prof. Michael Chen', abstract: 'This project explores the use of large language models and generative AI to create adaptive learning materials...', learningOutcomes: 'Students will gain hands-on experience with state-of-the-art language models...', requirements: 'Prerequisites: Strong programming skills in Python; familiarity with machine learning basics...' },
+            { surfCode: 'SURF-2025-07', title: 'Sustainable Urban Green Spaces: GIS and Remote Sensing', pi: 'Dr. Sarah Whitman', piEmail: 's.whitman@university.edu', school: 'School of Environmental Science', department: 'Geography & Planning', requiredStudents: 2, internalExternal: 'External (collaboration with City Council)', coInvestigator: 'Dr. James Park', abstract: 'Using satellite imagery and GIS, this project assesses cooling effects...', learningOutcomes: 'Participants will master GIS software, satellite image processing...', requirements: 'Students should have completed introductory courses in geography...' },
+            { surfCode: 'SURF-2025-12', title: 'Blockchain-based Credential Verification', pi: 'Prof. David Kumar', piEmail: 'd.kumar@university.edu', school: 'School of Business & Technology', department: 'Information Systems', requiredStudents: 4, internalExternal: 'Internal', coInvestigator: 'Dr. Lisa Wong', abstract: 'Designs a dApp for issuing and verifying academic credentials using Ethereum...', learningOutcomes: 'Learn blockchain fundamentals, Solidity, Web3 integration...', requirements: 'Solid programming background; familiarity with JavaScript...' },
+            { surfCode: 'SURF-2025-19', title: 'Neurocognitive Markers of Second Language Acquisition', pi: 'Dr. Anna Fischer', piEmail: 'a.fischer@university.edu', school: 'Faculty of Humanities', department: 'Linguistics & Cognitive Science', requiredStudents: 2, internalExternal: 'Internal', coInvestigator: 'Dr. Robert Liu', abstract: 'Investigates individual differences in executive functions...', learningOutcomes: 'Training in EEG data acquisition, experimental design...', requirements: 'Coursework in cognitive psychology or neuroscience recommended...' },
+            { surfCode: 'SURF-2025-22', title: 'Low-Cost Water Quality Monitoring using IoT Sensors', pi: 'Prof. Ming Zhao', piEmail: 'm.zhao@university.edu', school: 'School of Engineering', department: 'Electrical & Computer Engineering', requiredStudents: 3, internalExternal: 'External (NGO partnership)', coInvestigator: 'Dr. Susan Mwangi', abstract: 'Develop an affordable IoT device for continuous water monitoring...', learningOutcomes: 'Skills in embedded systems, sensor integration, IoT protocols...', requirements: 'Circuit analysis and microcontroller experience...' }
+        ];
+
+        const detailPanel = document.getElementById('detailPanel');
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+        const project = projectsData.find(p => p.surfCode === code);
+
+        if (project) {
+            document.title = `${project.title} | SURF`;
+            detailPanel.innerHTML = `
+                <div class="detail-header">
+                    <h2>${project.title}</h2>
+                    <span class="surf-badge">${project.surfCode}</span>
+                </div>
+                <div class="meta-grid">
+                    <div class="meta-item"><span class="meta-label">Internal/External</span><span class="meta-value">${project.internalExternal}</span></div>
+                    <div class="meta-item"><span class="meta-label">SURF Code</span><span class="meta-value">${project.surfCode}</span></div>
+                    <div class="meta-item"><span class="meta-label">Principal Investigator</span><span class="meta-value">${project.pi} &lt;${project.piEmail}&gt;</span></div>
+                    <div class="meta-item"><span class="meta-label">School/Academy</span><span class="meta-value">${project.school}</span></div>
+                    <div class="meta-item"><span class="meta-label">Department</span><span class="meta-value">${project.department}</span></div>
+                    <div class="meta-item"><span class="meta-label">Co-investigator</span><span class="meta-value">${project.coInvestigator || '—'}</span></div>
+                    <div class="meta-item"><span class="meta-label">Required Students</span><span class="meta-value">${project.requiredStudents}</span></div>
+                </div>
+                <div class="detail-block"><h3>📄 Abstract</h3><div class="detail-text">${project.abstract}</div></div>
+                <div class="detail-block"><h3>🎓 Learning Outcomes</h3><div class="detail-text">${project.learningOutcomes}</div></div>
+                <div class="detail-block"><h3>🔍 Requirements</h3><div class="detail-text">${project.requirements}</div></div>
+                <div class="action-buttons">
+                    <button class="btn-primary">📬 申请该项目</button>
+                    <button class="btn-secondary">📎 保存至待选</button>
+                </div>
+            `;
+        } else {
+            detailPanel.innerHTML = `<div style="text-align:center; padding:40px;">项目未找到，<a href="student-project-search-list.html">返回列表</a></div>`;
+        }
+
+        const layout = document.getElementById("layout");
+        const toggle = document.getElementById("toggleSidebar");
+        let isCollapsed = false;
+        toggle.addEventListener("click", () => {
+            isCollapsed = !isCollapsed;
+            layout.classList.toggle("collapsed", isCollapsed);
+        });
+    })();
+</script>
+</body>
+</html>
