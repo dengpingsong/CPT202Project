@@ -12,7 +12,7 @@
             justify-content: center;
             align-items: center;
             font-family: "Helvetica Neue", Arial, sans-serif;
-            background: url("backimg2.png") center/cover no-repeat;
+            background: url("login/backimg2.png") center/cover no-repeat;
         }
         .card {
             width: 460px;
@@ -206,13 +206,6 @@
         office: document.getElementById("officeHelper")
     };
 
-    const uniquenessPaths = {
-        username: "/check-username",
-        email: "/check-email",
-        studentNo: "/check-student-no",
-        staffNo: "/check-staff-no"
-    };
-
     const studentFields = studentSection.querySelectorAll("input");
     const teacherFields = teacherSection.querySelectorAll("input");
 
@@ -228,53 +221,6 @@
         helper.className = message ? `helper ${type}`.trim() : "helper";
     }
 
-    async function checkUniqueness(field, value) {
-        if (!value || !uniquenessPaths[field]) return true;
-
-        try {
-            const res = await fetch(`${BASE_URL}${uniquenessPaths[field]}?value=${encodeURIComponent(value)}`);
-            if (res.status === 200) {
-                showHelper(field, "可用", "success");
-                return true;
-            }
-            if (res.status === 409) {
-                const payload = await res.json().catch(() => null);
-                showHelper(field, payload?.message || "已被占用", "error");
-                return false;
-            }
-            return false;
-        } catch (err) {
-            console.warn(err);
-            return false;
-        }
-    }
-
-    async function ensureUniqueFields() {
-        const role = roleSelect.value;
-        const usernameOk = await checkUniqueness("username", username.value.trim());
-        const emailOk = await checkUniqueness("email", email.value.trim());
-        let roleOk = true;
-        if (role === "STUDENT") {
-            roleOk = await checkUniqueness("studentNo", studentNo.value.trim());
-        } else {
-            roleOk = await checkUniqueness("staffNo", staffNo.value.trim());
-        }
-
-        if (!usernameOk) return { ok: false, field: "username" };
-        if (!emailOk) return { ok: false, field: "email" };
-        if (!roleOk) return { ok: false, field: role === "STUDENT" ? "studentNo" : "staffNo" };
-
-        return { ok: true };
-    }
-
-    function checkPermitted(role) {
-        if (!uniquenessCache.username) return { ok: false, field: "username" };
-        if (!uniquenessCache.email) return { ok: false, field: "email" };
-        if (role === "STUDENT" && !uniquenessCache.studentNo) return { ok: false, field: "studentNo" };
-        if (role === "TEACHER" && !uniquenessCache.staffNo) return { ok: false, field: "staffNo" };
-        return { ok: true };
-    }
-
     roleSelect.addEventListener("change", () => {
         const isStudent = roleSelect.value === "STUDENT";
         studentSection.classList.toggle("hidden", !isStudent);
@@ -287,11 +233,7 @@
     ["username", "email", "studentNo", "staffNo"].forEach(field => {
         const input = document.getElementById(field);
         if (input) {
-            input.addEventListener("blur", () => checkUniqueness(field, input.value.trim()));
-            input.addEventListener("input", () => {
-                showHelper(field, "");
-                uniquenessCache[field] = false;
-            });
+            input.addEventListener("input", () => showHelper(field, ""));
         }
     });
 
@@ -300,14 +242,6 @@
         submitBtn.disabled = true;
         generalError.textContent = "";
         Object.keys(helperMap).forEach(key => showHelper(key, ""));
-
-        const checkResult = await ensureUniqueFields();
-        if (!checkResult.ok) {
-            showHelper(checkResult.field, "请换一个再试", "error");
-            generalError.textContent = "请先确认唯一性后再提交";
-            submitBtn.disabled = false;
-            return;
-        }
 
         const payload = {
             username: document.getElementById("username").value.trim(),
@@ -340,7 +274,8 @@
             });
 
             const data = await res.json();
-            if (res.ok && (data.code === 0 || data.success === true)) {
+
+            if (data.code === 0) {
                 alert("Register success");
                 window.location.href = "login.html";
             } else {
