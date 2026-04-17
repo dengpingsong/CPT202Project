@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <title>Login</title>
     <style>
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         body {
             margin: 0;
@@ -19,33 +17,32 @@
         }
 
         .login-card {
-            width: 340px;
+            width: 360px;
             padding: 28px 24px;
             border-radius: 12px;
-            background-color: rgba(255, 255, 255, 0.88);
+            background-color: rgba(255, 255, 255, 0.9);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
         }
 
         h2 {
             font-size: 16px;
-            margin-top: 0;
-            margin-bottom: 10px;
+            margin: 0 0 10px;
             text-align: left;
         }
 
         h3 {
-            margin-top: 0;
-            margin-bottom: 18px;
+            margin: 0 0 18px;
             text-align: left;
             font-weight: 400;
             color: #666;
             font-size: 14px;
         }
 
-        label {
-            display: block;
-            margin-bottom: 6px;
-            font-size: 14px;
+        .helper {
+            min-height: 16px;
+            font-size: 12px;
+            margin: -8px 0 10px;
+            color: #d93025;
         }
 
         input {
@@ -54,6 +51,7 @@
             border: 1px solid #c9ced6;
             border-radius: 6px;
             margin-bottom: 14px;
+            font-size: 14px;
         }
 
         button,
@@ -72,6 +70,12 @@
             display: block;
             text-decoration: none;
             transition: background-color 0.2s ease;
+        }
+
+        button:disabled {
+            background-color: #999;
+            border-color: #999;
+            cursor: not-allowed;
         }
 
         .links {
@@ -120,21 +124,90 @@
     <h2>Welcome Back!</h2>
     <h3>Please log in to your account</h3>
 
-    <form>
-        <input type="text" name="username" placeholder="Username">
+    <form id="loginForm">
+        <input id="username" type="text" name="username" placeholder="Username" required>
+        <input id="password" type="password" name="password" placeholder="Password" required>
 
-        <input type="password" name="password" placeholder="Password">
         <div class="forgot-wrap">
             <a href="forgot-password.html" class="forgot-link">Forgot Password?</a>
         </div>
 
-        <button type="submit">Login</button>
+        <div id="generalError" class="helper"></div>
+        <button id="loginBtn" type="submit">Login</button>
     </form>
 
     <div class="links">
         <a href="register.html" class="register-link">Register</a>
     </div>
 </div>
+
+<script>
+    const BASE_URL = "http://localhost:8080/api/common/auth";
+    const loginForm = document.getElementById("loginForm");
+    const loginBtn = document.getElementById("loginBtn");
+    const generalError = document.getElementById("generalError");
+
+    function redirectByRole(role) {
+        // 根据后端返回的 role 跳到不同页面
+        if (role === "TEACHER") {
+            window.location.href = "teacher-review/index.html";
+            return;
+        }
+        if (role === "STUDENT") {
+            window.location.href = "student-apply/student-dashboard.html";
+            return;
+        }
+        // 预留管理员
+        if (role === "ADMIN") {
+            window.location.href = "admin-dashboard.html";
+            return;
+        }
+        generalError.textContent = "Unknown role, cannot redirect.";
+    }
+
+    loginForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        generalError.textContent = "";
+        loginBtn.disabled = true;
+
+        const payload = {
+            username: document.getElementById("username").value.trim(),
+            password: document.getElementById("password").value
+        };
+
+        try {
+            const res = await fetch(`${BASE_URL}/login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+
+            // 后端 Result.success => code = 1；Result.error => code = 0
+            if (data.code === 1 && data.data) {
+                const loginData = data.data;
+
+                // 保存登录态
+                localStorage.setItem("token", loginData.token || "");
+                localStorage.setItem("role", loginData.role || "");
+                localStorage.setItem("userId", String(loginData.userId || ""));
+                localStorage.setItem("username", loginData.username || "");
+                localStorage.setItem("fullName", loginData.fullName || "");
+                localStorage.setItem("accountStatus", loginData.accountStatus || "");
+
+                redirectByRole(loginData.role);
+            } else {
+                generalError.textContent = data.msg || "Login failed";
+            }
+        } catch (err) {
+            console.error(err);
+            generalError.textContent = "Network error, please try again.";
+        } finally {
+            loginBtn.disabled = false;
+        }
+    });
+</script>
 
 </body>
 </html>
