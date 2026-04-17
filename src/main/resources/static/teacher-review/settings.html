@@ -229,22 +229,34 @@
         <h2 class="page-title">个人偏好与设置</h2>
         
         <div class="custom-card">
-            <form>
+            <form id="settingsForm">
                 <div class="mb-3">
                     <label class="form-label">姓名</label>
-                    <input type="text" class="form-control" value="王老师" readonly>
+                    <input type="text" class="form-control" id="fullName" value="" required>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">教工邮箱</label>
-                    <input type="email" class="form-control" value="teacher.wang@xjtlu.edu.cn">
+                    <input type="email" class="form-control" id="email" value="" required>
                 </div>
                 <div class="mb-4">
                     <label class="form-label">所属系/学院</label>
-                    <input type="text" class="form-control" value="计算机科学系">
+                    <input type="text" class="form-control" id="department" value="">
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">职称</label>
+                    <input type="text" class="form-control" id="title" value="">
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">研究方向</label>
+                    <input type="text" class="form-control" id="researchArea" value="">
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">办公地点</label>
+                    <input type="text" class="form-control" id="office" value="">
                 </div>
                 <div class="d-flex gap-3">
-                    <button type="button" class="btn btn-primary px-4" style="border-radius:20px; background-color:#35b8e0; border:none;" onclick="alert('保存成功')">保存修改</button>
-                    <button type="button" class="btn btn-outline-danger px-4" style="border-radius:20px;" onclick="window.location.href='../login.html'">退出登录</button>
+                    <button type="submit" class="btn btn-primary px-4" style="border-radius:20px; background-color:#35b8e0; border:none;" id="saveBtn">保存修改</button>
+                    <button type="button" class="btn btn-outline-danger px-4" style="border-radius:20px;" onclick="handleLogout()">退出登录</button>
                 </div>
             </form>
         </div>
@@ -264,7 +276,94 @@
                 layout.classList.toggle("collapsed", isCollapsed);
             });
         }
+        
+        const token = localStorage.getItem("token");
+        if (!token) {
+            window.location.href = "../login.html";
+            return;
+        }
+
+        const API_BASE = "http://localhost:8080/api/teacher/profile/me";
+        
+        // 获取当前信息
+        async function fetchProfile() {
+            try {
+                const res = await fetch(API_BASE, {
+                    method: "GET",
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+                const data = await res.json();
+                if (data.code === 1 && data.data) {
+                    document.getElementById("fullName").value = data.data.fullName || "";
+                    document.getElementById("email").value = data.data.email || "";
+                    document.getElementById("department").value = data.data.department || "";
+                    document.getElementById("title").value = data.data.title || "";
+                    document.getElementById("researchArea").value = data.data.researchArea || "";
+                    document.getElementById("office").value = data.data.office || "";
+                } else if (data.code === 401) {
+                    handleLogout();
+                } else {
+                    alert("获取信息失败: " + (data.message || "未知错误"));
+                }
+            } catch (err) {
+                console.error(err);
+                alert("网络错误");
+            }
+        }
+
+        fetchProfile();
+
+        // 提交修改
+        document.getElementById("settingsForm").addEventListener("submit", async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById("saveBtn");
+            btn.disabled = true;
+            btn.textContent = "保存中...";
+
+            const payload = {
+                fullName: document.getElementById("fullName").value.trim(),
+                email: document.getElementById("email").value.trim(),
+                department: document.getElementById("department").value.trim(),
+                title: document.getElementById("title").value.trim(),
+                researchArea: document.getElementById("researchArea").value.trim(),
+                office: document.getElementById("office").value.trim()
+            };
+
+            try {
+                const res = await fetch(API_BASE, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.code === 1) {
+                    alert("保存成功！");
+                    // Update localStorage dynamically just in case
+                    localStorage.setItem("fullName", payload.fullName);
+                } else if (data.code === 401) {
+                    handleLogout();
+                } else {
+                    alert("保存失败: " + (data.message || "未知错误"));
+                }
+            } catch (err) {
+                console.error(err);
+                alert("网络错误");
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "保存修改";
+            }
+        });
     })();
+
+    function handleLogout() {
+        localStorage.clear();
+        window.location.href = "../login.html";
+    }
 </script>
 </body>
 </html>
