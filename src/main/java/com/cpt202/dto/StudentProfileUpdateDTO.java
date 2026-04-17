@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 import java.time.LocalDate;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 /**
  * 学生资料更新参数。
@@ -23,6 +24,7 @@ public class StudentProfileUpdateDTO {
     /** 专业。 */
     private String programme;
     /** 入学日期。 */
+    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
     private LocalDate enrollmentDate;
     /** 联系电话。 */
     private String phone;

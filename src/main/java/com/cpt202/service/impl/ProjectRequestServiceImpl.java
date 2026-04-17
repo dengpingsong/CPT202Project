@@ -9,7 +9,7 @@ import com.cpt202.model.entity.StudentProfile;
 import com.cpt202.repository.ProjectRepository;
 import com.cpt202.repository.ProjectRequestRepository;
 import com.cpt202.repository.StudentProfileRepository;
-import com.cpt202.service.Module8Service;
+import com.cpt202.service.ProjectRequestValidationService;
 import com.cpt202.service.ProjectRequestService;
 import com.cpt202.vo.ProjectRequestVO;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +30,7 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
     private final ProjectRequestRepository requestRepository;
     private final ProjectRepository projectRepository;
     private final StudentProfileRepository studentRepository;
-    private final Module8Service module8Service; // 注入你亲手写的 Module 8 规则
+    private final ProjectRequestValidationService projectRequestValidationService;
 
     /**
      * Student submits a project request. (PBI 1 & 2)
@@ -38,8 +38,8 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
     @Override
     @Transactional
     public void create(ProjectRequestCreateDTO dto) {
-        // 1. 调用 Module 8 校验：检查截止日期和“一人一选”限制
-        module8Service.validateRequest(dto.getStudentId());
+        // 1. 检查截止日期和“一人一选”限制
+        projectRequestValidationService.validateRequest(dto.getStudentId());
 
         // 2. 查找关联实体
         StudentProfile student = studentRepository.findById(dto.getStudentId())
@@ -79,7 +79,7 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
         requestRepository.save(request);
 
         if (dto.getRequestStatus() == ProjectRequest.RequestStatus.ACCEPTED) {
-            module8Service.onApprovalSuccess(requestId);
+            projectRequestValidationService.onApprovalSuccess(requestId);
         }
     }
 
