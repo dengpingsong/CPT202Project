@@ -43,36 +43,34 @@
 
     
         
-    <div class="main-content">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="page-title mb-0">审批申请 (Review Requests)</h2>
+    <main class="main">
+        <header class="page-header">
+            <h1 class="mb-0">审批申请 (Review Requests)</h1>
+        </header>
+
+        <div class="panel">
+            <h3>待处理的申请</h3>
+            <div class="table-wrapper">
+                <table class="project-table mt-3">
+                    <thead>
+                        <tr>
+                            <th>学生</th>
+                            <th>项目</th>
+                            <th>申请时间</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="requestTableBody">
+                        <tr>
+                            <td colspan="5" class="text-center" style="color: var(--muted);">暂无待审批的申请数据，这里可以等后端接口联调。</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
-        
-        <div class="custom-card">
-            <h4>待处理的申请</h4>
-            <table class="table table-hover mt-3">
-                <thead>
-                    <tr>
-                        <th>学生</th>
-                        <th>项目</th>
-                        <th>申请时间</th>
-                        <th>状态</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody id="requestTableBody">
-                    <tr>
-                        <td colspan="5" class="text-center text-muted">暂无待审批的申请数据，这里可以等后端接口联调。</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-    <script>
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('collapsed');
-        }
-    </script>
+    </main>
+    <script src="script.js"></script>
 </div>
 
 <script>
