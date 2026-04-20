@@ -11,11 +11,11 @@
 <div class="layout" id="layout">
     <aside class="sidebar" id="sidebar">
         <div class="toggle-wrap">
-            <button class="toggle" id="toggleSidebar" aria-label="切换菜单"><span></span></button>
+            <button class="toggle" id="toggleSidebar"><span></span></button>
         </div>
         <div class="nav-group">
             <a href="student-dashboard.html"><i class="bi bi-kanban nav-icon"></i><span class="nav-label">申请状态</span></a>
-            <a href="student-project-search-list.html" class="active"><i class="bi bi-search nav-icon"></i><span class="nav-label">搜索项目</span></a>
+            <a href="student-project-search-list.html"><i class="bi bi-search nav-icon"></i><span class="nav-label">搜索项目</span></a>
             <button><i class="bi bi-person-badge nav-icon"></i><span class="nav-label">热门导师</span></button>
             <a href="student-request-history.html"><i class="bi bi-clock-history nav-icon"></i><span class="nav-label">请求历史</span></a>
             <a href="student-notification.html"><i class="bi bi-chat-dots nav-icon"></i><span class="nav-label">消息/通知</span></a>
@@ -25,10 +25,8 @@
 
     <main class="main">
         <div class="page-header">
-            <a href="student-project-search-list.html" class="back-link">
-                <i class="bi bi-arrow-left"></i> 返回项目列表
-            </a>
-            <h1>项目详情</h1>
+            <a href="student-project-search-list.html" class="back-link">← 返回项目列表</a>
+            <h1>📘 项目详情</h1>
         </div>
         <div class="panel-card" id="detailPanel">
             <div style="text-align:center; padding:40px; color:var(--muted);">加载中...</div>
@@ -72,8 +70,8 @@
                 <div class="detail-block"><h3>🎓 Learning Outcomes</h3><div class="detail-text">${project.learningOutcomes}</div></div>
                 <div class="detail-block"><h3>🔍 Requirements</h3><div class="detail-text">${project.requirements}</div></div>
                 <div class="action-buttons">
-                    <button class="btn-primary">申请该项目</button>
-                    <button class="btn-secondary">保存至待选</button>
+                    <button class="btn-primary">📬 申请该项目</button>
+                    <button class="btn-secondary">📎 保存至待选</button>
                 </div>
             `;
         } else {
