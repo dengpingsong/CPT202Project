@@ -37,7 +37,7 @@
                 <i class="bi bi-chat-dots nav-icon"></i>
                 <span class="nav-label">消息/通知</span>
             </a>
-            <a href="student-profile.html" class="active">
+            <a href="#" class="active">
                 <i class="bi bi-person-gear nav-icon"></i>
                 <span class="nav-label">个人设置</span>
             </a>
@@ -49,7 +49,7 @@
             <a href="student-dashboard.html" class="back-link">
                 <i class="bi bi-arrow-left"></i> 返回工作台
             </a>
-            <h1>个人设置</h1>
+            <h1>⚙️ 个人设置</h1>
         </div>
 
         <div class="content-panel">
@@ -148,6 +148,17 @@
             layout.classList.toggle("collapsed", isCollapsed);
         });
 
+        // 可选：如果希望清空后样式上更明显，可以添加类，但依靠placeholder足够了。
+        // 另外，确保输入框的placeholder颜色为灰色（通过CSS变量--muted）
+        // 添加全局样式调整placeholder颜色
+        const style = document.createElement('style');
+        style.textContent = `
+            .form-control::placeholder {
+                color: var(--muted);
+                opacity: 0.7;
+            }
+        `;
+        document.head.appendChild(style);
     })();
 </script>
 </body>
