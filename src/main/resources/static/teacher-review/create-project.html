@@ -45,9 +45,9 @@
     
         
 
-    <div class="main-content">
+    <main class="main-content">
         <a href="projects.html" class="back-link"><i class="bi bi-arrow-left"></i> 返回我的项目</a>
-        <h2 class="page-title">发布新项目 (Publish New Project)</h2>
+        <h1 class="page-title">发布新项目</h1>
 
         <div class="custom-card">
             <form id="createProjectForm">
@@ -60,7 +60,7 @@
                 <div class="row mb-4">
                     <div class="col-md-6">
                         <label class="form-label">招募人数 (Quota) <span class="text-danger">*</span></label>
-                        <select class="form-select" id="projectQuota">
+                        <select class="form-select filter-select" id="projectQuota">
                             <option value="1">1 人</option>
                             <option value="2">2 人</option>
                             <option value="3" selected>3 人</option>
@@ -102,14 +102,14 @@
 
                 <hr style="border-color: #eee; margin: 30px 0;">
 
-                <div class="d-flex gap-3">
-                    <button type="button" class="btn btn-publish" onclick="submitProject()"><i class="bi bi-rocket-takeoff"></i> 确认发布 (Publish)</button>
-                    <button type="button" class="btn btn-light" style="border-radius: 20px; padding: 10px 25px;" onclick="window.location.href='projects.html'">取消 (Cancel)</button>
+                <div class="action-area">
+                    <button type="button" class="btn-publish" onclick="submitProject()"><i class="bi bi-rocket-takeoff"></i> 确认发布</button>
+                    <button type="button" class="btn-secondary" onclick="window.location.href='projects.html'">取消</button>
                 </div>
 
             </form>
         </div>
-    </div>
+    </main>
 
     <!-- Script 逻辑 -->
     <script src="script.js"></script>
