@@ -43,28 +43,39 @@
 
     
         
-    <div class="main-content">
-        <h2 class="page-title">消息与系统通知</h2>
-        
-        <div class="custom-card">
-            <div class="ic-wrap"><i class="bi bi-envelope-paper"></i></div>
-            <div class="msg-body">
-                <h6>新的项目申请提醒</h6>
-                <p>学生 <strong>Alice Wang</strong> 刚刚提交了您的项目 "An online project selection system" 的申请。</p>
-            </div>
-            <div class="msg-time">10 分钟前</div>
-        </div>
+    <main class="main">
+        <header class="page-header">
+            <h1 class="mb-0">消息与系统通知</h1>
+        </header>
 
-        <div class="custom-card">
-            <div class="ic-wrap" style="background: #fff4e5; color: #e6a23c;"><i class="bi bi-exclamation-triangle"></i></div>
-            <div class="msg-body">
-                <h6>申请撤回通知</h6>
-                <p>学生 <strong>Bob Chen</strong> 撤回了对 "AI Chatbot for Education" 项目的申请。</p>
+        <div class="notification-list mt-3">
+            <div class="notification-item unread">
+                <div class="notification-icon">
+                    <i class="bi bi-envelope-paper"></i>
+                </div>
+                <div class="msg-body">
+                    <div class="notification-title">新的项目申请提醒 <span class="unread-dot"></span></div>
+                    <div class="notification-message">学生 <strong>Alice Wang</strong> 刚刚提交了您的项目 "An online project selection system" 的申请。</div>
+                    <div class="notification-meta">
+                        <span><i class="bi bi-clock"></i> 10 分钟前</span>
+                    </div>
+                </div>
             </div>
-            <div class="msg-time">2 小时前</div>
-        </div>
 
-    </div>
+            <div class="notification-item">
+                <div class="notification-icon" style="background: rgba(246,166,61,0.1); color: var(--orange);">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <div class="msg-body">
+                    <div class="notification-title">申请撤回通知</div>
+                    <div class="notification-message">学生 <strong>Bob Chen</strong> 撤回了对 "AI Chatbot for Education" 项目的申请。</div>
+                    <div class="notification-meta">
+                        <span><i class="bi bi-clock"></i> 2 小时前</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
     <script src="script.js"></script>
 </div>
 

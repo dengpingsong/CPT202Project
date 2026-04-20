@@ -9,54 +9,80 @@
     <link rel="stylesheet" href="../css/dashboard.css" />
 </head>
 <body>
-    <div id="sidebar">
-        <div class="sidebar-header" onclick="toggleSidebar()">
-            <i class="bi bi-list"></i> <span class="menu-text">收起菜单</span>
+<div class="layout" id="layout">
+    <!-- 侧边栏 -->
+    <aside class="sidebar" id="sidebar">
+        <div class="toggle-wrap">
+            <button class="toggle" id="toggleSidebar" aria-label="切换菜单">
+                <span></span>
+            </button>
         </div>
-        
+        <div class="nav-group">
+            <a href="projects.html" class="">
+                <i class="bi bi-kanban nav-icon"></i>
+                <span class="nav-label">我的项目</span>
+            </a>
+            <a href="index.html" class="active">
+                <i class="bi bi-file-earmark-check nav-icon"></i>
+                <span class="nav-label">审批申请</span>
+            </a>
+            <a href="history.html" class="">
+                <i class="bi bi-clock-history nav-icon"></i>
+                <span class="nav-label">历史记录</span>
+            </a>
+            <a href="notifications.html" class="">
+                <i class="bi bi-chat-dots nav-icon"></i>
+                <span class="nav-label">消息/通知</span>
+            </a>
+            <a href="settings.html" class="">
+                <i class="bi bi-person-gear nav-icon"></i>
+                <span class="nav-label">个人设置</span>
+            </a>
+        </div>
+    </aside>
 
-    <div class="main-content">
-        <a href="index.html" class="back-link"><i class="bi bi-arrow-left"></i> 返回工作台</a>
-        <h2 class="page-title">申请详情 (Application Details)</h2>
+    <main class="main">
+        <header class="page-header">
+            <a href="index.html" class="back-link"><i class="bi bi-arrow-left"></i> 返回工作台</a>
+            <h1 class="mb-0">申请详情 (Application Details)</h1>
+        </header>
 
-        <div class="custom-card student-info">
-            <h5 class="card-title-custom"><i class="bi bi-person-badge"></i> 学生档案 (Student Profile)</h5>
-            <div class="info-grid">
-                <div class="info-item">
-                    <span class="info-label">姓名 Name</span>
-                    <span class="info-value">Alice Wang</span>
+        <div class="panel student-info" style="margin-bottom: 24px;">
+            <h3 class="mb-3" style="color: var(--deep);"><i class="bi bi-person-badge"></i> 学生档案 (Student Profile)</h3>
+            <div class="meta-grid">
+                <div class="meta-item">
+                    <span class="meta-label">姓名 Name</span>
+                    <span class="meta-value">Alice Wang</span>
                 </div>
-                <div class="info-item">
-                    <span class="info-label">学号 Student ID</span>
-                    <span class="info-value">2361000</span>
+                <div class="meta-item">
+                    <span class="meta-label">学号 Student ID</span>
+                    <span class="meta-value">2361000</span>
                 </div>
-                <div class="info-item">
-                    <span class="info-label">专业 Major</span>
-                    <span class="info-value">Computer Science</span>
+                <div class="meta-item">
+                    <span class="meta-label">专业 Major</span>
+                    <span class="meta-value">Computer Science</span>
                 </div>
-                <div class="info-item">
-                    <span class="info-label">绩点 GPA</span>
-                    <span class="info-value">3.8 / 4.0</span>
+                <div class="meta-item">
+                    <span class="meta-label">绩点 GPA</span>
+                    <span class="meta-value">3.8 / 4.0</span>
                 </div>
             </div>
         </div>
 
-        <div class="custom-card">
-            <h5 class="card-title-custom"><i class="bi bi-file-text"></i> 申请内容 (Application Notes)</h5>
-            <h4 style="font-size: 18px; font-weight: bold; margin-bottom: 20px;">项目：An online project selection system</h4>
+        <div class="panel">
+            <h3 class="mb-3" style="color: var(--deep);"><i class="bi bi-file-text"></i> 申请内容 (Application Notes)</h3>
+            <h4 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 16px;">项目：An online project selection system</h4>
             
-            <div class="msg-box">
+            <div class="detail-text" style="margin-bottom: 24px;">
                 "Dear Professor, I am very interested in this topic. I have experience in Java and Web Development from my previous coursework. I believe I am a good fit for building the Allocation Control module."
             </div>
 
-            <hr style="border-color: #eee; margin: 30px 0;">
-
-            <div class="action-area">
-                <button class="btn btn-custom btn-accept" onclick="acceptProject()"><i class="bi bi-check2-circle"></i> 同意申请 (Accept)</button>
-                <button class="btn btn-custom btn-reject" data-bs-toggle="modal" data-bs-target="#rejectModal"><i class="bi bi-x-circle"></i> 拒绝申请 (Reject)</button>
+            <div class="action-buttons">
+                <button class="btn-primary" onclick="acceptProject()"><i class="bi bi-check2-circle"></i> 同意申请 (Accept)</button>
+                <button class="btn-secondary" data-bs-toggle="modal" data-bs-target="#rejectModal" style="border-color: #f56c6c; color: #f56c6c;"><i class="bi bi-x-circle"></i> 拒绝申请 (Reject)</button>
             </div>
         </div>
-    </div>
+    </main>
 
     <div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
