@@ -43,10 +43,8 @@
 
     
         
-    <main class="main-content">
-        <div class="page-header">
-            <h1 class="page-title">个人偏好与设置</h1>
-        </div>
+    <div class="main-content">
+        <h2 class="page-title">个人偏好与设置</h2>
         
         <div class="custom-card">
             <form id="settingsForm">
@@ -74,13 +72,13 @@
                     <label class="form-label">办公地点</label>
                     <input type="text" class="form-control" id="office" value="">
                 </div>
-                <div class="action-area">
-                    <button type="submit" class="btn-primary" id="saveBtn">保存修改</button>
-                    <button type="button" class="btn-secondary" onclick="handleLogout()">退出登录</button>
+                <div class="d-flex gap-3">
+                    <button type="submit" class="btn btn-primary px-4" style="border-radius:20px; background-color:#35b8e0; border:none;" id="saveBtn">保存修改</button>
+                    <button type="button" class="btn btn-outline-danger px-4" style="border-radius:20px;" onclick="handleLogout()">退出登录</button>
                 </div>
             </form>
         </div>
-    </main>
+    </div>
     <script src="script.js"></script>
 </div>
 
