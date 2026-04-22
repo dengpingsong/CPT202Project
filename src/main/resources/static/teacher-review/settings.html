@@ -41,13 +41,13 @@
         </div>
     </aside>
 
-    
-        
+
+
     <main class="main">
         <header class="page-header">
             <h1>个人偏好与设置</h1>
         </header>
-        
+
         <div class="panel" style="max-width: 600px;">
             <form id="settingsForm">
                 <div class="mb-3">
@@ -96,7 +96,7 @@
                 layout.classList.toggle("collapsed", isCollapsed);
             });
         }
-        
+
         const token = localStorage.getItem("token");
         if (!token) {
             window.location.href = "../login.html";
@@ -104,7 +104,7 @@
         }
 
         const API_BASE = "http://localhost:8080/api/teacher/profile/me";
-        
+
         // 获取当前信息
         async function fetchProfile() {
             try {

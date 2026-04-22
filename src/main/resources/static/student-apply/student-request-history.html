@@ -4,13 +4,12 @@
     <meta charset="UTF-8" />
     <title>请求历史 · 学生选题系统</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- Bootstrap Icons (与 dashboard 保持一致) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-   <link rel="stylesheet" href="../css/dashboard.css" />
+    <link rel="stylesheet" href="../css/dashboard.css" />
 </head>
 <body>
 <div class="layout" id="layout">
-    <!-- 侧边栏 (与 dashboard 结构完全相同，仅高亮不同) -->
+    <!-- 侧边栏（已移除“热门导师”） -->
     <aside class="sidebar" id="sidebar">
         <div class="toggle-wrap">
             <button class="toggle" id="toggleSidebar" aria-label="切换菜单">
@@ -18,32 +17,23 @@
             </button>
         </div>
         <div class="nav-group">
-            <!-- 申请状态 —— 返回 dashboard -->
             <a href="student-dashboard.html">
                 <i class="bi bi-kanban nav-icon"></i>
                 <span class="nav-label">申请状态</span>
             </a>
-            <!-- 搜索项目 (可跳转到项目列表，此处保留链接示意) -->
             <a href="student-project-search-list.html">
                 <i class="bi bi-search nav-icon"></i>
                 <span class="nav-label">搜索项目</span>
             </a>
-            <!-- 热门导师 (占位) -->
-            <button>
-                <i class="bi bi-person-badge nav-icon"></i>
-                <span class="nav-label">热门导师</span>
-            </button>
-            <!-- 请求历史 —— 当前页面，高亮 active -->
+            <!-- 热门导师按钮已移除 -->
             <a href="#" class="active">
                 <i class="bi bi-clock-history nav-icon"></i>
                 <span class="nav-label">请求历史</span>
             </a>
-            <!-- 消息/通知 -->
             <a href="student-notification.html">
                 <i class="bi bi-chat-dots nav-icon"></i>
                 <span class="nav-label">消息/通知</span>
             </a>
-            <!-- 个人设置 -->
             <a href="student-profile.html">
                 <i class="bi bi-person-gear nav-icon"></i>
                 <span class="nav-label">个人设置</span>
@@ -51,58 +41,15 @@
         </div>
     </aside>
 
-    <!-- 主内容区域 -->
+    <!-- 主内容区域（参照教师端 history.html 结构） -->
     <main class="main">
-        <!-- 头部：返回 + 标题 (与 dashboard 风格一致) -->
-        <div class="page-header">
-            <a href="student-dashboard.html" class="back-link">
-                <i class="bi bi-arrow-left"></i> 返回工作台
-            </a>
+        <header class="page-header">
             <h1>📋 请求历史</h1>
-        </div>
+        </header>
 
-        <!-- 内容卡片 -->
-        <div class="content-panel">
-            <!-- 简易筛选栏 (增强可用性) -->
-            <div class="filter-bar">
-                <select class="filter-select" id="statusFilter" aria-label="按状态筛选">
-                    <option value="all">全部状态</option>
-                    <option value="Pending">待审批</option>
-                    <option value="Accepted">已同意</option>
-                    <option value="Rejected">已拒绝</option>
-                    <option value="Withdrawn">已撤回</option>
-                </select>
-                <div class="search-box">
-                    <i class="bi bi-search"></i>
-                    <input type="text" placeholder="搜索项目名称或导师" id="searchInput">
-                    <button id="searchBtn">搜索</button>
-                </div>
-                <span style="margin-left: auto; font-size: 0.85rem; color: var(--muted);">
-                    <i class="bi bi-info-circle"></i> 共 <span id="recordCount">6</span> 条记录
-                </span>
-            </div>
-
-            <!-- 历史记录表格 (数据通过 JS 动态渲染) -->
-            <div class="table-wrapper">
-                <table class="history-table" id="historyTable">
-                    <thead>
-                        <tr>
-                            <th>项目名称</th>
-                            <th>导师</th>
-                            <th>申请时间</th>
-                            <th>最后更新</th>
-                            <th>状态</th>
-                            <th>备注/反馈</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody">
-                        <!-- 数据将在此处渲染 -->
-                    </tbody>
-                </table>
-            </div>
-            <div class="footnote">
-                <i class="bi bi-dot"></i> 点击项目名称可查看详情 (演示跳转)
+        <div class="panel">
+            <div class="timeline-vertical" id="historyTimeline">
+                <!-- 时间轴条目将通过 JS 动态渲染 -->
             </div>
         </div>
     </main>
@@ -112,7 +59,7 @@
     (function() {
         "use strict";
 
-        // ---------- 模拟请求历史数据 (与 dashboard 中“近期申请记录”相呼应) ----------
+        // ---------- 模拟请求历史数据 ----------
         const historyData = [
             {
                 id: 'req-001',
@@ -182,129 +129,64 @@
             }
         ];
 
-        // DOM 元素
-        const tbody = document.getElementById('tableBody');
-        const recordCountSpan = document.getElementById('recordCount');
-        const statusFilter = document.getElementById('statusFilter');
-        const searchInput = document.getElementById('searchInput');
-        const searchBtn = document.getElementById('searchBtn');
+        const timelineEl = document.getElementById('historyTimeline');
 
-        // 当前过滤后的数据
-        let filteredData = [...historyData];
-
-        // ---------- 渲染表格 ----------
-        function renderTable(data) {
-            if (!tbody) return;
-            
-            if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:40px; color: var(--muted);">
-                    <i class="bi bi-inbox" style="font-size:2rem; opacity:0.6;"></i><br>暂无符合条件的请求记录
-                </td></tr>`;
-                recordCountSpan.textContent = '0';
-                return;
+        // 状态映射：颜色与教师端类似
+        function getStatusStyle(status) {
+            switch(status) {
+                case 'Pending': return 'color: var(--orange);';
+                case 'Accepted': return 'color: var(--green);';
+                case 'Rejected': return 'color: #c74545;';
+                case 'Withdrawn': return 'color: var(--muted);';
+                default: return 'color: var(--deep);';
             }
+        }
+
+        function getStatusText(status) {
+            const map = {
+                'Pending': '待审批',
+                'Accepted': '已同意',
+                'Rejected': '已拒绝',
+                'Withdrawn': '已撤回'
+            };
+            return map[status] || status;
+        }
+
+        // 构建时间轴 HTML（按申请日期倒序）
+        function renderTimeline() {
+            if (!timelineEl) return;
+
+            // 按日期倒序排列（最新的在前）
+            const sorted = [...historyData].sort((a, b) =>
+                new Date(b.applyDate) - new Date(a.applyDate)
+            );
 
             let html = '';
-            data.forEach(item => {
-                // 状态样式映射
-                let statusClass = 'status-badge';
-                if (item.status === 'Pending') statusClass += ' status-pending';
-                else if (item.status === 'Accepted') statusClass += ' status-accepted';
-                else if (item.status === 'Rejected') statusClass += ' status-rejected';
-                else if (item.status === 'Withdrawn') statusClass += ' status-withdrawn';
-
-                // 状态中文显示
-                const statusText = {
-                    'Pending': '待审批',
-                    'Accepted': '已同意',
-                    'Rejected': '已拒绝',
-                    'Withdrawn': '已撤回'
-                }[item.status] || item.status;
-
-                // 操作按钮 (根据状态决定是否可操作)
-                let actionBtn = '';
-                if (item.status === 'Pending') {
-                    actionBtn = `<button class="action-btn" data-id="${item.id}" data-action="withdraw">撤回申请</button>`;
-                } else if (item.status === 'Accepted') {
-                    actionBtn = `<a href="#" class="action-btn" style="background:transparent;">进入课题组</a>`;
-                } else {
-                    actionBtn = `<span class="action-btn disabled">—</span>`;
-                }
-
-                // 反馈信息展示
-                const feedbackDisplay = item.feedback ? item.feedback : '—';
+            sorted.forEach(item => {
+                const statusColor = getStatusStyle(item.status);
+                const statusText = getStatusText(item.status);
+                // 标题：项目名称 + 状态
+                const title = `${item.projectTitle} · ${statusText}`;
+                // 描述：导师、申请时间、备注、反馈等
+                let desc = `导师：${item.supervisor}  |  申请时间：${item.applyDate}  |  最后更新：${item.lastUpdate}`;
+                if (item.note) desc += `<br>📝 备注：${item.note}`;
+                if (item.feedback) desc += `<br>💬 反馈：${item.feedback}`;
 
                 html += `
-                    <tr>
-                        <td>
-                            <a href="student-project-search-list-detail.html?code=${item.projectId}" class="project-link" target="_blank">
-                                ${item.projectTitle}
-                            </a>
-                        </td>
-                        <td>${item.supervisor}</td>
-                        <td>${item.applyDate}</td>
-                        <td>${item.lastUpdate}</td>
-                        <td><span class="${statusClass}">${statusText}</span></td>
-                        <td style="max-width:220px;">
-                            <div style="font-size:0.85rem; color:var(--text);">${item.note || '—'}</div>
-                            ${item.feedback ? `<div style="font-size:0.75rem; color:var(--muted); margin-top:4px;"><i class="bi bi-chat"></i> ${item.feedback}</div>` : ''}
-                        </td>
-                        <td>${actionBtn}</td>
-                    </tr>
+                    <div class="item">
+                        <div class="timeline-date">${item.applyDate}</div>
+                        <div class="timeline-title" style="${statusColor}">${title}</div>
+                        <div class="timeline-desc">${desc}</div>
+                    </div>
                 `;
             });
 
-            tbody.innerHTML = html;
-            recordCountSpan.textContent = data.length;
-
-            // 绑定撤回按钮事件 (简单模拟)
-            document.querySelectorAll('.action-btn[data-action="withdraw"]').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const id = btn.getAttribute('data-id');
-                    const record = historyData.find(r => r.id === id);
-                    if (record && confirm(`确定要撤回对 "${record.projectTitle}" 的申请吗？`)) {
-                        record.status = 'Withdrawn';
-                        // 重新过滤并渲染
-                        applyFilterAndSearch();
-                        alert('申请已撤回');
-                    }
-                });
-            });
+            timelineEl.innerHTML = html || `<div class="item"><div class="timeline-desc">暂无请求历史</div></div>`;
         }
 
-        // ---------- 过滤与搜索逻辑 ----------
-        function applyFilterAndSearch() {
-            const statusVal = statusFilter.value;
-            const keyword = searchInput.value.trim().toLowerCase();
+        renderTimeline();
 
-            filteredData = historyData.filter(item => {
-                // 状态筛选
-                if (statusVal !== 'all' && item.status !== statusVal) return false;
-                // 关键词搜索 (项目名 / 导师)
-                if (keyword) {
-                    const inTitle = item.projectTitle.toLowerCase().includes(keyword);
-                    const inSupervisor = item.supervisor.toLowerCase().includes(keyword);
-                    if (!inTitle && !inSupervisor) return false;
-                }
-                return true;
-            });
-
-            renderTable(filteredData);
-        }
-
-        // ---------- 事件绑定 ----------
-        statusFilter.addEventListener('change', applyFilterAndSearch);
-        searchBtn.addEventListener('click', applyFilterAndSearch);
-        searchInput.addEventListener('keyup', (e) => {
-            if (e.key === 'Enter') applyFilterAndSearch();
-        });
-
-        // 初始化渲染
-        renderTable(filteredData);
-        recordCountSpan.textContent = filteredData.length;
-
-        // ---------- 侧边栏折叠功能 (与 dashboard 一致) ----------
+        // ---------- 侧边栏折叠功能 ----------
         const layout = document.getElementById("layout");
         const toggle = document.getElementById("toggleSidebar");
         let isCollapsed = false;
@@ -313,11 +195,7 @@
             layout.classList.toggle("collapsed", isCollapsed);
         });
 
-        // 小细节: 点击项目链接在新标签页打开 (target已设置)
     })();
 </script>
-
-<!-- 注：项目详情链接指向 student-project-detail.html?code=... 
-     可根据实际文件名调整，目前作为演示。 -->
 </body>
 </html>
