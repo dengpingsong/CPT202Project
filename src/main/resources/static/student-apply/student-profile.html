@@ -447,23 +447,32 @@
                     <div class="section-title">基本信息</div>
                     <div class="form-row">
                         <span class="form-label"><i class="bi bi-person"></i> 姓名</span>
-                        <input type="text" class="form-control" id="studentName" value="张三" placeholder="未填写">
+                        <input type="text" class="form-control" id="fullName" placeholder="未填写">
                     </div>
                     <div class="form-row">
                         <span class="form-label"><i class="bi bi-upc-scan"></i> 学号</span>
-                        <input type="text" class="form-control" id="studentId" value="2024001234" placeholder="未填写">
-                    </div>
-                    <div class="form-row">
-                        <span class="form-label"><i class="bi bi-building"></i> 学院</span>
-                        <input type="text" class="form-control" id="college" value="计算机科学与技术学院" placeholder="未填写">
+                        <input type="text" class="form-control" id="studentNo" placeholder="未填写" disabled>
+                        <small style="color: var(--muted); margin-left: 12px;">学号不可修改</small>
                     </div>
                     <div class="form-row">
                         <span class="form-label"><i class="bi bi-envelope"></i> 邮箱</span>
-                        <input type="email" class="form-control" id="email" value="zhangsan@stu.university.edu" placeholder="未填写">
+                        <input type="email" class="form-control" id="email" placeholder="未填写">
+                    </div>
+                    <div class="form-row">
+                        <span class="form-label"><i class="bi bi-book"></i> 专业</span>
+                        <input type="text" class="form-control" id="programme" placeholder="未填写">
+                    </div>
+                    <div class="form-row">
+                        <span class="form-label"><i class="bi bi-calendar"></i> 入学日期</span>
+                        <input type="date" class="form-control" id="enrollmentDate">
                     </div>
                     <div class="form-row">
                         <span class="form-label"><i class="bi bi-phone"></i> 手机号</span>
-                        <input type="tel" class="form-control" id="phone" value="18812345678" placeholder="未填写">
+                        <input type="tel" class="form-control" id="phone" placeholder="未填写">
+                    </div>
+                    <div class="form-row">
+                        <span class="form-label"><i class="bi bi-heart"></i> 兴趣方向</span>
+                        <input type="text" class="form-control" id="interests" placeholder="例如：机器学习、Web开发">
                     </div>
                 </div>
 
@@ -491,26 +500,29 @@
     (function() {
         "use strict";
 
-        // ---------- 认证与 API 配置 ----------
+        // ---------- 认证检查 ----------
         const token = localStorage.getItem("token");
         if (!token) {
             window.location.href = "../login.html";
             return;
         }
 
-        const API_BASE = "/api/student/profile/me";   // 请根据实际后端接口调整
+        // ---------- API 配置 ----------
+        const API_BASE = "/api/student/profile/me";   // 根据实际接口调整
 
         const profileForm = document.getElementById('profileForm');
         const clearBtn = document.getElementById('clearBtn');
         const logoutBtn = document.getElementById('logoutBtn');
 
-        // 获取所有输入框
+        // 获取输入框引用（与新增字段对应）
         const inputs = {
-            studentName: document.getElementById('studentName'),
-            studentId: document.getElementById('studentId'),
-            college: document.getElementById('college'),
+            fullName: document.getElementById('fullName'),
+            studentNo: document.getElementById('studentNo'),
             email: document.getElementById('email'),
-            phone: document.getElementById('phone')
+            programme: document.getElementById('programme'),
+            enrollmentDate: document.getElementById('enrollmentDate'),
+            phone: document.getElementById('phone'),
+            interests: document.getElementById('interests')
         };
 
         // ---------- 从后端加载当前学生信息 ----------
@@ -524,12 +536,20 @@
                 });
                 const data = await res.json();
                 if (data.code === 1 && data.data) {
-                    // 根据后端实际返回字段填充（字段名请与后端确认）
-                    inputs.studentName.value = data.data.fullName || data.data.name || "";
-                    inputs.studentId.value = data.data.studentNo || data.data.studentId || "";
-                    inputs.college.value = data.data.college || data.data.department || "";
-                    inputs.email.value = data.data.email || "";
-                    inputs.phone.value = data.data.phone || "";
+                    const profile = data.data;
+                    inputs.fullName.value = profile.fullName || "";
+                    inputs.studentNo.value = profile.studentNo || "";
+                    inputs.email.value = profile.email || "";
+                    inputs.programme.value = profile.programme || "";
+                    // 日期格式处理：后端可能返回 ISO 字符串，截取 yyyy-MM-dd 部分
+                    if (profile.enrollmentDate) {
+                        const dateStr = profile.enrollmentDate.split('T')[0];
+                        inputs.enrollmentDate.value = dateStr;
+                    } else {
+                        inputs.enrollmentDate.value = "";
+                    }
+                    inputs.phone.value = profile.phone || "";
+                    inputs.interests.value = profile.interests || "";
                 } else if (data.code === 401) {
                     handleLogout();
                 } else {
@@ -540,34 +560,58 @@
             }
         }
 
-        // 初始加载
         fetchProfile();
 
-        // ---------- 清空信息按钮（仅清空输入框，不提交） ----------
+        // ---------- 清空信息按钮（仅清空可编辑字段） ----------
         clearBtn.addEventListener('click', () => {
-            for (let key in inputs) {
-                if (inputs[key]) {
-                    inputs[key].value = '';
-                }
-            }
+            inputs.fullName.value = '';
+            inputs.email.value = '';
+            inputs.programme.value = '';
+            inputs.enrollmentDate.value = '';
+            inputs.phone.value = '';
+            inputs.interests.value = '';
         });
 
-        // ---------- 表单提交：保存更改到后端 ----------
+        // ---------- 表单提交：保存修改到后端 ----------
         profileForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            // 1. 姓名非空校验
+            const fullNameVal = inputs.fullName.value.trim();
+            if (!fullNameVal) {
+                alert("姓名不能为空，请填写。");
+                return;
+            }
+
+            // 2. 邮箱非空校验
+            const emailVal = inputs.email.value.trim();
+            if (!emailVal) {
+                alert("邮箱不能为空，请填写。");
+                return;
+            }
+
+            // 3. 邮箱格式校验（简单的正则）
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailPattern.test(emailVal)) {
+                alert("邮箱格式不正确，请检查后重新输入。");
+                return;
+            }
 
             const saveBtn = profileForm.querySelector('button[type="submit"]');
             const originalText = saveBtn.innerHTML;
             saveBtn.disabled = true;
             saveBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> 保存中...';
 
-            // 构建请求体（字段名需与后端 API 匹配）
+
+
+            // 构建请求体，严格匹配 StudentProfileUpdateDTO 字段
             const payload = {
-                fullName: inputs.studentName.value.trim(),
-                studentNo: inputs.studentId.value.trim(),
-                college: inputs.college.value.trim(),
+                fullName: inputs.fullName.value.trim(),
                 email: inputs.email.value.trim(),
-                phone: inputs.phone.value.trim()
+                programme: inputs.programme.value.trim(),
+                enrollmentDate: inputs.enrollmentDate.value || null, // 空字符串后端应处理为 null
+                phone: inputs.phone.value.trim(),
+                interests: inputs.interests.value.trim()
             };
 
             try {
@@ -582,7 +626,7 @@
                 const data = await res.json();
                 if (data.code === 1) {
                     alert("✅ 个人设置已保存");
-                    // 可选：更新 localStorage 中的用户名
+                    // 更新 localStorage 中的姓名
                     if (payload.fullName) {
                         localStorage.setItem("fullName", payload.fullName);
                     }
