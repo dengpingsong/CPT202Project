@@ -6,6 +6,7 @@ import com.cpt202.model.entity.User;
 import com.cpt202.result.Result;
 import com.cpt202.security.AuthContext;
 import com.cpt202.service.CallbackAuthService;
+import com.cpt202.service.ProjectService;
 import com.cpt202.service.ProjectTagService;
 import com.cpt202.vo.ProjectTagVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,11 +28,14 @@ import java.util.List;
 public class TeacherProjectTagController {
 
     private final ProjectTagService projectTagService;
+    private final ProjectService projectService;
     private final CallbackAuthService callbackAuthService;
 
     public TeacherProjectTagController(ProjectTagService projectTagService,
+                                       ProjectService projectService,
                                        CallbackAuthService callbackAuthService) {
         this.projectTagService = projectTagService;
+        this.projectService = projectService;
         this.callbackAuthService = callbackAuthService;
     }
 
@@ -45,7 +49,8 @@ public class TeacherProjectTagController {
     @Operation(summary = "List project tags")
     public Result<List<ProjectTagVO>> listProjectTags(@PathVariable Long projectId,
                                                       @RequestHeader("Authorization") String authorization) {
-        callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
+        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
+        ensureCurrentTeacher(projectService.getProject(projectId).getTeacherId(), authContext);
         log.info("List project tags: {}", projectId);
         return Result.success(projectTagService.listProjectTags(projectId));
     }

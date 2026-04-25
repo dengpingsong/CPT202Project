@@ -62,8 +62,10 @@ public class TeacherProjectController {
     @Operation(summary = "Get teacher project details")
     public Result<ProjectVO> getById(@PathVariable Long projectId,
                                      @RequestHeader("Authorization") String authorization) {
-        callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
-        return Result.success(projectService.getProject(projectId));
+        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
+        ProjectVO project = projectService.getProject(projectId);
+        ensureCurrentTeacher(project.getTeacherId(), authContext);
+        return Result.success(project);
     }
 
     /**
@@ -112,7 +114,8 @@ public class TeacherProjectController {
     public Result<Void> changeStatus(@PathVariable Long projectId,
                                      @Valid @RequestBody ProjectStatusUpdateDTO projectStatusUpdateDTO,
                                      @RequestHeader("Authorization") String authorization) {
-        callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
+        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
+        ensureCurrentTeacher(projectStatusUpdateDTO.getTeacherId(), authContext);
         projectService.changeStatus(projectId, projectStatusUpdateDTO);
         return Result.success();
     }
