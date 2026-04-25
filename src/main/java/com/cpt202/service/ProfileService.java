@@ -1,9 +1,15 @@
 package com.cpt202.service;
 
+import com.cpt202.dto.AdminProfileUpdateDTO;
+import com.cpt202.dto.ChangePasswordDTO;
 import com.cpt202.dto.StudentProfileUpdateDTO;
 import com.cpt202.dto.TeacherProfileUpdateDTO;
+import com.cpt202.dto.TwoFactorDisableDTO;
+import com.cpt202.dto.TwoFactorEnableDTO;
+import com.cpt202.vo.AdminProfileVO;
 import com.cpt202.vo.StudentProfileVO;
 import com.cpt202.vo.TeacherProfileVO;
+import com.cpt202.vo.TwoFactorSetupVO;
 
 /**
  * 用户资料服务接口。
@@ -43,4 +49,35 @@ public interface ProfileService {
      * @param teacherProfileUpdateDTO 教师资料更新参数
      */
     void updateTeacherProfile(Long teacherId, TeacherProfileUpdateDTO teacherProfileUpdateDTO);
+
+    /**
+     * 查询管理员资料。
+     *
+     * @param userId 管理员用户主键
+     * @return 管理员资料
+     */
+    AdminProfileVO getAdminProfile(Long userId);
+
+    /**
+     * 修改管理员资料。
+     *
+     * @param userId 管理员用户主键
+     * @param adminProfileUpdateDTO 管理员资料更新参数
+     */
+    void updateAdminProfile(Long userId, AdminProfileUpdateDTO adminProfileUpdateDTO);
+
+    /**
+     * 修改当前用户密码。
+     * 需要验证旧密码正确后方可更新。
+     *
+     * @param userId            当前用户主键
+     * @param changePasswordDTO 修改密码参数（旧密码 + 新密码）
+     */
+    void changePassword(Long userId, ChangePasswordDTO changePasswordDTO);
+
+    TwoFactorSetupVO initializeTwoFactorSetup(Long userId);
+
+    void enableTwoFactor(Long userId, TwoFactorEnableDTO twoFactorEnableDTO);
+
+    void disableTwoFactor(Long userId, TwoFactorDisableDTO twoFactorDisableDTO);
 }

@@ -1,6 +1,8 @@
 package com.cpt202.service;
 
 import com.cpt202.dto.TagDTO;
+import com.cpt202.dto.PageQueryDTO;
+import com.cpt202.result.PageResult;
 import com.cpt202.vo.TagVO;
 
 import java.util.List;
@@ -18,6 +20,14 @@ public interface TagService {
      * @return 标签展示对象列表
      */
     List<TagVO> listAll();
+
+    /**
+     * 分页查询标签列表。
+     *
+     * @param queryDTO 分页查询参数
+     * @return 标签分页结果
+     */
+    PageResult<TagVO> listPage(PageQueryDTO queryDTO);
 
     /**
      * 根据标签主键查询标签详情。
