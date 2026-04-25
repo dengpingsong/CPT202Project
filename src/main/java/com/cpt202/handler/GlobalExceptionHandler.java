@@ -1,6 +1,9 @@
 package com.cpt202.handler;
 
 import com.cpt202.exception.BusinessException;
+import com.cpt202.exception.NotFoundException;
+import com.cpt202.exception.RuleViolationException;
+import com.cpt202.exception.UnauthorizedAccessException;
 import com.cpt202.result.Result;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;

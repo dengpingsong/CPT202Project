@@ -23,14 +23,15 @@ import java.util.List;
 public class TeacherProjectTagController {
 
     private final ProjectTagService projectTagService;
+    private final ProjectService projectService;
+    private final CallbackAuthService callbackAuthService;
 
-    /**
-     * 构造器注入项目标签服务。
-     *
-     * @param projectTagService 项目标签服务
-     */
-    public TeacherProjectTagController(ProjectTagService projectTagService) {
+    public TeacherProjectTagController(ProjectTagService projectTagService,
+                                       ProjectService projectService,
+                                       CallbackAuthService callbackAuthService) {
         this.projectTagService = projectTagService;
+        this.projectService = projectService;
+        this.callbackAuthService = callbackAuthService;
     }
 
     /**
