@@ -78,7 +78,8 @@ class WorkflowScenarioTest {
                 "fullName", "Scenario Student",
                 "role", "STUDENT",
                 "studentNo", "2024001",
-                "programme", "Software Engineering"
+                "programme", "Software Engineering",
+                "enrollmentDate", "2024-09-01"
         ));
 
         assertThat(token).isNotBlank();
@@ -178,7 +179,8 @@ class WorkflowScenarioTest {
                 "fullName", "Dr. Lifecycle",
                 "role", "TEACHER",
                 "staffNo", "T999",
-                "department", "Computer Science"
+                "department", "Computer Science",
+                "title", "Lecturer"
         ));
         String teacherToken = extractToken(teacherRegResult);
         // authContext.userId() 就是教师的 User ID，用于 ProjectDTO.teacherId 的权限校验
@@ -240,7 +242,8 @@ class WorkflowScenarioTest {
                 "fullName", "Alice Lifecycle",
                 "role", "STUDENT",
                 "studentNo", "2024099",
-                "programme", "Data Science"
+                "programme", "Data Science",
+                "enrollmentDate", "2024-09-01"
         ));
         String studentToken = extractToken(studentRegResult);
         // studentId 同样使用 User ID（见 ensureCurrentStudent 权限校验逻辑）
