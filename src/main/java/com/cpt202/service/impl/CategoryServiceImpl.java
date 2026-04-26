@@ -1,11 +1,16 @@
 package com.cpt202.service.impl;
 
 import com.cpt202.dto.CategoryDTO;
+import com.cpt202.model.entity.Category;
+import com.cpt202.repository.CategoryRepository;
 import com.cpt202.service.CategoryService;
 import com.cpt202.vo.CategoryVO;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 分类管理服务实现类。
@@ -13,27 +18,43 @@ import java.util.List;
  * 当前处于接口骨架阶段，具体持久化逻辑后续补充。
  */
 @Service
+@RequiredArgsConstructor
 public class CategoryServiceImpl implements CategoryService {
+
+    private final CategoryRepository categoryRepository;
 
     /**
      * 查询全部分类列表。
-     *
-     * @return 分类展示对象列表
      */
     @Override
     public List<CategoryVO> listAll() {
-        throw new UnsupportedOperationException("Not implemented yet");
+        return categoryRepository.findAll()
+                .stream()
+                .map(category -> CategoryVO.builder()
+                        .categoryId(category.getCategoryId())
+                        .categoryName(category.getCategoryName())
+                        .description(category.getDescription())
+                        .createdAt(category.getCreatedAt())
+                        .updatedAt(category.getUpdatedAt())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     /**
      * 根据分类主键查询分类详情。
-     *
-     * @param categoryId 分类主键
-     * @return 分类展示对象
      */
     @Override
     public CategoryVO getById(Long categoryId) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new RuntimeException("分类不存在"));
+
+        return CategoryVO.builder()
+                .categoryId(category.getCategoryId())
+                .categoryName(category.getCategoryName())
+                .description(category.getDescription())
+                .createdAt(category.getCreatedAt())
+                .updatedAt(category.getUpdatedAt())
+                .build();
     }
 
     /**
@@ -43,7 +64,13 @@ public class CategoryServiceImpl implements CategoryService {
      */
     @Override
     public void create(CategoryDTO categoryDTO) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        Category category = Category.builder()
+                .categoryName(categoryDTO.getCategoryName())
+                .description(categoryDTO.getDescription())
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+        categoryRepository.save(category);
     }
 
     /**
@@ -54,7 +81,14 @@ public class CategoryServiceImpl implements CategoryService {
      */
     @Override
     public void update(Long categoryId, CategoryDTO categoryDTO) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new RuntimeException("要修改的分类不存在"));
+
+        category.setCategoryName(categoryDTO.getCategoryName());
+        category.setDescription(categoryDTO.getDescription());
+        category.setUpdatedAt(LocalDateTime.now());
+
+        categoryRepository.save(category);
     }
 
     /**
@@ -64,6 +98,9 @@ public class CategoryServiceImpl implements CategoryService {
      */
     @Override
     public void delete(Long categoryId) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        if (!categoryRepository.existsById(categoryId)) {
+            throw new RuntimeException("要删除的分类不存在");
+        }
+        categoryRepository.deleteById(categoryId);
     }
 }
