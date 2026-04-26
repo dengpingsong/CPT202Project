@@ -15,4 +15,11 @@ public interface ProjectRequestRepository extends JpaRepository<ProjectRequest, 
     List<ProjectRequest> findByStudent_StudentIdAndRequestStatus(Long studentId, RequestStatus status);
 
     long countByProject_ProjectIdAndRequestStatus(Long projectId, RequestStatus status);
+
+    List<ProjectRequest> findByStudent_StudentIdOrderBySubmittedAtDesc(Long studentId);
+
+    List<ProjectRequest> findByProject_Teacher_TeacherIdOrderBySubmittedAtDesc(Long teacherId);
+
+    List<ProjectRequest> findByProject_Teacher_TeacherIdAndRequestStatusOrderBySubmittedAtDesc(
+            Long teacherId, RequestStatus status);
 }
