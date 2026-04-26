@@ -41,8 +41,7 @@ public class AdminCategoryController {
      */
     @GetMapping
     @Operation(summary = "List categories")
-    public Result<List<CategoryVO>> list(@RequestHeader("Authorization") String authorization) {
-        callbackAuthService.requireAuth(authorization, User.UserRole.ADMIN);
+    public Result<List<CategoryVO>> list() {
         log.info("List categories");
         return Result.success(categoryService.listAll());
     }
@@ -55,9 +54,7 @@ public class AdminCategoryController {
      */
     @GetMapping("/{categoryId}")
     @Operation(summary = "Get category by ID")
-    public Result<CategoryVO> getById(@PathVariable Long categoryId,
-                                      @RequestHeader("Authorization") String authorization) {
-        callbackAuthService.requireAuth(authorization, User.UserRole.ADMIN);
+    public Result<CategoryVO> getById(@PathVariable Long categoryId) {
         log.info("Get category by id: {}", categoryId);
         return Result.success(categoryService.getById(categoryId));
     }
@@ -70,9 +67,7 @@ public class AdminCategoryController {
      */
     @PostMapping
     @Operation(summary = "Create a category")
-    public Result<Void> create(@Valid @RequestBody CategoryDTO categoryDTO,
-                               @RequestHeader("Authorization") String authorization) {
-        callbackAuthService.requireAuth(authorization, User.UserRole.ADMIN);
+    public Result<Void> create(@Valid @RequestBody CategoryDTO categoryDTO) {
         log.info("Create category: {}", categoryDTO);
         categoryService.create(categoryDTO);
         return Result.success();
@@ -87,10 +82,7 @@ public class AdminCategoryController {
      */
     @PutMapping("/{categoryId}")
     @Operation(summary = "Update a category")
-    public Result<Void> update(@PathVariable Long categoryId,
-                               @Valid @RequestBody CategoryDTO categoryDTO,
-                               @RequestHeader("Authorization") String authorization) {
-        callbackAuthService.requireAuth(authorization, User.UserRole.ADMIN);
+    public Result<Void> update(@PathVariable Long categoryId, @Valid @RequestBody CategoryDTO categoryDTO) {
         log.info("Update category: {}, payload: {}", categoryId, categoryDTO);
         categoryService.update(categoryId, categoryDTO);
         return Result.success();
@@ -104,9 +96,7 @@ public class AdminCategoryController {
      */
     @DeleteMapping("/{categoryId}")
     @Operation(summary = "Delete a category")
-    public Result<Void> delete(@PathVariable Long categoryId,
-                               @RequestHeader("Authorization") String authorization) {
-        callbackAuthService.requireAuth(authorization, User.UserRole.ADMIN);
+    public Result<Void> delete(@PathVariable Long categoryId) {
         log.info("Delete category: {}", categoryId);
         categoryService.delete(categoryId);
         return Result.success();

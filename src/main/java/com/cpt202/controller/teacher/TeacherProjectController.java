@@ -3,11 +3,7 @@ package com.cpt202.controller.teacher;
 import com.cpt202.dto.ProjectDTO;
 import com.cpt202.dto.ProjectStatusUpdateDTO;
 import com.cpt202.dto.TeacherProjectQueryDTO;
-import com.cpt202.exception.UnauthorizedAccessException;
-import com.cpt202.model.entity.User;
 import com.cpt202.result.Result;
-import com.cpt202.security.AuthContext;
-import com.cpt202.service.CallbackAuthService;
 import com.cpt202.service.ProjectService;
 import com.cpt202.vo.ProjectVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,10 +42,7 @@ public class TeacherProjectController {
      */
     @GetMapping
     @Operation(summary = "List teacher projects")
-    public Result<List<ProjectVO>> list(@Valid TeacherProjectQueryDTO queryDTO,
-                                        @RequestHeader("Authorization") String authorization) {
-        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
-        ensureCurrentTeacher(queryDTO.getTeacherId(), authContext);
+    public Result<List<ProjectVO>> list(@Valid TeacherProjectQueryDTO queryDTO) {
         return Result.success(projectService.listTeacherProjects(queryDTO.getTeacherId(), queryDTO.getStatus()));
     }
 
@@ -61,9 +54,7 @@ public class TeacherProjectController {
      */
     @GetMapping("/{projectId}")
     @Operation(summary = "Get teacher project details")
-    public Result<ProjectVO> getById(@PathVariable Long projectId,
-                                     @RequestHeader("Authorization") String authorization) {
-        callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
+    public Result<ProjectVO> getById(@PathVariable Long projectId) {
         return Result.success(projectService.getProject(projectId));
     }
 
@@ -75,10 +66,7 @@ public class TeacherProjectController {
      */
     @PostMapping
     @Operation(summary = "Create a project")
-    public Result<Void> create(@Valid @RequestBody ProjectDTO projectDTO,
-                               @RequestHeader("Authorization") String authorization) {
-        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
-        ensureCurrentTeacher(projectDTO.getTeacherId(), authContext);
+    public Result<Void> create(@Valid @RequestBody ProjectDTO projectDTO) {
         projectService.create(projectDTO);
         return Result.success();
     }
@@ -93,10 +81,7 @@ public class TeacherProjectController {
     @PutMapping("/{projectId}")
     @Operation(summary = "Update a project")
     public Result<Void> update(@PathVariable Long projectId,
-                               @Valid @RequestBody ProjectDTO projectDTO,
-                               @RequestHeader("Authorization") String authorization) {
-        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
-        ensureCurrentTeacher(projectDTO.getTeacherId(), authContext);
+                               @Valid @RequestBody ProjectDTO projectDTO) {
         projectService.update(projectId, projectDTO);
         return Result.success();
     }
@@ -111,16 +96,8 @@ public class TeacherProjectController {
     @PutMapping("/{projectId}/status")
     @Operation(summary = "Change project status")
     public Result<Void> changeStatus(@PathVariable Long projectId,
-                                     @Valid @RequestBody ProjectStatusUpdateDTO projectStatusUpdateDTO,
-                                     @RequestHeader("Authorization") String authorization) {
-        callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
+                                     @Valid @RequestBody ProjectStatusUpdateDTO projectStatusUpdateDTO) {
         projectService.changeStatus(projectId, projectStatusUpdateDTO);
         return Result.success();
-    }
-
-    private void ensureCurrentTeacher(Long teacherId, AuthContext authContext) {
-        if (!authContext.userId().equals(teacherId)) {
-            throw new UnauthorizedAccessException("不能操作其他教师名下的项目。");
-        }
     }
 }
