@@ -42,37 +42,40 @@ public class TagServiceImpl implements TagService {
      */
     @Override
     public TagVO getById(Long tagId) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        return tagRepository.findById(tagId)
+                .map(tag -> new TagVO(tag.getTagId(), tag.getTagName(), tag.getDescription()))
+                .orElseThrow(() -> new com.cpt202.exception.NotFoundException("标签不存在。"));
     }
 
-    /**
-     * 新增标签。
-     *
-     * @param tagDTO 标签新增参数
-     */
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public void create(TagDTO tagDTO) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        com.cpt202.model.entity.Tag tag = com.cpt202.model.entity.Tag.builder()
+                .tagName(tagDTO.getTagName())
+                .description(tagDTO.getDescription())
+                .createdAt(java.time.LocalDateTime.now())
+                .updatedAt(java.time.LocalDateTime.now())
+                .build();
+        tagRepository.save(tag);
     }
 
-    /**
-     * 修改标签。
-     *
-     * @param tagId 标签主键
-     * @param tagDTO 标签更新参数
-     */
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public void update(Long tagId, TagDTO tagDTO) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        com.cpt202.model.entity.Tag tag = tagRepository.findById(tagId)
+                .orElseThrow(() -> new com.cpt202.exception.NotFoundException("标签不存在。"));
+        tag.setTagName(tagDTO.getTagName());
+        tag.setDescription(tagDTO.getDescription());
+        tag.setUpdatedAt(java.time.LocalDateTime.now());
+        tagRepository.save(tag);
     }
 
-    /**
-     * 删除标签。
-     *
-     * @param tagId 标签主键
-     */
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public void delete(Long tagId) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        if (!tagRepository.existsById(tagId)) {
+            throw new com.cpt202.exception.NotFoundException("标签不存在。");
+        }
+        tagRepository.deleteById(tagId);
     }
 }
