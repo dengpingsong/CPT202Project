@@ -51,7 +51,7 @@ public class ProjectServiceImpl implements ProjectService {
     private final ProjectValidationService projectValidationService;
 
     /**
-     * 查询学生端项目列表。
+     * 查询学生端项目列表（DB 端过滤 + 分页）。
      */
     @Override
     public PageResult<ProjectVO> listStudentProjects(StudentProjectQueryDTO queryDTO) {
@@ -212,7 +212,6 @@ public class ProjectServiceImpl implements ProjectService {
         }
         project.setCurrentAgreedCount(0);
     }
-
     private Project getProjectEntity(Long projectId) {
         return projectRepository.findById(projectId)
                 .orElseThrow(() -> new NotFoundException(MessageConstants.PROJECT_NOT_FOUND));
