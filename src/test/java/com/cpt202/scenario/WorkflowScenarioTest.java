@@ -48,7 +48,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.h2.console.enabled=false",
-        "jwt.secret=12345678901234567890123456789012"
+        "jwt.secret=12345678901234567890123456789012",
+        "admin.default.username=admin",
+        "admin.default.password=Admin@123456",
+        "admin.default.email=admin@cpt202.local",
+        "admin.default.fullName=System Administrator"
 })
 @AutoConfigureMockMvc
 class WorkflowScenarioTest {
@@ -122,14 +126,9 @@ class WorkflowScenarioTest {
         // PHASE 1 — Admin 初始化系统基础数据
         // ════════════════════════════════════════════════════════
 
-        // Step 1: 注册管理员
-        String adminToken = doRegister(Map.of(
-                "username", "admin_lifecycle",
-                "password", "Admin1234!",
-                "email", "admin_lc@test.com",
-                "fullName", "System Admin",
-                "role", "ADMIN"
-        ));
+        // Step 1: 使用系统预置默认管理员账号登录（由 AdminDataInitializer 在启动时自动创建）
+        String adminToken = doLogin("admin", "Admin@123456");
+        assertThat(adminToken).isNotBlank();
 
         // Step 2: Admin 创建项目分类（模拟管理后台操作）
         mockMvc.perform(post("/api/admin/categories")
