@@ -1,19 +1,80 @@
 package com.cpt202.service.impl;
 
 import com.cpt202.dto.CategoryDTO;
+import com.cpt202.exception.NotFoundException;
+import com.cpt202.model.entity.Category;
+import com.cpt202.repository.CategoryRepository;
 import com.cpt202.service.CategoryService;
 import com.cpt202.vo.CategoryVO;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
-/**
- * 分类管理服务实现类。
- * <p>
- * 当前处于接口骨架阶段，具体持久化逻辑后续补充。
- */
 @Service
+@RequiredArgsConstructor
 public class CategoryServiceImpl implements CategoryService {
+
+    private final CategoryRepository categoryRepository;
+
+    @Override
+    public List<CategoryVO> listAll() {
+        return categoryRepository.findAll().stream()
+                .map(this::toVO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public CategoryVO getById(Long categoryId) {
+        return toVO(categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new NotFoundException("分类不存在。")));
+    }
+
+    @Override
+    @Transactional
+    public void create(CategoryDTO categoryDTO) {
+        Category category = Category.builder()
+                .categoryName(categoryDTO.getCategoryName())
+                .description(categoryDTO.getDescription())
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+        categoryRepository.save(category);
+    }
+
+    @Override
+    @Transactional
+    public void update(Long categoryId, CategoryDTO categoryDTO) {
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new NotFoundException("分类不存在。"));
+        category.setCategoryName(categoryDTO.getCategoryName());
+        category.setDescription(categoryDTO.getDescription());
+        category.setUpdatedAt(LocalDateTime.now());
+        categoryRepository.save(category);
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long categoryId) {
+        if (!categoryRepository.existsById(categoryId)) {
+            throw new NotFoundException("分类不存在。");
+        }
+        categoryRepository.deleteById(categoryId);
+    }
+
+    private CategoryVO toVO(Category c) {
+        return CategoryVO.builder()
+                .categoryId(c.getCategoryId())
+                .categoryName(c.getCategoryName())
+                .description(c.getDescription())
+                .createdAt(c.getCreatedAt())
+                .updatedAt(c.getUpdatedAt())
+                .build();
+    }
+}
 
     /**
      * 查询全部分类列表。
