@@ -51,11 +51,16 @@
             <div class="table-wrapper">
                 <table class="project-table" id="projectTable">
                     <thead>
-                        <tr>
-                            <th>SURF Code</th><th>Project Title</th><th>Principal Investigator</th>
-                            <th>Email</th><th>School/Academy</th><th>Department</th>
-                            <th>Required</th><th>Internal/External</th><th>Details</th>
-                        </tr>
+                    <tr>
+                        <th>Project Code</th>
+                        <th>Project Title</th>
+                        <th>Principal Investigator</th>
+                        <th>Category</th>
+                        <th>Topic area</th>
+                        <th>Required</th>
+                        <th>Status</th>
+                        <th>Details</th>
+                    </tr>
                     </thead>
                     <tbody id="tableBody"></tbody>
                 </table>
@@ -69,29 +74,84 @@
 </div>
 
 <script>
-    (function() {
-        const projectsData = [
-            { surfCode: 'SURF-2025-01', title: 'Generative AI for Personalized Learning Pathways', pi: 'Dr. Elena Rodriguez', piEmail: 'e.rodriguez@university.edu', school: 'School of Computing', department: 'AI & Data Science', requiredStudents: 3, internalExternal: 'Internal', coInvestigator: 'Prof. Michael Chen', abstract: '...', learningOutcomes: '...', requirements: '...' },
-            { surfCode: 'SURF-2025-07', title: 'Sustainable Urban Green Spaces: GIS and Remote Sensing', pi: 'Dr. Sarah Whitman', piEmail: 's.whitman@university.edu', school: 'School of Environmental Science', department: 'Geography & Planning', requiredStudents: 2, internalExternal: 'External', coInvestigator: 'Dr. James Park', abstract: '...', learningOutcomes: '...', requirements: '...' },
-            { surfCode: 'SURF-2025-12', title: 'Blockchain-based Credential Verification', pi: 'Prof. David Kumar', piEmail: 'd.kumar@university.edu', school: 'School of Business & Technology', department: 'Information Systems', requiredStudents: 4, internalExternal: 'Internal', coInvestigator: 'Dr. Lisa Wong', abstract: '...', learningOutcomes: '...', requirements: '...' },
-            { surfCode: 'SURF-2025-19', title: 'Neurocognitive Markers of Second Language Acquisition', pi: 'Dr. Anna Fischer', piEmail: 'a.fischer@university.edu', school: 'Faculty of Humanities', department: 'Linguistics & Cognitive Science', requiredStudents: 2, internalExternal: 'Internal', coInvestigator: 'Dr. Robert Liu', abstract: '...', learningOutcomes: '...', requirements: '...' },
-            { surfCode: 'SURF-2025-22', title: 'Low-Cost Water Quality Monitoring using IoT Sensors', pi: 'Prof. Ming Zhao', piEmail: 'm.zhao@university.edu', school: 'School of Engineering', department: 'Electrical & Computer Engineering', requiredStudents: 3, internalExternal: 'External', coInvestigator: 'Dr. Susan Mwangi', abstract: '...', learningOutcomes: '...', requirements: '...' }
-        ];
+    (function () {
+        const API_URL = "/api/student/projects";
+        const tbody = document.getElementById("tableBody");
+        const projectCountSpan = document.getElementById("projectCount");
 
-        const tbody = document.getElementById('tableBody');
-        const projectCountSpan = document.getElementById('projectCount');
-        let html = '';
-        projectsData.forEach(proj => {
-            html += `<tr>
-                <td><strong>${proj.surfCode}</strong></td><td>${proj.title}</td><td>${proj.pi}</td>
-                <td><a href="mailto:${proj.piEmail}" style="color:var(--deep);">${proj.piEmail}</a></td>
-                <td>${proj.school}</td><td>${proj.department}</td><td>${proj.requiredStudents}</td>
-                <td><span style="background:rgba(90,43,152,0.1); padding:4px 10px; border-radius:30px;">${proj.internalExternal}</span></td>
-                <td><a class="view-btn" href="student-project-search-list-detail.html?code=${encodeURIComponent(proj.surfCode)}">View</a></td>
-            </tr>`;
-        });
-        tbody.innerHTML = html;
-        projectCountSpan.textContent = projectsData.length;
+        function esc(v) {
+            if (v === null || v === undefined) return "";
+            return String(v)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function statusPill(status) {
+            const text = status || "UNKNOWN";
+            const cls = (status === "AVAILABLE" || status === "REQUESTED" || status === "AGREED")
+                ? "status-available"
+                : "status-unavailable";
+            return `<span class="status-pill ${cls}">${esc(text)}</span>`;
+        }
+
+        async function loadProjects() {
+            try {
+                const token = localStorage.getItem("token") || "";
+                const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+
+                const res = await fetch(API_URL, { method: "GET", headers });
+                const result = await res.json();
+
+                if (!res.ok || result.code !== 1 || !Array.isArray(result.data)) {
+                    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#888;">加载失败：${esc(result.msg || "请稍后重试")}</td></tr>`;
+                    projectCountSpan.textContent = "0";
+                    return;
+                }
+
+                const list = result.data;
+                if (list.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#888;">暂无可申请项目</td></tr>`;
+                    projectCountSpan.textContent = "0";
+                    return;
+                }
+
+                let html = "";
+                list.forEach(p => {
+                    const current = Number(p.currentAgreedCount || 0);
+                    const max = Number(p.maxStudents || 0);
+
+                    html += `
+                        <tr>
+                            <td><strong>${esc(p.projectId)}</strong></td>
+                            <td>${esc(p.title)}</td>
+                            <td>${esc(p.teacherName || "-")}</td>
+                            <td>${esc(p.categoryName || "-")}</td>
+                            <td>${esc(p.topicArea || "-")}</td>
+                            <td>${current}/${max}</td>
+                            <td>${statusPill(p.projectStatus)}</td>
+                            <td>
+                                <a class="view-btn"
+                                   href="student-project-search-list-detail.html?projectId=${encodeURIComponent(p.projectId)}&code=${encodeURIComponent("SURF-" + p.projectId)}">
+                                   View
+                                </a>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                tbody.innerHTML = html;
+                projectCountSpan.textContent = String(list.length);
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#888;">网络异常，请稍后重试</td></tr>`;
+                projectCountSpan.textContent = "0";
+            }
+        }
+
+        loadProjects();
     })();
 
     const layout = document.getElementById("layout");
@@ -102,5 +162,6 @@
         layout.classList.toggle("collapsed", isCollapsed);
     });
 </script>
+
 </body>
 </html>
