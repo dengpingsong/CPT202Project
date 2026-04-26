@@ -2,6 +2,13 @@ package com.cpt202.service.impl;
 
 import com.cpt202.dto.StudentProfileUpdateDTO;
 import com.cpt202.dto.TeacherProfileUpdateDTO;
+import com.cpt202.exception.BusinessException;
+import com.cpt202.exception.NotFoundException;
+import com.cpt202.model.entity.StudentProfile;
+import com.cpt202.model.entity.TeacherProfile;
+import com.cpt202.model.entity.User;
+import com.cpt202.repository.StudentProfileRepository;
+import com.cpt202.repository.TeacherProfileRepository;
 import com.cpt202.service.ProfileService;
 import com.cpt202.vo.StudentProfileVO;
 import com.cpt202.vo.TeacherProfileVO;
@@ -23,7 +30,26 @@ public class ProfileServiceImpl implements ProfileService {
      */
     @Override
     public StudentProfileVO getStudentProfile(Long studentId) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        StudentProfile profile = studentProfileRepository.findById(studentId)
+                .orElseThrow(() -> new NotFoundException("学生资料未找到。"));
+
+        if (profile.getUser() == null || profile.getUser().getRole() != User.UserRole.STUDENT) {
+            throw new BusinessException("该用户不是学生角色。无法查询学生资料。" );
+        }
+
+        return StudentProfileVO.builder()
+                .studentId(profile.getStudentId())
+                .username(profile.getUser().getUsername())
+                .email(profile.getUser().getEmail())
+                .fullName(profile.getUser().getFullName())
+                .studentNo(profile.getStudentNo())
+                .programme(profile.getProgramme())
+                .enrollmentDate(profile.getEnrollmentDate())
+                .academicYear(profile.getAcademicYear())
+                .phone(profile.getPhone())
+                .interests(profile.getInterests())
+                .updatedAt(profile.getUpdatedAt())
+                .build();
     }
 
     /**
@@ -34,7 +60,22 @@ public class ProfileServiceImpl implements ProfileService {
      */
     @Override
     public void updateStudentProfile(Long studentId, StudentProfileUpdateDTO studentProfileUpdateDTO) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        StudentProfile profile = studentProfileRepository.findById(studentId)
+                .orElseThrow(() -> new NotFoundException("学生资料未找到。"));
+
+        if (profile.getUser() == null || profile.getUser().getRole() != User.UserRole.STUDENT) {
+            throw new BusinessException("该用户不是学生角色。无法修改学生资料。" );
+        }
+
+        profile.getUser().setFullName(studentProfileUpdateDTO.getFullName());
+        profile.getUser().setEmail(studentProfileUpdateDTO.getEmail());
+        profile.setProgramme(studentProfileUpdateDTO.getProgramme());
+        profile.setEnrollmentDate(studentProfileUpdateDTO.getEnrollmentDate());
+        profile.setPhone(studentProfileUpdateDTO.getPhone());
+        profile.setInterests(studentProfileUpdateDTO.getInterests());
+        profile.setUpdatedAt(LocalDateTime.now());
+
+        studentProfileRepository.save(profile);
     }
 
     /**
