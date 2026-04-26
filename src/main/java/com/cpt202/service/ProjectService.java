@@ -2,7 +2,9 @@ package com.cpt202.service;
 
 import com.cpt202.dto.ProjectDTO;
 import com.cpt202.dto.ProjectStatusUpdateDTO;
+import com.cpt202.dto.StudentProjectQueryDTO;
 import com.cpt202.model.entity.Project;
+import com.cpt202.result.PageResult;
 import com.cpt202.vo.ProjectVO;
 
 import java.util.List;
@@ -14,14 +16,12 @@ import java.util.List;
 public interface ProjectService {
 
     /**
-     * 学生端分页前的项目筛选查询。
+     * 学生端项目分页查询。
      *
-     * @param keyword 关键字
-     * @param categoryId 分类主键
-     * @param status 项目状态
-     * @return 项目展示对象列表
+     * @param queryDTO 学生端项目查询参数（关键字 / 分类 / 状态 / 标签 / 分页）
+     * @return 分页项目展示对象
      */
-    List<ProjectVO> listStudentProjects(String keyword, Long categoryId, Project.ProjectStatus status);
+    PageResult<ProjectVO> listStudentProjects(StudentProjectQueryDTO queryDTO);
 
     /**
      * 教师端查询本人项目列表。
