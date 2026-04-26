@@ -2,6 +2,7 @@ package com.cpt202.service.impl;
 
 import com.cpt202.dto.ProjectDTO;
 import com.cpt202.dto.ProjectStatusUpdateDTO;
+import com.cpt202.dto.StudentProjectQueryDTO;
 import com.cpt202.exception.BusinessException;
 import com.cpt202.exception.NotFoundException;
 import com.cpt202.model.entity.Project;
@@ -11,15 +12,21 @@ import com.cpt202.repository.CategoryRepository;
 import com.cpt202.repository.ProjectRepository;
 import com.cpt202.repository.ProjectStatusHistoryRepository;
 import com.cpt202.repository.TeacherProfileRepository;
+import com.cpt202.repository.specification.ProjectSpecifications;
+import com.cpt202.result.PageResult;
 import com.cpt202.service.ProjectService;
 import com.cpt202.vo.ProjectVO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Locale;
 import java.util.stream.Collectors;
 
 /**
@@ -37,18 +44,24 @@ public class ProjectServiceImpl implements ProjectService {
     private final ProjectStatusHistoryRepository projectStatusHistoryRepository;
 
     /**
-     * 查询学生端项目列表。
+     * 查询学生端项目列表（DB 端过滤 + 分页）。
      */
     @Override
-    public List<ProjectVO> listStudentProjects(String keyword, Long categoryId, Project.ProjectStatus status) {
-        String normalizedKeyword = keyword == null ? null : keyword.trim().toLowerCase(Locale.ROOT);
-        return projectRepository.findAll().stream()
-                .filter(project -> status == null || project.getProjectStatus() == status)
-                .filter(project -> categoryId == null
-                        || (project.getCategory() != null && categoryId.equals(project.getCategory().getCategoryId())))
-                .filter(project -> normalizedKeyword == null || normalizedKeyword.isEmpty() || matchesKeyword(project, normalizedKeyword))
+    public PageResult<ProjectVO> listStudentProjects(StudentProjectQueryDTO queryDTO) {
+        Specification<Project> spec = ProjectSpecifications.studentQuery(
+                queryDTO.getKeyword(),
+                queryDTO.getCategoryId(),
+                queryDTO.getStatus(),
+                queryDTO.getTagIds());
+        Pageable pageable = PageRequest.of(
+                queryDTO.getPageNum() - 1,
+                queryDTO.getPageSize(),
+                Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Project> page = projectRepository.findAll(spec, pageable);
+        List<ProjectVO> records = page.getContent().stream()
                 .map(this::toProjectVO)
                 .collect(Collectors.toList());
+        return new PageResult<>(page.getTotalElements(), records);
     }
 
     /**
@@ -139,17 +152,6 @@ public class ProjectServiceImpl implements ProjectService {
                 .remark(projectStatusUpdateDTO.getRemark())
                 .changedAt(LocalDateTime.now())
                 .build());
-    }
-
-    private boolean matchesKeyword(Project project, String keyword) {
-        return contains(project.getTitle(), keyword)
-                || contains(project.getDescription(), keyword)
-                || contains(project.getTopicArea(), keyword)
-                || contains(project.getRequiredSkills(), keyword);
-    }
-
-    private boolean contains(String value, String keyword) {
-        return value != null && value.toLowerCase(Locale.ROOT).contains(keyword);
     }
 
     private Project getProjectEntity(Long projectId) {
