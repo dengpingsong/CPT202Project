@@ -5,7 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -31,9 +30,7 @@ public class StudentProfileVO {
     private String studentNo;
     /** 专业。 */
     private String programme;
-    /** 入学日期。 */
-    private LocalDate enrollmentDate;
-    /** 学年（由入学日期动态计算）。 */
+    /** 学年。 */
     private Integer academicYear;
     /** 联系电话。 */
     private String phone;
