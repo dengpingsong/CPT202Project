@@ -61,7 +61,8 @@ public class TeacherProjectRequestController {
     public Result<Void> review(@PathVariable Long requestId,
                                @Valid @RequestBody ProjectRequestReviewDTO projectRequestReviewDTO,
                                @RequestHeader("Authorization") String authorization) {
-        callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
+        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
+        ensureCurrentTeacher(projectRequestReviewDTO.getTeacherId(), authContext);
         projectRequestService.review(requestId, projectRequestReviewDTO);
         return Result.success();
     }
