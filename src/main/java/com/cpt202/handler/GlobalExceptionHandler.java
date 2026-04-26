@@ -1,8 +1,7 @@
 package com.cpt202.handler;
 
 import com.cpt202.exception.BusinessException;
-import com.cpt202.exception.RuleViolationException;
-import com.cpt202.exception.UnauthorizedAccessException;
+import com.cpt202.exception.RuleViolationException; // 确保导入了你写的异常类
 import com.cpt202.result.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -16,16 +15,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-
-    /**
-     * 处理越权访问异常。
-     * 当回调认证服务校验不通过时，会抛出此异常。
-     */
-    @ExceptionHandler(UnauthorizedAccessException.class)
-    public Result<Void> handleUnauthorizedAccessException(UnauthorizedAccessException ex) {
-        log.error("越权访问拦截: {}", ex.getMessage());
-        return Result.error(ex.getMessage());
-    }
 
     /**
      * 处理 Module 8 的业务规则违规异常。
