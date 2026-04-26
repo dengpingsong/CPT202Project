@@ -125,10 +125,6 @@ public class AuthServiceImpl implements AuthService {
             throw new RuleViolationException("注册角色不能为空。");
         }
 
-        if (dto.getRole() == User.UserRole.ADMIN) {
-            throw new RuleViolationException("管理员账号不能通过公共注册接口创建。");
-        }
-
         if (dto.getRole() == User.UserRole.STUDENT) {
             if (dto.getStudentNo() == null || dto.getStudentNo().isBlank()) {
                 throw new RuleViolationException("学生学号不能为空。");
