@@ -19,6 +19,14 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(BusinessException.class)
     public Result<Void> handleBusinessException(BusinessException ex) {
+        return Result.error(ex.getMessage());
+    }
+
+    /**
+     * 处理通用的业务异常。
+     */
+    @ExceptionHandler(BusinessException.class)
+    public Result<Void> handleBusinessException(BusinessException ex) {
         log.error("业务异常: {}", ex.getMessage());
         return Result.error(ex.getMessage());
     }

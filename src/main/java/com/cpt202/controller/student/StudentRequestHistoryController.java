@@ -42,7 +42,9 @@ public class StudentRequestHistoryController {
      */
     @GetMapping("/{requestId}")
     @Operation(summary = "Get request status history")
-    public Result<List<RequestStatusHistoryVO>> getRequestHistory(@PathVariable Long requestId) {
+    public Result<List<RequestStatusHistoryVO>> getRequestHistory(@PathVariable Long requestId,
+                                      @RequestHeader("Authorization") String authorization) {
+        callbackAuthService.requireAuth(authorization, User.UserRole.STUDENT);
         log.info("Get request history: {}", requestId);
         return Result.success(historyService.getRequestHistory(requestId));
     }
