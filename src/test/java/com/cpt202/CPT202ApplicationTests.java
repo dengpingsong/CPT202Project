@@ -1,5 +1,6 @@
 package com.cpt202;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -21,6 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Application smoke tests that cover context startup, friendly page routes,
  * static HTML availability, and the documentation endpoint used by CD health checks.
  */
+@Tag("frontend")
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:cpt202testdb;MODE=MySQL;DB_CLOSE_DELAY=-1",
         "spring.datasource.driver-class-name=org.h2.Driver",
