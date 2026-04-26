@@ -1,6 +1,9 @@
 package com.cpt202.handler;
 
 import com.cpt202.exception.BusinessException;
+import com.cpt202.exception.NotFoundException;
+import com.cpt202.exception.RuleViolationException;
+import com.cpt202.exception.UnauthorizedAccessException;
 import com.cpt202.result.Result;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -19,15 +22,6 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(BusinessException.class)
     public Result<Void> handleBusinessException(BusinessException ex) {
-        return Result.error(ex.getMessage());
-    }
-
-    /**
-     * 处理通用的业务异常。
-     */
-    @ExceptionHandler(BusinessException.class)
-    public Result<Void> handleBusinessException(BusinessException ex) {
-        log.error("业务异常: {}", ex.getMessage());
         return Result.error(ex.getMessage());
     }
 

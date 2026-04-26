@@ -28,4 +28,10 @@ public class TagVO {
     private LocalDateTime createdAt;
     /** 更新时间。 */
     private LocalDateTime updatedAt;
+
+    public TagVO(Long tagId, String tagName, String description) {
+        this.tagId = tagId;
+        this.tagName = tagName;
+        this.description = description;
+    }
 }
