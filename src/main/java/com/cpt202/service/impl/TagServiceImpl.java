@@ -1,11 +1,15 @@
 package com.cpt202.service.impl;
 
 import com.cpt202.dto.TagDTO;
+import com.cpt202.repository.TagRepository;
 import com.cpt202.service.TagService;
 import com.cpt202.vo.TagVO;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 标签管理服务实现类。
@@ -13,8 +17,10 @@ import java.util.List;
  * 当前仅保留方法定义，后续由仓储层完成真实持久化实现。
  */
 @Service
+@RequiredArgsConstructor
 public class TagServiceImpl implements TagService {
 
+    private final TagRepository tagRepository;
     /**
      * 查询全部标签列表。
      *
@@ -22,7 +28,10 @@ public class TagServiceImpl implements TagService {
      */
     @Override
     public List<TagVO> listAll() {
-        throw new UnsupportedOperationException("Not implemented yet");
+        return tagRepository.findAll()
+                .stream()
+                .map(tag -> new TagVO(tag.getTagId(),tag.getTagName(),tag.getDescription()))
+                .collect(Collectors.toList());
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.cpt202.handler;
 
 import com.cpt202.exception.BusinessException;
+import com.cpt202.exception.NotFoundException;
 import com.cpt202.exception.RuleViolationException;
 import com.cpt202.exception.UnauthorizedAccessException;
 import com.cpt202.result.Result;
@@ -44,6 +45,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public Result<Void> handleBusinessException(BusinessException ex) {
         log.error("业务异常: {}", ex.getMessage());
+        return Result.error(ex.getMessage());
+    }
+
+    /**
+     * 处理资源未找到异常。
+     */
+    @ExceptionHandler(NotFoundException.class)
+    public Result<Void> handleNotFoundException(NotFoundException ex) {
+        log.error("资源未找到: {}", ex.getMessage());
         return Result.error(ex.getMessage());
     }
 
