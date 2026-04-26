@@ -18,13 +18,17 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 处理通用的业务异常。
+     * 处理资源未找到异常。
      */
-    @ExceptionHandler(BusinessException.class)
-    public Result<Void> handleBusinessException(BusinessException ex) {
+    @ExceptionHandler(NotFoundException.class)
+    public Result<Void> handleNotFoundException(NotFoundException ex) {
+        log.error("资源未找到: {}", ex.getMessage());
         return Result.error(ex.getMessage());
     }
 
+    /**
+     * 处理 Spring Validation 参数校验异常。
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public Result<Void> handleValidationException(MethodArgumentNotValidException ex) {
         String message = ex.getBindingResult().getFieldErrors().stream()
