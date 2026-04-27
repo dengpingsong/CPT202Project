@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard - 我的项目</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="../css/dashboard.css" />
+</head>
+<body>
+<div class="layout" id="layout">
+    <!-- 侧边栏 -->
+    <aside class="sidebar" id="sidebar">
+        <div class="toggle-wrap">
+            <button class="toggle" id="toggleSidebar" aria-label="切换菜单">
+                <span></span>
+            </button>
+        </div>
+        <div class="nav-group">
+            <a href="projects.html" class="active">
+                <i class="bi bi-kanban nav-icon"></i>
+                <span class="nav-label">我的项目</span>
+            </a>
+            <a href="index.html" class="">
+                <i class="bi bi-file-earmark-check nav-icon"></i>
+                <span class="nav-label">审批申请</span>
+            </a>
+            <a href="history.html" class="">
+                <i class="bi bi-clock-history nav-icon"></i>
+                <span class="nav-label">历史记录</span>
+            </a>
+            <a href="notifications.html" class="">
+                <i class="bi bi-chat-dots nav-icon"></i>
+                <span class="nav-label">消息/通知</span>
+            </a>
+            <a href="settings.html" class="">
+                <i class="bi bi-person-gear nav-icon"></i>
+                <span class="nav-label">个人设置</span>
+            </a>
+        </div>
+    </aside>
+
+    
+        
+    <main class="main">
+        <header class="page-header">
+            <h1 class="mb-0">我的项目 (My Projects)</h1>
+            <div style="flex-grow: 1;"></div>
+            <button class="btn-primary" onclick="window.location.href='create-project.html'">
+                <i class="bi bi-plus-lg"></i> 创建新项目
+            </button>
+        </header>
+        
+        <div class="panel">
+            <div class="grid" id="projectsContainer">
+                <!-- 通过JS动态加载项目 -->
+            </div>
+        </div>
+    </main>
+    <script src="script.js"></script>
+</div>
+
+<script>
+    (function() {
+        "use strict";
+        const layout = document.getElementById("layout");
+        const toggle = document.getElementById("toggleSidebar");
+        if(layout && toggle) {
+            let isCollapsed = false;
+            toggle.addEventListener("click", () => {
+                isCollapsed = !isCollapsed;
+                layout.classList.toggle("collapsed", isCollapsed);
+            });
+        }
+    })();
+
+    document.addEventListener("DOMContentLoaded", async function () {
+        const token = localStorage.getItem("token") || "";
+        const userId = localStorage.getItem("userId") || "";
+        if (!token || !userId) {
+            alert("请先登录");
+            window.location.href = "../login/login.html";
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/teacher/projects?teacherId=${userId}`, {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+            const res = await response.json();
+            if (res.code === 1) {
+                renderProjects(res.data);
+            } else {
+                alert(res.msg || "获取项目列表失败");
+            }
+        } catch (error) {
+            console.error("Error fetching projects:", error);
+            alert("网络错误");
+        }
+    });
+
+    function renderProjects(projects) {
+        const container = document.getElementById("projectsContainer");
+        container.innerHTML = "";
+        
+        if (!projects || projects.length === 0) {
+            container.innerHTML = "<p>当前没有项目，请创建新项目。</p>";
+            return;
+        }
+
+        projects.forEach(project => {
+            const maxStudents = project.maxStudents || 0;
+            const currentAgreed = project.currentAgreedCount || 0;
+            
+            let isAvailable = false;
+            // projectStatus corresponds to Project.ProjectStatus enum, such as 'AVAILABLE', 'CLOSED', 'DRAFT'
+            if (project.projectStatus === "AVAILABLE" || project.projectStatus === 0) {
+                isAvailable = true;
+            }
+
+            const pillClass = isAvailable ? "status-available" : "status-unavailable";
+            const pillText = isAvailable ? `Available - 正在招募 (${currentAgreed}/${maxStudents})` : `Closed - 已满员 (${currentAgreed}/${maxStudents})`;
+            
+            // Collect tags from topicArea, requiredSkills
+            let tagsArray = [];
+            if (project.topicArea) tagsArray.push(project.topicArea);
+            if (project.requiredSkills) {
+                // If there are multiple skills separated by comma or space, just keep them as part of the string or split
+                tagsArray.push(project.requiredSkills);
+            }
+            const tagsText = tagsArray.length > 0 ? tagsArray.join(" / ") : "暂无分类";
+
+            const btnText = isAvailable ? "查看申请配置" : "查看详情";
+            
+            const card = document.createElement("div");
+            card.className = "outline-card";
+            card.innerHTML = `
+                <h4>${project.title}</h4>
+                <p class="meta">${tagsText}</p>
+                <div style="flex-grow: 1;">
+                    <span class="status-pill ${pillClass}">${pillText}</span>
+                </div>
+                <button class="btn-secondary" style="width: 100%;" onclick="location.href='request-detail.html?projectId=${project.projectId}'">${btnText}</button>
+            `;
+            container.appendChild(card);
+        });
+    }
+</script>
+</body>
+</html>
