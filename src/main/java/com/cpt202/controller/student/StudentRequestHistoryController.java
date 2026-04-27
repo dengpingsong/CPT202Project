@@ -1,8 +1,7 @@
 package com.cpt202.controller.student;
 
-import com.cpt202.model.entity.User;
+import com.cpt202.context.BaseContext;
 import com.cpt202.result.Result;
-import com.cpt202.service.CallbackAuthService;
 import com.cpt202.service.HistoryService;
 import com.cpt202.vo.RequestStatusHistoryVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,27 +22,21 @@ import java.util.List;
 public class StudentRequestHistoryController {
 
     private final HistoryService historyService;
-    private final CallbackAuthService callbackAuthService;
 
-    public StudentRequestHistoryController(HistoryService historyService,
-                                           CallbackAuthService callbackAuthService) {
+    public StudentRequestHistoryController(HistoryService historyService) {
         this.historyService = historyService;
-        this.callbackAuthService = callbackAuthService;
     }
 
     /**
      * 根据申请主键查询其状态历史记录。
      *
      * @param requestId 申请主键
-     * @param studentId 学生主键
      * @return 申请状态历史列表
      */
     @GetMapping("/{requestId}")
     @Operation(summary = "Get request status history")
-    public Result<List<RequestStatusHistoryVO>> getRequestHistory(@PathVariable Long requestId,
-                                      @RequestHeader("Authorization") String authorization) {
-        callbackAuthService.requireAuth(authorization, User.UserRole.STUDENT);
+    public Result<List<RequestStatusHistoryVO>> getRequestHistory(@PathVariable Long requestId) {
         log.info("Get request history: {}", requestId);
-        return Result.success(historyService.getRequestHistory(requestId));
+        return Result.success(historyService.getRequestHistory(requestId, BaseContext.getCurrentUserId()));
     }
 }

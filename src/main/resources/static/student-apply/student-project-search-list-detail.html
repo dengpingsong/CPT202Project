@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8" />
-    <title>项目详情 · SURF</title>
+    <title>项目详情</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <link rel="stylesheet" href="../css/dashboard.css" />
@@ -15,8 +15,7 @@
         </div>
         <div class="nav-group">
             <a href="student-dashboard.html"><i class="bi bi-kanban nav-icon"></i><span class="nav-label">申请状态</span></a>
-            <a href="student-project-search-list.html"><i class="bi bi-search nav-icon"></i><span class="nav-label">搜索项目</span></a>
-            <button><i class="bi bi-person-badge nav-icon"></i><span class="nav-label">热门导师</span></button>
+            <a href="student-project-search-list.html" class="active"><i class="bi bi-search nav-icon"></i><span class="nav-label">搜索项目</span></a>
             <a href="student-request-history.html"><i class="bi bi-clock-history nav-icon"></i><span class="nav-label">请求历史</span></a>
             <a href="student-notification.html"><i class="bi bi-chat-dots nav-icon"></i><span class="nav-label">消息/通知</span></a>
             <a href="student-profile.html"><i class="bi bi-person-gear nav-icon"></i><span class="nav-label">个人设置</span></a>
@@ -26,56 +25,136 @@
     <main class="main">
         <div class="page-header">
             <a href="student-project-search-list.html" class="back-link">← 返回项目列表</a>
-            <h1>📘 项目详情</h1>
+            <h1>项目详情</h1>
         </div>
+
         <div class="panel-card" id="detailPanel">
             <div style="text-align:center; padding:40px; color:var(--muted);">加载中...</div>
         </div>
-        <div class="footnote">* Abstract (~150 words), Learning Outcomes (~200 words), Requirements (~100 words)</div>
     </main>
 </div>
 
 <script>
-    (function() {
-        const projectsData = [
-            { surfCode: 'SURF-2025-01', title: 'Generative AI for Personalized Learning Pathways', pi: 'Dr. Elena Rodriguez', piEmail: 'e.rodriguez@university.edu', school: 'School of Computing', department: 'AI & Data Science', requiredStudents: 3, internalExternal: 'Internal', coInvestigator: 'Prof. Michael Chen', abstract: 'This project explores the use of large language models and generative AI to create adaptive learning materials...', learningOutcomes: 'Students will gain hands-on experience with state-of-the-art language models...', requirements: 'Prerequisites: Strong programming skills in Python; familiarity with machine learning basics...' },
-            { surfCode: 'SURF-2025-07', title: 'Sustainable Urban Green Spaces: GIS and Remote Sensing', pi: 'Dr. Sarah Whitman', piEmail: 's.whitman@university.edu', school: 'School of Environmental Science', department: 'Geography & Planning', requiredStudents: 2, internalExternal: 'External (collaboration with City Council)', coInvestigator: 'Dr. James Park', abstract: 'Using satellite imagery and GIS, this project assesses cooling effects...', learningOutcomes: 'Participants will master GIS software, satellite image processing...', requirements: 'Students should have completed introductory courses in geography...' },
-            { surfCode: 'SURF-2025-12', title: 'Blockchain-based Credential Verification', pi: 'Prof. David Kumar', piEmail: 'd.kumar@university.edu', school: 'School of Business & Technology', department: 'Information Systems', requiredStudents: 4, internalExternal: 'Internal', coInvestigator: 'Dr. Lisa Wong', abstract: 'Designs a dApp for issuing and verifying academic credentials using Ethereum...', learningOutcomes: 'Learn blockchain fundamentals, Solidity, Web3 integration...', requirements: 'Solid programming background; familiarity with JavaScript...' },
-            { surfCode: 'SURF-2025-19', title: 'Neurocognitive Markers of Second Language Acquisition', pi: 'Dr. Anna Fischer', piEmail: 'a.fischer@university.edu', school: 'Faculty of Humanities', department: 'Linguistics & Cognitive Science', requiredStudents: 2, internalExternal: 'Internal', coInvestigator: 'Dr. Robert Liu', abstract: 'Investigates individual differences in executive functions...', learningOutcomes: 'Training in EEG data acquisition, experimental design...', requirements: 'Coursework in cognitive psychology or neuroscience recommended...' },
-            { surfCode: 'SURF-2025-22', title: 'Low-Cost Water Quality Monitoring using IoT Sensors', pi: 'Prof. Ming Zhao', piEmail: 'm.zhao@university.edu', school: 'School of Engineering', department: 'Electrical & Computer Engineering', requiredStudents: 3, internalExternal: 'External (NGO partnership)', coInvestigator: 'Dr. Susan Mwangi', abstract: 'Develop an affordable IoT device for continuous water monitoring...', learningOutcomes: 'Skills in embedded systems, sensor integration, IoT protocols...', requirements: 'Circuit analysis and microcontroller experience...' }
-        ];
-
-        const detailPanel = document.getElementById('detailPanel');
+    (function () {
+        const detailPanel = document.getElementById("detailPanel");
         const params = new URLSearchParams(window.location.search);
-        const code = params.get('code');
-        const project = projectsData.find(p => p.surfCode === code);
+        const projectId = params.get("projectId");
+        const code = params.get("code"); // 兼容旧链接
 
-        if (project) {
-            document.title = `${project.title} | SURF`;
+        function esc(v) {
+            if (v === null || v === undefined) return "";
+            return String(v)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function statusText(status) {
+            const map = {
+                AVAILABLE: "Available",
+                REQUESTED: "Requested",
+                AGREED: "Agreed",
+                CLOSED: "Closed",
+                ARCHIVED: "Archived"
+            };
+            return map[status] || status || "UNKNOWN";
+        }
+
+        function fmtDate(v) {
+            if (!v) return "-";
+            try {
+                return new Date(v).toLocaleString();
+            } catch {
+                return v;
+            }
+        }
+
+        function renderProject(p) {
+            const current = Number(p.currentAgreedCount || 0);
+            const max = Number(p.maxStudents || 0);
+            const surfCode = `SURF-${p.projectId}`;
+
+            document.title = `${p.title} | 项目详情`;
+
             detailPanel.innerHTML = `
-                <div class="detail-header">
-                    <h2>${project.title}</h2>
-                    <span class="surf-badge">${project.surfCode}</span>
-                </div>
-                <div class="meta-grid">
-                    <div class="meta-item"><span class="meta-label">Internal/External</span><span class="meta-value">${project.internalExternal}</span></div>
-                    <div class="meta-item"><span class="meta-label">SURF Code</span><span class="meta-value">${project.surfCode}</span></div>
-                    <div class="meta-item"><span class="meta-label">Principal Investigator</span><span class="meta-value">${project.pi} &lt;${project.piEmail}&gt;</span></div>
-                    <div class="meta-item"><span class="meta-label">School/Academy</span><span class="meta-value">${project.school}</span></div>
-                    <div class="meta-item"><span class="meta-label">Department</span><span class="meta-value">${project.department}</span></div>
-                    <div class="meta-item"><span class="meta-label">Co-investigator</span><span class="meta-value">${project.coInvestigator || '—'}</span></div>
-                    <div class="meta-item"><span class="meta-label">Required Students</span><span class="meta-value">${project.requiredStudents}</span></div>
-                </div>
-                <div class="detail-block"><h3>📄 Abstract</h3><div class="detail-text">${project.abstract}</div></div>
-                <div class="detail-block"><h3>🎓 Learning Outcomes</h3><div class="detail-text">${project.learningOutcomes}</div></div>
-                <div class="detail-block"><h3>🔍 Requirements</h3><div class="detail-text">${project.requirements}</div></div>
-                <div class="action-buttons">
-                    <button class="btn-primary">📬 申请该项目</button>
-                    <button class="btn-secondary">📎 保存至待选</button>
-                </div>
-            `;
-        } else {
-            detailPanel.innerHTML = `<div style="text-align:center; padding:40px;">项目未找到，<a href="student-project-search-list.html">返回列表</a></div>`;
+            <div class="detail-header">
+                <h2>${esc(p.title)}</h2>
+                <span class="surf-badge">${esc(surfCode)}</span>
+            </div>
+
+            <div class="meta-grid">
+                <div class="meta-item"><span class="meta-label">Project ID</span><span class="meta-value">${esc(p.projectId)}</span></div>
+                <div class="meta-item"><span class="meta-label">Teacher</span><span class="meta-value">${esc(p.teacherName || "-")}</span></div>
+                <div class="meta-item"><span class="meta-label">Category</span><span class="meta-value">${esc(p.categoryName || "-")}</span></div>
+                <div class="meta-item"><span class="meta-label">Topic Area</span><span class="meta-value">${esc(p.topicArea || "-")}</span></div>
+                <div class="meta-item"><span class="meta-label">Required Skills</span><span class="meta-value">${esc(p.requiredSkills || "-")}</span></div>
+                <div class="meta-item"><span class="meta-label">Quota</span><span class="meta-value">${current}/${max}</span></div>
+                <div class="meta-item"><span class="meta-label">Status</span><span class="meta-value">${esc(statusText(p.projectStatus))}</span></div>
+                <div class="meta-item"><span class="meta-label">Publish Date</span><span class="meta-value">${esc(fmtDate(p.publishDate))}</span></div>
+            </div>
+
+            <div class="detail-block">
+                <h3>Description</h3>
+                <div class="detail-text">${esc(p.description || "-")}</div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn-primary" id="applyBtn">申请该项目</button>
+                <button class="btn-secondary" onclick="window.location.href='student-project-search-list.html'">返回列表</button>
+            </div>
+        `;
+
+            const applyBtn = document.getElementById("applyBtn");
+            if (applyBtn) {
+                applyBtn.addEventListener("click", () => {
+                    alert("下一步可接入申请接口：POST /api/student/requests");
+                });
+            }
+        }
+
+        async function loadById(id) {
+            const token = localStorage.getItem("token") || "";
+            const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+
+            const res = await fetch(`/api/student/projects/${encodeURIComponent(id)}`, {
+                method: "GET",
+                headers
+            });
+            const result = await res.json();
+            if (!res.ok || result.code !== 1 || !result.data) {
+                throw new Error(result.msg || "项目不存在");
+            }
+            return result.data;
+        }
+
+        async function loadByCodeFallback(codeValue) {
+            // 兼容旧的 code= SURF-xxx 链接
+            const id = (codeValue || "").replace("SURF-", "").trim();
+            if (!id) throw new Error("缺少项目ID");
+            return loadById(id);
+        }
+
+        async function init() {
+            try {
+                let project;
+                if (projectId) {
+                    project = await loadById(projectId);
+                } else if (code) {
+                    project = await loadByCodeFallback(code);
+                } else {
+                    throw new Error("链接缺少 projectId 参数");
+                }
+                renderProject(project);
+            } catch (e) {
+                console.error(e);
+                detailPanel.innerHTML = `
+                <div style="text-align:center; padding:40px;">
+                    加载失败：${esc(e.message || "未知错误")}<br/>
+                    <a href="student-project-search-list.html">返回列表</a>
+                </div>`;
+            }
         }
 
         const layout = document.getElementById("layout");
@@ -85,6 +164,8 @@
             isCollapsed = !isCollapsed;
             layout.classList.toggle("collapsed", isCollapsed);
         });
+
+        init();
     })();
 </script>
 </body>

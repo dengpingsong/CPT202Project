@@ -1,10 +1,8 @@
 package com.cpt202.controller.student;
 
+import com.cpt202.context.BaseContext;
 import com.cpt202.dto.StudentProfileUpdateDTO;
-import com.cpt202.model.entity.User;
 import com.cpt202.result.Result;
-import com.cpt202.security.AuthContext;
-import com.cpt202.service.CallbackAuthService;
 import com.cpt202.service.ProfileService;
 import com.cpt202.vo.StudentProfileVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,11 +22,9 @@ import org.springframework.web.bind.annotation.*;
 public class StudentProfileController {
 
     private final ProfileService profileService;
-    private final CallbackAuthService callbackAuthService;
 
-    public StudentProfileController(ProfileService profileService, CallbackAuthService callbackAuthService) {
+    public StudentProfileController(ProfileService profileService) {
         this.profileService = profileService;
-        this.callbackAuthService = callbackAuthService;
     }
 
     /**
@@ -38,9 +34,8 @@ public class StudentProfileController {
      */
     @GetMapping("/me")
     @Operation(summary = "Get current student profile")
-    public Result<StudentProfileVO> getMyProfile(@RequestHeader("Authorization") String authorization) {
-        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.STUDENT);
-        Long studentId = authContext.userId();
+    public Result<StudentProfileVO> getMyProfile() {
+        Long studentId = BaseContext.getCurrentUserId();
         log.info("Get student profile: {}", studentId);
         return Result.success(profileService.getStudentProfile(studentId));
     }
@@ -53,10 +48,8 @@ public class StudentProfileController {
      */
     @PutMapping("/me")
     @Operation(summary = "Update current student profile")
-    public Result<Void> updateMyProfile(@Valid @RequestBody StudentProfileUpdateDTO studentProfileUpdateDTO,
-                               @RequestHeader("Authorization") String authorization) {
-        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.STUDENT);
-        Long studentId = authContext.userId();
+    public Result<Void> updateMyProfile(@Valid @RequestBody StudentProfileUpdateDTO studentProfileUpdateDTO) {
+        Long studentId = BaseContext.getCurrentUserId();
         log.info("Update student profile: {}, payload: {}", studentId, studentProfileUpdateDTO);
         profileService.updateStudentProfile(studentId, studentProfileUpdateDTO);
         return Result.success();
