@@ -35,6 +35,11 @@
     </div>
 
     <div class="guide-visual">
+        <div class="auth-orbit" aria-hidden="true">
+            <span class="square"></span>
+            <span class="square"></span>
+            <span class="square"></span>
+        </div>
         <div class="login-card auth-panel-card">
             <div class="auth-tabs" aria-label="Authentication options">
                 <button type="button" class="auth-tab active" data-panel="loginPanel">Login</button>
@@ -148,6 +153,7 @@
 <script>
     const BASE_URL = "/api/common/auth";
     const authCard = document.querySelector(".auth-panel-card");
+    const authOrbit = document.querySelector(".auth-orbit");
     const authTabs = document.querySelectorAll(".auth-tab");
     const panelButtons = document.querySelectorAll("[data-panel]");
     const authPanels = document.querySelectorAll(".auth-panel");
@@ -171,6 +177,7 @@
             tab.classList.toggle("active", tab.dataset.panel === panelId);
         });
         authCard.classList.toggle("register-mode", panelId === "registerPanel");
+        authOrbit.classList.toggle("hidden", panelId !== "loginPanel");
     }
 
     panelButtons.forEach(button => {
@@ -304,6 +311,40 @@
     resetForm.addEventListener("submit", (e) => {
         e.preventDefault();
         resetMessage.textContent = "Password reset is not available yet.";
+    });
+</script>
+
+<script type="module">
+    import { animate, stagger, splitText } from "https://cdn.jsdelivr.net/npm/animejs/+esm";
+
+    const { chars } = splitText(".guide-eyebrow", { words: false, chars: true });
+
+    animate(chars, {
+        y: [
+            { to: "-0.7rem", ease: "outExpo", duration: 600 },
+            { to: 0, ease: "outBounce", duration: 800, delay: 100 }
+        ],
+        rotate: {
+            from: "-1turn",
+            delay: 0
+        },
+        delay: stagger(50),
+        ease: "inOutCirc",
+        loopDelay: 1000,
+        loop: true
+    });
+
+    animate(".square", {
+        keyframes: [
+            { x: "24.2rem", y: 0, ease: "inOut", duration: 800 },
+            { x: "24.2rem", y: "23rem", ease: "inOut", duration: 800 },
+            { x: 0, y: "23rem", ease: "inOut", duration: 800 },
+            { x: 0, y: 0, ease: "inOut", duration: 850 }
+        ],
+        rotate: { to: 360, ease: "linear" },
+        delay: stagger(320),
+        duration: 3250,
+        loop: true
     });
 </script>
 
