@@ -55,6 +55,14 @@ public class User {
     @Column(name = "account_status")
     private String accountStatus;
 
+    /** Whether TOTP-based two-factor authentication is enabled. */
+    @Column(name = "two_factor_enabled")
+    private Boolean twoFactorEnabled;
+
+    /** Base32 secret used for TOTP verification. */
+    @Column(name = "two_factor_secret")
+    private String twoFactorSecret;
+
     /** Timestamp when the user record was created. */
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -72,7 +80,7 @@ public class User {
     private TeacherProfile teacherProfile;
 
     @Builder
-    public User(Long userId, String username, String passwordHash, String email, String fullName, UserRole role, String accountStatus, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public User(Long userId, String username, String passwordHash, String email, String fullName, UserRole role, String accountStatus, Boolean twoFactorEnabled, String twoFactorSecret, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.userId = userId;
         this.username = username;
         this.passwordHash = passwordHash;
@@ -80,6 +88,8 @@ public class User {
         this.fullName = fullName;
         this.role = role;
         this.accountStatus = accountStatus;
+        this.twoFactorEnabled = twoFactorEnabled;
+        this.twoFactorSecret = twoFactorSecret;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }

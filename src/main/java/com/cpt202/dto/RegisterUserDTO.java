@@ -1,9 +1,8 @@
 package com.cpt202.dto;
 
-import com.cpt202.model.entity.User;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PastOrPresent;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -30,19 +29,20 @@ public class RegisterUserDTO {
     @NotBlank
     private String email;
 
+    /** 邮箱验证码。 */
+    @NotBlank
+    private String otp;
+
     /** 用户真实姓名。 */
     @NotBlank
     private String fullName;
-
-    /** 用户注册角色。 */
-    @NotNull
-    private User.UserRole role;
 
     /** 学号。 */
     private String studentNo;
     /** 专业。 */
     private String programme;
     /** 入学日期。 */
+    @PastOrPresent(message = "Enrollment date cannot be in the future.")
     private LocalDate enrollmentDate;
     /** 联系电话。 */
     private String phone;
