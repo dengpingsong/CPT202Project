@@ -41,11 +41,20 @@ public interface ProjectService {
     ProjectVO getProject(Long projectId);
 
     /**
+     * 查询教师本人名下的项目详情。
+     *
+     * @param projectId 项目主键
+     * @param teacherId 当前教师主键
+     * @return 项目展示对象
+     */
+    ProjectVO getOwnedProject(Long projectId, Long teacherId);
+
+    /**
      * 新增项目。
      *
      * @param projectDTO 项目新增参数
      */
-    void create(ProjectDTO projectDTO);
+    void create(Long teacherId, ProjectDTO projectDTO);
 
     /**
      * 修改项目。
@@ -53,7 +62,7 @@ public interface ProjectService {
      * @param projectId 项目主键
      * @param projectDTO 项目更新参数
      */
-    void update(Long projectId, ProjectDTO projectDTO);
+    void update(Long projectId, Long teacherId, ProjectDTO projectDTO);
 
     /**
      * 修改项目状态。
@@ -61,5 +70,5 @@ public interface ProjectService {
      * @param projectId 项目主键
      * @param projectStatusUpdateDTO 项目状态修改参数
      */
-    void changeStatus(Long projectId, ProjectStatusUpdateDTO projectStatusUpdateDTO);
+    void changeStatus(Long projectId, Long teacherId, ProjectStatusUpdateDTO projectStatusUpdateDTO);
 }

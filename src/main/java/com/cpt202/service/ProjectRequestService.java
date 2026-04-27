@@ -19,7 +19,7 @@ public interface ProjectRequestService {
      *
      * @param projectRequestCreateDTO 申请创建参数
      */
-    void create(ProjectRequestCreateDTO projectRequestCreateDTO);
+    void create(Long studentId, ProjectRequestCreateDTO projectRequestCreateDTO);
 
     /**
      * 查询学生本人申请列表。
@@ -52,5 +52,5 @@ public interface ProjectRequestService {
      * @param requestId 申请主键
      * @param projectRequestReviewDTO 审核参数
      */
-    void review(Long requestId, ProjectRequestReviewDTO projectRequestReviewDTO);
+    void review(Long requestId, Long teacherId, ProjectRequestReviewDTO projectRequestReviewDTO);
 }
