@@ -13,7 +13,7 @@ public class HomeController {
 
     @GetMapping("/")
     public String home() {
-        return "redirect:/index.html";
+        return "redirect:/login.html";
     }
 
     @GetMapping("/auth/login")
@@ -31,4 +31,3 @@ public class HomeController {
         return "redirect:/forgot-password.html";
     }
 }
-

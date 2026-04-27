@@ -2,90 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register</title>
-    <style>
-        * { box-sizing: border-box; }
-        body {
-            margin: 0;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-family: "Helvetica Neue", Arial, sans-serif;
-            background: url("login/backimg2.png") center/cover no-repeat;
-        }
-        .card {
-            width: 460px;
-            padding: 34px;
-            border-radius: 16px;
-            background: rgba(255,255,255,0.96);
-            box-shadow: 0 18px 45px rgba(0,0,0,0.25);
-        }
-        h2 { margin: 0 0 8px; }
-        h3 { margin: 0 0 18px; font-weight: 400; font-size: 14px; color: #555; }
-        input, select {
-            width: 100%;
-            padding: 11px;
-            margin-bottom: 4px;
-            border: 1px solid #c9ced6;
-            border-radius: 7px;
-            font-size: 14px;
-            outline: none;
-        }
-        input:focus, select:focus {
-            border-color: #5a2b98;
-            box-shadow: 0 0 0 2px rgba(90,43,152,0.15);
-        }
-        button {
-            width: 100%;
-            padding: 12px;
-            background: #000;
-            color: #fff;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 15px;
-            margin-top: 14px;
-        }
-        button:hover { background: #222; }
-        button:disabled { background: #aaa; cursor: not-allowed; }
-        .section-title {
-            font-size: 12px;
-            color: #888;
-            margin: 14px 0 6px;
-        }
-        .required-star::after {
-            content: " *";
-            color: #d93025;
-        }
-        .hint {
-            font-size: 11px;
-            color: #b047ff;
-            margin: 2px 0 8px;
-        }
-        .hidden { display: none; }
-        .helper {
-            font-size: 11px;
-            min-height: 16px;
-        }
-        .helper.error {
-            color: #d93025;
-        }
-        .helper.success {
-            color: #2f8a46;
-        }
-        .general-error {
-            font-size: 13px;
-            color: #d93025;
-            margin-bottom: 10px;
-            min-height: 18px;
-        }
-        .inline-label {
-            font-size: 11px;
-            color: #888;
-            margin-bottom: 4px;
-        }
-    </style>
+    <link rel="stylesheet" href="css/auth.css">
 </head>
 <body>
 

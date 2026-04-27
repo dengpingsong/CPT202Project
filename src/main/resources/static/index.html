@@ -1,81 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Project Selection System</title>
-	<style>
-		* {
-			box-sizing: border-box;
-		}
-
-		body {
-			margin: 0;
-			min-height: 100vh;
-			display: flex;
-			justify-content: center;
-			align-items: center;
-			padding: 24px;
-			font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-			background: url("login/backimg5.png") center center / cover no-repeat;
-		}
-
-		.hero-card {
-			width: min(560px, 100%);
-			padding: 0;
-			background: transparent;
-			border: 0;
-			box-shadow: none;
-			text-align: center;
-			color: #fff;
-		}
-
-		.hero-card h1 {
-			margin: 0;
-			font-size: clamp(24px, 3.4vw, 40px);
-			font-weight: 700;
-			letter-spacing: 0.02em;
-			text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
-		}
-
-		.hero-card p {
-			max-width: 620px;
-			margin: 12px auto 0;
-			font-size: clamp(13px, 1.3vw, 15px);
-			line-height: 1.7;
-			opacity: 0.96;
-			text-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
-		}
-
-		.enter-link {
-			display: inline-flex;
-			justify-content: center;
-			align-items: center;
-			width: 150px;
-			height: 64px;
-			margin-top: 28px;
-			border-radius: 999px;
-			background-color: #000;
-			box-shadow: 0 10px 30px rgba(0, 0, 0, 0.24);
-			text-decoration: none;
-			color: #fff;
-			font-size: 34px;
-			line-height: 1;
-			transition: transform 0.2s ease, background-color 0.2s ease;
-		}
-
-		.enter-link:hover {
-			background-color: #222;
-			transform: scale(1.03);
-		}
-
-	</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="0; url=login.html">
+    <title>Redirecting</title>
 </head>
 <body>
-<main class="hero-card">
-	<h1>Online project selection system</h1>
-	<p>Welcome to the teacher project approval portal. Enter the system to continue.</p>
-	<a class="enter-link" href="login.html" aria-label="Go to Login">&rarr;</a>
-</main>
+<script>
+    window.location.replace("login.html");
+</script>
+<noscript>
+    <a href="login.html">Go to login</a>
+</noscript>
 </body>
 </html>
