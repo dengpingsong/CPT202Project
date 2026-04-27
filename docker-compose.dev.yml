@@ -1,0 +1,5 @@
+# Development override: exposes MySQL port 9001 to host for direct DB access
+services:
+  mysql:
+    ports:
+      - "9001:3306"
