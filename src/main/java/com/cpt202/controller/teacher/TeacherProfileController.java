@@ -1,10 +1,8 @@
 package com.cpt202.controller.teacher;
 
+import com.cpt202.context.BaseContext;
 import com.cpt202.dto.TeacherProfileUpdateDTO;
-import com.cpt202.model.entity.User;
 import com.cpt202.result.Result;
-import com.cpt202.security.AuthContext;
-import com.cpt202.service.CallbackAuthService;
 import com.cpt202.service.ProfileService;
 import com.cpt202.vo.TeacherProfileVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,11 +22,9 @@ import org.springframework.web.bind.annotation.*;
 public class TeacherProfileController {
 
     private final ProfileService profileService;
-    private final CallbackAuthService callbackAuthService;
 
-    public TeacherProfileController(ProfileService profileService, CallbackAuthService callbackAuthService) {
+    public TeacherProfileController(ProfileService profileService) {
         this.profileService = profileService;
-        this.callbackAuthService = callbackAuthService;
     }
 
     /**
@@ -38,9 +34,8 @@ public class TeacherProfileController {
      */
     @GetMapping("/me")
     @Operation(summary = "Get current teacher profile")
-    public Result<TeacherProfileVO> getMyProfile(@RequestHeader("Authorization") String authorization) {
-        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
-        Long teacherId = authContext.userId();
+    public Result<TeacherProfileVO> getMyProfile() {
+        Long teacherId = BaseContext.getCurrentUserId();
         log.info("Get teacher profile: {}", teacherId);
         return Result.success(profileService.getTeacherProfile(teacherId));
     }
@@ -53,10 +48,8 @@ public class TeacherProfileController {
      */
     @PutMapping("/me")
     @Operation(summary = "Update current teacher profile")
-    public Result<Void> updateMyProfile(@Valid @RequestBody TeacherProfileUpdateDTO teacherProfileUpdateDTO,
-                                        @RequestHeader("Authorization") String authorization) {
-        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
-        Long teacherId = authContext.userId();
+    public Result<Void> updateMyProfile(@Valid @RequestBody TeacherProfileUpdateDTO teacherProfileUpdateDTO) {
+        Long teacherId = BaseContext.getCurrentUserId();
         log.info("Update teacher profile: {}, payload: {}", teacherId, teacherProfileUpdateDTO);
         profileService.updateTeacherProfile(teacherId, teacherProfileUpdateDTO);
         return Result.success();
