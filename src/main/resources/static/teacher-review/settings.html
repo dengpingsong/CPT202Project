@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard - 个人设置</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="../css/dashboard.css" />
+</head>
+<body>
+<div class="layout" id="layout">
+    <!-- 侧边栏 -->
+    <aside class="sidebar" id="sidebar">
+        <div class="toggle-wrap">
+            <button class="toggle" id="toggleSidebar" aria-label="切换菜单">
+                <span></span>
+            </button>
+        </div>
+        <div class="nav-group">
+            <a href="projects.html" class="">
+                <i class="bi bi-kanban nav-icon"></i>
+                <span class="nav-label">我的项目</span>
+            </a>
+            <a href="index.html" class="">
+                <i class="bi bi-file-earmark-check nav-icon"></i>
+                <span class="nav-label">审批申请</span>
+            </a>
+            <a href="history.html" class="">
+                <i class="bi bi-clock-history nav-icon"></i>
+                <span class="nav-label">历史记录</span>
+            </a>
+            <a href="notifications.html" class="">
+                <i class="bi bi-chat-dots nav-icon"></i>
+                <span class="nav-label">消息/通知</span>
+            </a>
+            <a href="settings.html" class="active">
+                <i class="bi bi-person-gear nav-icon"></i>
+                <span class="nav-label">个人设置</span>
+            </a>
+        </div>
+    </aside>
+
+
+
+    <main class="main">
+        <header class="page-header">
+            <h1>个人偏好与设置</h1>
+        </header>
+
+        <div class="panel" style="max-width: 600px;">
+            <form id="settingsForm">
+                <div class="mb-3">
+                    <label class="form-label">姓名(real name)</label>
+                    <input type="text" class="form-control" id="fullName" value="" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">教工邮箱</label>
+                    <input type="email" class="form-control" id="email" value="" required>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">所属系/学院</label>
+                    <input type="text" class="form-control" id="department" value="">
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">职称</label>
+                    <input type="text" class="form-control" id="title" value="">
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">研究方向</label>
+                    <input type="text" class="form-control" id="researchArea" value="">
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">办公地点</label>
+                    <input type="text" class="form-control" id="office" value="">
+                </div>
+                <div class="d-flex gap-3">
+                    <button type="submit" class="btn btn-primary px-4" style="border-radius:20px; background-color:#35b8e0; border:none;" id="saveBtn">保存修改</button>
+                    <button type="button" class="btn btn-outline-danger px-4" style="border-radius:20px;" onclick="handleLogout()">退出登录</button>
+                </div>
+            </form>
+        </div>
+    </main>
+    <script src="script.js"></script>
+</div>
+
+<script>
+    (function() {
+        "use strict";
+        const layout = document.getElementById("layout");
+        const toggle = document.getElementById("toggleSidebar");
+        if(layout && toggle) {
+            let isCollapsed = false;
+            toggle.addEventListener("click", () => {
+                isCollapsed = !isCollapsed;
+                layout.classList.toggle("collapsed", isCollapsed);
+            });
+        }
+
+        const token = localStorage.getItem("token");
+        if (!token) {
+            window.location.href = "../login/login.html";
+            return;
+        }
+
+        const API_BASE = "http://localhost:8080/api/teacher/profile/me";
+
+        // 获取当前信息
+        async function fetchProfile() {
+            try {
+                const res = await fetch(API_BASE, {
+                    method: "GET",
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+                const data = await res.json();
+                if (data.code === 1 && data.data) {
+                    document.getElementById("fullName").value = data.data.fullName || "";
+                    document.getElementById("email").value = data.data.email || "";
+                    document.getElementById("department").value = data.data.department || "";
+                    document.getElementById("title").value = data.data.title || "";
+                    document.getElementById("researchArea").value = data.data.researchArea || "";
+                    document.getElementById("office").value = data.data.office || "";
+                } else if (data.code === 401) {
+                    handleLogout();
+                } else {
+                    alert("获取信息失败: " + (data.message || "未知错误"));
+                }
+            } catch (err) {
+                console.error(err);
+                alert("网络错误");
+            }
+        }
+
+        fetchProfile();
+
+        // 提交修改
+        document.getElementById("settingsForm").addEventListener("submit", async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById("saveBtn");
+            btn.disabled = true;
+            btn.textContent = "保存中...";
+
+            const payload = {
+                fullName: document.getElementById("fullName").value.trim(),
+                email: document.getElementById("email").value.trim(),
+                department: document.getElementById("department").value.trim(),
+                title: document.getElementById("title").value.trim(),
+                researchArea: document.getElementById("researchArea").value.trim(),
+                office: document.getElementById("office").value.trim()
+            };
+
+            try {
+                const res = await fetch(API_BASE, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.code === 1) {
+                    alert("保存成功！");
+                    // Update localStorage dynamically just in case
+                    localStorage.setItem("fullName", payload.fullName);
+                } else if (data.code === 401) {
+                    handleLogout();
+                } else {
+                    alert("保存失败: " + (data.message || "未知错误"));
+                }
+            } catch (err) {
+                console.error(err);
+                alert("网络错误");
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "保存修改";
+            }
+        });
+    })();
+
+    function handleLogout() {
+        localStorage.clear();
+        window.location.href = "../login/login.html";
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <title>Project list</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="../css/dashboard.css" />
+    <link rel="stylesheet" href="../css/studentsp.css" />
+
+</head>
+<body>
+<div class="layout" id="layout">
+    <aside class="sidebar" id="sidebar">
+        <div class="toggle-wrap">
+            <button class="toggle" id="toggleSidebar" aria-label="切换菜单">
+                <span></span>
+            </button>
+        </div>
+        <div class="nav-group">
+            <a href="student-dashboard.html">
+                <i class="bi bi-kanban nav-icon"></i>
+                <span class="nav-label">申请状态</span>
+            </a>
+            <a href="#" class="active" style="pointer-events: none; cursor: default;">
+                <i class="bi bi-search nav-icon"></i>
+                <span class="nav-label">搜索项目</span>
+            </a>
+            <a href="student-request-history.html">
+                <i class="bi bi-clock-history nav-icon"></i>
+                <span class="nav-label">请求历史</span>
+            </a>
+            <a href="student-notification.html">
+                <i class="bi bi-chat-dots nav-icon"></i>
+                <span class="nav-label">消息/通知</span>
+            </a>
+            <a href="student-profile.html">
+                <i class="bi bi-person-gear nav-icon"></i>
+                <span class="nav-label">个人设置</span>
+            </a>
+        </div>
+    </aside>
+
+    <main class="main">
+        <div class="page-header">
+            <a href="student-dashboard.html" class="back-link">← 返回工作台</a>
+            <h1>📋 开放项目目录</h1>
+        </div>
+        <div class="panel-card">
+            <p style="color: var(--muted); margin-bottom: 10px;">点击 "View" 在新页面查看项目详情</p>
+            <div class="table-wrapper">
+                <table class="project-table" id="projectTable">
+                    <thead>
+                    <tr>
+                        <th>Project Code</th>
+                        <th>Project Title</th>
+                        <th>Principal Investigator</th>
+                        <th>Category</th>
+                        <th>Topic area</th>
+                        <th>Required</th>
+                        <th>Status</th>
+                        <th>Details</th>
+                    </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+            <div style="margin-top: 16px; font-size: 0.9rem;">
+                ⚡ 共 <span id="projectCount">0</span> 个项目
+            </div>
+        </div>
+        <div class="footnote">* 点击 View 跳转至详情页</div>
+    </main>
+</div>
+
+<script>
+    (function () {
+        const API_URL = "/api/student/projects";
+        const tbody = document.getElementById("tableBody");
+        const projectCountSpan = document.getElementById("projectCount");
+
+        function esc(v) {
+            if (v === null || v === undefined) return "";
+            return String(v)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function statusPill(status) {
+            const text = status || "UNKNOWN";
+            const cls = (status === "AVAILABLE" || status === "REQUESTED" || status === "AGREED")
+                ? "status-available"
+                : "status-unavailable";
+            return `<span class="status-pill ${cls}">${esc(text)}</span>`;
+        }
+
+        async function loadProjects() {
+            try {
+                const token = localStorage.getItem("token") || "";
+                const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+
+                const res = await fetch(`${API_URL}?pageNum=1&pageSize=50`, { method: "GET", headers });
+                const result = await res.json();
+
+                console.log("student projects response:", result);
+
+                if (!res.ok || result.code !== 1) {
+                    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#888;">加载失败：${esc(result.msg || "请稍后重试")}</td></tr>`;
+                    projectCountSpan.textContent = "0";
+                    return;
+                }
+
+                const list = Array.isArray(result?.data?.records) ? result.data.records : [];
+                const total = Number(result?.data?.total || list.length);
+
+                if (list.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#888;">暂无可申请项目</td></tr>`;
+                    projectCountSpan.textContent = "0";
+                    return;
+                }
+
+                let html = "";
+                list.forEach(p => {
+                    const current = Number(p.currentAgreedCount || 0);
+                    const max = Number(p.maxStudents || 0);
+
+                    html += `
+                <tr>
+                    <td><strong>${esc(p.projectId)}</strong></td>
+                    <td>${esc(p.title)}</td>
+                    <td>${esc(p.teacherName || "-")}</td>
+                    <td>${esc(p.categoryName || "-")}</td>
+                    <td>${esc(p.topicArea || "-")}</td>
+                    <td>${current}/${max}</td>
+                    <td>${statusPill(p.projectStatus)}</td>
+                    <td>
+                        <a class="view-btn"
+                           href="student-project-search-list-detail.html?projectId=${encodeURIComponent(p.projectId)}&code=${encodeURIComponent("SURF-" + p.projectId)}">
+                           View
+                        </a>
+                    </td>
+                </tr>
+            `;
+                });
+
+                tbody.innerHTML = html;
+                projectCountSpan.textContent = String(total);
+            } catch (e) {
+                console.error(e);
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#888;">网络异常，请稍后重试</td></tr>`;
+                projectCountSpan.textContent = "0";
+            }
+        }
+
+
+
+        loadProjects();
+    })();
+
+    const layout = document.getElementById("layout");
+    const toggle = document.getElementById("toggleSidebar");
+    let isCollapsed = false;
+    toggle.addEventListener("click", () => {
+        isCollapsed = !isCollapsed;
+        layout.classList.toggle("collapsed", isCollapsed);
+    });
+</script>
+
+</body>
+</html>
