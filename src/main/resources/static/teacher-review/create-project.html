@@ -6,73 +6,64 @@
     <title>Teacher Dashboard - 发布新项目</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-    <style>
-        :root { --sidebar-bg: #5f3391; --sidebar-color: #d1bced; --sidebar-hover: #7b4eb3; --main-bg: #f4f5f9; --card-radius: 16px; --btn-primary-bg: #35b8e0; }
-        body { background-color: var(--main-bg); font-family: "Helvetica Neue", Helvetica, Arial, "PingFang SC", "Microsoft YaHei", sans-serif; display: flex; min-height: 100vh; margin: 0; color: #333; }
-        
-        .sidebar { width: 240px; background-color: var(--sidebar-bg); color: white; display: flex; flex-direction: column; padding-top: 30px; flex-shrink: 0; box-shadow: 2px 0 10px rgba(0,0,0,0.1); transition: width 0.3s ease;}
-        .sidebar.collapsed { width: 80px; }
-        .sidebar.collapsed .menu-text { display: none; }
-        .sidebar.collapsed .sidebar-header { justify-content: center; padding: 0 0 20px 0; }
-        .sidebar.collapsed .sidebar-menu li { justify-content: center; padding: 16px 0; }
-        
-        .sidebar-header { padding: 0 24px 20px; opacity: 0.8; font-size: 14px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
-        .sidebar-menu { list-style: none; padding: 0; margin: 0; flex-grow: 1; overflow: hidden;}
-        .sidebar-menu li { padding: 16px 24px; cursor: pointer; color: var(--sidebar-color); transition: 0.2s; display: flex; align-items: center; gap: 12px; font-size: 15px; position: relative; white-space: nowrap;}
-        .sidebar-menu li:hover { background-color: var(--sidebar-hover); color: white; }
-        .sidebar-menu li.active { background-color: transparent; color: white; font-weight: bold; }
-        .sidebar-menu li.active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background-color: white; border-top-right-radius: 4px; border-bottom-right-radius: 4px; }
-        
-        .main-content { flex-grow: 1; padding: 30px 40px; overflow-y: auto; height: 100vh; }
-        .back-link { display: inline-flex; align-items: center; gap: 8px; color: #666; text-decoration: none; margin-bottom: 20px; font-size: 15px; transition: 0.2s; }
-        .back-link:hover { color: var(--sidebar-bg); }
-        .page-title { font-size: 24px; font-weight: bold; margin-bottom: 24px; color: #222; }
-        
-        .custom-card { background: white; border-radius: var(--card-radius); border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.02); padding: 30px; margin-bottom: 24px; max-width: 800px; }
-        
-        .form-label { font-weight: bold; color: #444; font-size: 15px; }
-        .form-control, .form-select { border-radius: 8px; border: 1px solid #ddd; padding: 10px 15px; background-color: #fafbfc;}
-        .form-control:focus, .form-select:focus { box-shadow: 0 0 0 3px rgba(95, 51, 145, 0.1); border-color: var(--sidebar-bg); }
-        
-        .tag-input-group { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; background: #fafbfc; padding: 15px; border-radius: 8px; border: 1px solid #ddd; }
-        .tag-wrapper { display: inline-flex; align-items: center; }
-        .tag-wrapper i:hover { color: #ffcccc; }
-        
-        .btn-publish { background-color: var(--btn-primary-bg); color: white; border-radius: 20px; padding: 10px 30px; font-weight: bold; border: none; transition: 0.2s; box-shadow: 0 4px 12px rgba(53, 184, 224, 0.2);}
-        .btn-publish:hover { background-color: #2ab0d6; transform: translateY(-2px); box-shadow: 0 6px 15px rgba(53, 184, 224, 0.3); color: white;}
-    </style>
+    <link rel="stylesheet" href="../css/dashboard.css" />
 </head>
 <body>
-
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header" onclick="toggleSidebar()">
-            <i class="bi bi-list"></i> <span class="menu-text">收起菜单</span>
+<div class="layout" id="layout">
+    <!-- 侧边栏 -->
+    <aside class="sidebar" id="sidebar">
+        <div class="toggle-wrap">
+            <button class="toggle" id="toggleSidebar" aria-label="切换菜单">
+                <span></span>
+            </button>
         </div>
-        <ul class="sidebar-menu">
-            <li class="active" onclick="window.location.href='projects.html'"><i class="bi bi-kanban"></i> <span class="menu-text">我的项目</span></li>
-            <li onclick="window.location.href='index.html'"><i class="bi bi-file-earmark-check"></i> <span class="menu-text">审批申请</span></li>
-            <li onclick="window.location.href='history.html'"><i class="bi bi-clock-history"></i> <span class="menu-text">历史记录</span></li>
-            <li onclick="window.location.href='notifications.html'"><i class="bi bi-chat-dots"></i> <span class="menu-text">消息/通知</span></li>
-            <li onclick="window.location.href='settings.html'"><i class="bi bi-person-gear"></i> <span class="menu-text">个人设置</span></li>
-        </ul>
-    </div>
+        <div class="nav-group">
+            <a href="projects.html">
+                <i class="bi bi-kanban nav-icon"></i>
+                <span class="nav-label">我的项目</span>
+            </a>
+            <a href="index.html">
+                <i class="bi bi-file-earmark-check nav-icon"></i>
+                <span class="nav-label">审批申请</span>
+            </a>
+            <a href="history.html">
+                <i class="bi bi-clock-history nav-icon"></i>
+                <span class="nav-label">历史记录</span>
+            </a>
+            <a href="notifications.html">
+                <i class="bi bi-chat-dots nav-icon"></i>
+                <span class="nav-label">消息/通知</span>
+            </a>
+            <a href="settings.html">
+                <i class="bi bi-person-gear nav-icon"></i>
+                <span class="nav-label">个人设置</span>
+            </a>
+        </div>
+    </aside>
 
-    <div class="main-content">
-        <a href="projects.html" class="back-link"><i class="bi bi-arrow-left"></i> 返回我的项目</a>
-        <h2 class="page-title">发布新项目 (Publish New Project)</h2>
+    <main class="main">
+        <header class="page-header">
+            <a href="projects.html" class="back-link"><i class="bi bi-arrow-left"></i> 返回我的项目</a>
+            <h1 class="mb-0">发布新项目 (Publish New Project)</h1>
+        </header>
 
-        <div class="custom-card">
+        <div class="panel">
             <form id="createProjectForm">
-                
                 <div class="mb-4">
                     <label class="form-label">项目名称 (Project Title) <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="projectTitle" placeholder="例如：Student Project Allocation System" required>
+                    <input
+                            type="text"
+                            class="form-control"
+                            id="projectTitle"
+                            placeholder="例如：Student Project Allocation System"
+                            required
+                    >
                 </div>
 
                 <div class="row mb-4">
                     <div class="col-md-6">
                         <label class="form-label">招募人数 (Quota) <span class="text-danger">*</span></label>
-                        <select class="form-select" id="projectQuota">
+                        <select class="form-select" id="projectQuota" required>
                             <option value="1">1 人</option>
                             <option value="2">2 人</option>
                             <option value="3" selected>3 人</option>
@@ -81,58 +72,122 @@
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">截止日期 (Deadline)</label>
-                        <input type="date" class="form-control">
+                        <label class="form-label">分类 ID (Category ID) <span class="text-danger">*</span></label>
+                        <input
+                                type="number"
+                                class="form-control"
+                                id="projectCategoryId"
+                                min="1"
+                                placeholder="例如：1"
+                                required
+                        >
                     </div>
                 </div>
 
                 <div class="mb-4">
                     <label class="form-label">项目描述 (Description) <span class="text-danger">*</span></label>
-                    <textarea class="form-control" rows="4" placeholder="请简要描述项目的目的、主要功能模块及预期成果..."></textarea>
+                    <textarea
+                            class="form-control"
+                            id="projectDescription"
+                            rows="4"
+                            placeholder="请简要描述项目的目的、主要功能模块及预期成果..."
+                            required
+                    ></textarea>
                 </div>
 
                 <div class="mb-4">
                     <label class="form-label">能力要求 (Requirements)</label>
-                    <textarea class="form-control" rows="3" placeholder="例如：具备一定的Java基础，了解Spring Boot框架和基本的关系型数据库理论..."></textarea>
+                    <textarea
+                            class="form-control"
+                            id="projectRequirements"
+                            rows="3"
+                            placeholder="例如：具备一定的Java基础，了解Spring Boot和关系型数据库..."
+                    ></textarea>
+                </div>
+
+                <!-- 新增：脚本里会读取这个字段 -->
+                <div class="mb-4">
+                    <label class="form-label">研究方向 (Topic Area)</label>
+                    <input
+                            type="text"
+                            class="form-control"
+                            id="projectTopicArea"
+                            placeholder="例如：AI in Education / 数据可视化"
+                    >
                 </div>
 
                 <div class="mb-4">
-                    <label class="form-label">技术/能力标签 (Tags)</label>
+                    <label class="form-label">技能标签 (Tags)</label>
                     <div class="tag-input-group" id="tagsContainer">
-                        <!-- 默认自带的示例标签 -->
-                        <span class="badge me-2 mb-2 p-2 tag-wrapper" style="background-color:#5f3391; font-size:14px; font-weight:normal;">Java <i class="bi bi-x-circle ms-1" style="cursor:pointer;" onclick="this.parentElement.remove()"></i></span>
-                        <span class="badge me-2 mb-2 p-2 tag-wrapper" style="background-color:#5f3391; font-size:14px; font-weight:normal;">Web开发 <i class="bi bi-x-circle ms-1" style="cursor:pointer;" onclick="this.parentElement.remove()"></i></span>
-                        
+                        <!-- 示例标签 -->
+                        <span class="badge me-2 mb-2 p-2 tag-wrapper" data-tag="Java"
+                              style="background-color:#5f3391; font-size:14px; font-weight:normal;">
+                            Java
+                            <i class="bi bi-x-circle ms-1" style="cursor:pointer;" onclick="this.parentElement.remove()"></i>
+                        </span>
+                        <span class="badge me-2 mb-2 p-2 tag-wrapper" data-tag="Web开发"
+                              style="background-color:#5f3391; font-size:14px; font-weight:normal;">
+                            Web开发
+                            <i class="bi bi-x-circle ms-1" style="cursor:pointer;" onclick="this.parentElement.remove()"></i>
+                        </span>
+
                         <!-- 添加框 -->
-                        <div class="input-group" id="tagInputGroup" style="width: 200px; margin-bottom: 8px;">
+                        <div class="input-group" id="tagInputGroup" style="width: 220px; margin-bottom: 8px;">
                             <input type="text" class="form-control form-control-sm" id="tagInput" placeholder="输入自定义标签...">
-                            <button class="btn btn-outline-secondary btn-sm" type="button" onclick="addTag()" style="background: white; border-color: #ddd;">添加</button>
+                            <button
+                                    class="btn btn-outline-secondary btn-sm"
+                                    type="button"
+                                    onclick="addTag()"
+                                    style="background: white; border-color: #ddd;"
+                            >
+                                添加
+                            </button>
                         </div>
                     </div>
-                    <div class="form-text mt-2"><i class="bi bi-info-circle"></i> 点击添加按钮录入标签，点击标签上的 <b>X</b> 图标删除。支持自由输入（例如：“前端”、“MySQL”、“数据分析”等）。</div>
+                    <div class="form-text mt-2">
+                        <i class="bi bi-info-circle"></i>
+                        标签将自动合并到 requiredSkills 提交给后端（简单方案先跑通）。
+                    </div>
                 </div>
 
                 <hr style="border-color: #eee; margin: 30px 0;">
+                <div class="text-danger mb-3" id="formError"></div>
 
                 <div class="d-flex gap-3">
-                    <button type="button" class="btn btn-publish" onclick="submitProject()"><i class="bi bi-rocket-takeoff"></i> 确认发布 (Publish)</button>
-                    <button type="button" class="btn btn-light" style="border-radius: 20px; padding: 10px 25px;" onclick="window.location.href='projects.html'">取消 (Cancel)</button>
+                    <button type="button" class="btn btn-publish" id="publishBtn" onclick="submitProject()">
+                        <i class="bi bi-rocket-takeoff"></i> 确认发布 (Publish)
+                    </button>
+                    <button
+                            type="button"
+                            class="btn btn-light"
+                            style="border-radius: 20px; padding: 10px 25px;"
+                            onclick="window.location.href='projects.html'"
+                    >
+                        取消 (Cancel)
+                    </button>
                 </div>
-
             </form>
         </div>
-    </div>
+    </main>
+</div>
 
-    <!-- Script 逻辑 -->
-    <script src="script.js"></script>
-    <script>
-        // 让按回车键也可以触发添加标签
-        document.getElementById('tagInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault(); // 阻止表单提交
-                addTag();
-            }
-        });
-    </script>
+<!-- 调用外部脚本 -->
+<script src="script.js"></script>
+
+<!-- 侧边栏收起/展开 -->
+<script>
+    (function () {
+        "use strict";
+        const layout = document.getElementById("layout");
+        const toggle = document.getElementById("toggleSidebar");
+        if (layout && toggle) {
+            let isCollapsed = false;
+            toggle.addEventListener("click", () => {
+                isCollapsed = !isCollapsed;
+                layout.classList.toggle("collapsed", isCollapsed);
+            });
+        }
+    })();
+</script>
 </body>
 </html>

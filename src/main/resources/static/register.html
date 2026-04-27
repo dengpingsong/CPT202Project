@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: "Helvetica Neue", Arial, sans-serif;
+            background: url("login/backimg2.png") center/cover no-repeat;
+        }
+        .card {
+            width: 460px;
+            padding: 34px;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.96);
+            box-shadow: 0 18px 45px rgba(0,0,0,0.25);
+        }
+        h2 { margin: 0 0 8px; }
+        h3 { margin: 0 0 18px; font-weight: 400; font-size: 14px; color: #555; }
+        input, select {
+            width: 100%;
+            padding: 11px;
+            margin-bottom: 4px;
+            border: 1px solid #c9ced6;
+            border-radius: 7px;
+            font-size: 14px;
+            outline: none;
+        }
+        input:focus, select:focus {
+            border-color: #5a2b98;
+            box-shadow: 0 0 0 2px rgba(90,43,152,0.15);
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #000;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+            margin-top: 14px;
+        }
+        button:hover { background: #222; }
+        button:disabled { background: #aaa; cursor: not-allowed; }
+        .section-title {
+            font-size: 12px;
+            color: #888;
+            margin: 14px 0 6px;
+        }
+        .required-star::after {
+            content: " *";
+            color: #d93025;
+        }
+        .hint {
+            font-size: 11px;
+            color: #b047ff;
+            margin: 2px 0 8px;
+        }
+        .hidden { display: none; }
+        .helper {
+            font-size: 11px;
+            min-height: 16px;
+        }
+        .helper.error {
+            color: #d93025;
+        }
+        .helper.success {
+            color: #2f8a46;
+        }
+        .general-error {
+            font-size: 13px;
+            color: #d93025;
+            margin-bottom: 10px;
+            min-height: 18px;
+        }
+        .inline-label {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Create Account</h2>
+    <h3>Register a student or teacher account</h3>
+
+    <form id="registerForm">
+        <div class="general-error" id="generalError"></div>
+
+        <div class="section-title required-star">User Info</div>
+        <label class="inline-label">Username (unique)</label>
+        <input type="text" id="username" placeholder="Username" required>
+        <div class="helper" id="usernameHelper"></div>
+
+        <label class="inline-label">Password</label>
+        <input type="password" id="password" placeholder="Password" required>
+        <div class="helper" id="passwordHelper"></div>
+
+        <label class="inline-label">Email (unique)</label>
+        <input type="email" id="email" placeholder="Email" required>
+        <div class="helper" id="emailHelper"></div>
+
+        <label class="inline-label">Full Name</label>
+        <input type="text" id="fullName" placeholder="Full Name" required>
+        <div class="helper" id="fullNameHelper"></div>
+
+        <label class="inline-label">Role</label>
+        <select id="role" required>
+            <option value="STUDENT">Student</option>
+            <option value="TEACHER">Teacher</option>
+        </select>
+        <div class="helper" id="roleHelper"></div>
+
+        <div id="studentSection" class="field-group">
+            <div class="section-title required-star">Student Profile</div>
+            <div class="hint">Student role must provide student no, programme, and enrollment date.</div>
+
+            <label class="inline-label">Student No (unique)</label>
+            <input type="text" id="studentNo" placeholder="Student No" required>
+            <div class="helper" id="studentNoHelper"></div>
+
+            <label class="inline-label">Programme</label>
+            <input type="text" id="programme" placeholder="Programme" required>
+            <div class="helper" id="programmeHelper"></div>
+
+<!--            <label class="inline-label">Year</label>-->
+<!--            <input type="number" id="year" placeholder="Year" required min="1">-->
+<!--            <div class="helper" id="yearHelper"></div>-->
+
+<!--            <label class="inline-label">Phone</label>-->
+<!--            <input type="text" id="phone" placeholder="Phone" required>-->
+<!--            <div class="helper" id="phoneHelper"></div>-->
+
+<!--            <label class="inline-label">Interests</label>-->
+<!--            <input type="text" id="interests" placeholder="Interests (comma separated)" required>-->
+<!--            <div class="helper" id="interestsHelper"></div>-->
+
+            <label class="inline-label">Enrollment Date</label>
+            <input type="date" id="entryDate" required>
+            <div class="helper" id="entryDateHelper"></div>
+        </div>
+
+        <div id="teacherSection" class="field-group hidden">
+            <div class="section-title required-star">Teacher Profile</div>
+            <div class="hint">Teacher role must provide staff no, department, and title.</div>
+
+            <label class="inline-label">Staff No (unique)</label>
+            <input type="text" id="staffNo" placeholder="Staff No" required>
+            <div class="helper" id="staffNoHelper"></div>
+
+            <label class="inline-label">Department</label>
+            <input type="text" id="department" placeholder="Department" required>
+            <div class="helper" id="departmentHelper"></div>
+
+            <label class="inline-label">Title</label>
+            <input type="text" id="title" placeholder="Title" required>
+            <div class="helper" id="titleHelper"></div>
+
+<!--            <label class="inline-label">Research Area</label>-->
+<!--            <input type="text" id="researchArea" placeholder="Research Area" required>-->
+<!--            <div class="helper" id="researchAreaHelper"></div>-->
+
+<!--            <label class="inline-label">Office</label>-->
+<!--            <input type="text" id="office" placeholder="Office" required>-->
+<!--            <div class="helper" id="officeHelper"></div>-->
+        </div>
+
+        <button type="submit" id="submitBtn">Register</button>
+    </form>
+
+    <div class="links">
+        <a href="login.html" class="login-link">Back to Login</a>
+    </div>
+</div>
+
+<script>
+    const BASE_URL = "/api/common/auth";
+    const registerForm = document.getElementById("registerForm");
+    const submitBtn = document.getElementById("submitBtn");
+    const roleSelect = document.getElementById("role");
+    const studentSection = document.getElementById("studentSection");
+    const teacherSection = document.getElementById("teacherSection");
+    const generalError = document.getElementById("generalError");
+
+    const helperMap = {
+        username: document.getElementById("usernameHelper"),
+        password: document.getElementById("passwordHelper"),
+        email: document.getElementById("emailHelper"),
+        fullName: document.getElementById("fullNameHelper"),
+        role: document.getElementById("roleHelper"),
+        studentNo: document.getElementById("studentNoHelper"),
+        programme: document.getElementById("programmeHelper"),
+        // year: document.getElementById("yearHelper"),
+        // phone: document.getElementById("phoneHelper"),
+        // interests: document.getElementById("interestsHelper"),
+        entryDate: document.getElementById("entryDateHelper"),
+        staffNo: document.getElementById("staffNoHelper"),
+        department: document.getElementById("departmentHelper"),
+        title: document.getElementById("titleHelper"),
+        // researchArea: document.getElementById("researchAreaHelper"),
+        // office: document.getElementById("officeHelper")
+    };
+
+    const studentFields = studentSection.querySelectorAll("input");
+    const teacherFields = teacherSection.querySelectorAll("input");
+
+    function toggleRequiredFields(isStudent) {
+        studentFields.forEach(field => field.required = isStudent);
+        teacherFields.forEach(field => field.required = !isStudent);
+    }
+
+    function showHelper(field, message, type = "") {
+        const helper = helperMap[field];
+        if (!helper) return;
+        helper.textContent = message || "";
+        helper.className = message ? `helper ${type}`.trim() : "helper";
+    }
+
+    roleSelect.addEventListener("change", () => {
+        const isStudent = roleSelect.value === "STUDENT";
+        studentSection.classList.toggle("hidden", !isStudent);
+        teacherSection.classList.toggle("hidden", isStudent);
+        toggleRequiredFields(isStudent);
+    });
+
+    toggleRequiredFields(true);
+
+    ["username", "email", "studentNo", "staffNo"].forEach(field => {
+        const input = document.getElementById(field);
+        if (input) {
+            input.addEventListener("input", () => showHelper(field, ""));
+        }
+    });
+
+    registerForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        submitBtn.disabled = true;
+        generalError.textContent = "";
+        Object.keys(helperMap).forEach(key => showHelper(key, ""));
+
+        const payload = {
+            username: document.getElementById("username").value.trim(),
+            password: document.getElementById("password").value,
+            email: document.getElementById("email").value.trim(),
+            fullName: document.getElementById("fullName").value.trim(),
+            role: roleSelect.value
+        };
+
+        if (payload.role === "STUDENT") {
+            payload.studentNo = document.getElementById("studentNo").value.trim();
+            payload.programme = document.getElementById("programme").value.trim();
+            // payload.year = parseInt(document.getElementById("year").value, 10);
+            // payload.phone = document.getElementById("phone").value.trim();
+            // payload.interests = document.getElementById("interests").value.trim();
+            payload.enrollmentDate = document.getElementById("entryDate").value;
+        } else {
+            payload.staffNo = document.getElementById("staffNo").value.trim();
+            payload.department = document.getElementById("department").value.trim();
+            payload.title = document.getElementById("title").value.trim();
+            // payload.researchArea = document.getElementById("researchArea").value.trim();
+            // payload.office = document.getElementById("office").value.trim();
+        }
+
+        try {
+            const res = await fetch(`${BASE_URL}/register`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+
+            if (data.code === 1) {
+                alert("Register success");
+                window.location.href = "login.html";
+            } else {
+                generalError.textContent = data.message || "Register failed";
+                if (data.message?.includes("用户名")) showHelper("username", data.message, "error");
+                else if (data.message?.includes("邮箱")) showHelper("email", data.message, "error");
+                else if (data.message?.includes("学号")) showHelper("studentNo", data.message, "error");
+                else if (data.message?.includes("工号")) showHelper("staffNo", data.message, "error");
+            }
+        } catch (err) {
+            console.error(err);
+            generalError.textContent = "Network error, please try again.";
+        } finally {
+            submitBtn.disabled = false;
+        }
+    });
+</script>
+
+</body>
+</html>
