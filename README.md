@@ -44,7 +44,8 @@ CPT202Program/
 │   │   └── handler/                   # 全局异常处理器
 │   └── resources/
 │       ├── application.properties
-│       └── firstPage_front/           # 静态前端页面（登录、注册、忘记密码）
+│       └── static/                    # 静态前端页面
+│           └── login/                 # 登录、注册、忘记密码页面
 └── pom.xml
 ```
 
@@ -138,4 +139,3 @@ GitHub Actions（`.github/workflows/ci.yml`）在每次推送或 PR 至 `main` /
 1. **Build** — Maven 编译项目
 2. **Test** — 执行全部 JUnit 5 测试，上传 Surefire 报告
 3. **Package** *(仅 main/master)* — 打包可执行 JAR 并上传为构建产物
-

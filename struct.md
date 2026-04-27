@@ -114,14 +114,14 @@
 │   │   │               └── UserVO.java
 │   │   └── resources
 │   │       ├── application.properties
-│   │       └── firstPage_front
-│   │           ├── backimg2.png
-│   │           ├── backimg4.png
-│   │           ├── backimg5.png
-│   │           ├── forgot-password.html
-│   │           ├── index.html
-│   │           ├── login.html
-│   │           └── register.html
+│   │       └── static
+│   │           ├── css
+│   │           ├── login
+│   │           │   ├── forgot-password.html
+│   │           │   ├── login.html
+│   │           │   └── register.html
+│   │           ├── student-apply
+│   │           └── teacher-review
 │   └── test
 │       └── java
 │           └── com
@@ -258,14 +258,14 @@
     │   │           ├── TeacherProfileVO$TeacherProfileVOBuilder.class
     │   │           ├── UserVO.class
     │   │           └── UserVO$UserVOBuilder.class
-    │   └── firstPage_front
-    │       ├── backimg2.png
-    │       ├── backimg4.png
-    │       ├── backimg5.png
-    │       ├── forgot-password.html
-    │       ├── index.html
-    │       ├── login.html
-    │       └── register.html
+    │   └── static
+    │       ├── css
+    │       ├── login
+    │       │   ├── forgot-password.html
+    │       │   ├── login.html
+    │       │   └── register.html
+    │       ├── student-apply
+    │       └── teacher-review
     ├── cpt202-program-0.0.1-SNAPSHOT.jar
     ├── cpt202-program-0.0.1-SNAPSHOT.jar.original
     ├── generated-sources

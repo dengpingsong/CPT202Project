@@ -13,21 +13,21 @@ public class HomeController {
 
     @GetMapping("/")
     public String home() {
-        return "redirect:/login.html";
+        return "redirect:/login/login.html";
     }
 
     @GetMapping("/auth/login")
     public String login() {
-        return "redirect:/login.html";
+        return "redirect:/login/login.html";
     }
 
     @GetMapping("/auth/register")
     public String register() {
-        return "redirect:/register.html";
+        return "redirect:/login/register.html";
     }
 
     @GetMapping("/auth/forgot-password")
     public String forgotPassword() {
-        return "redirect:/forgot-password.html";
+        return "redirect:/login/forgot-password.html";
     }
 }

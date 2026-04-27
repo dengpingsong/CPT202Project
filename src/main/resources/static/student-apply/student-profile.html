@@ -503,7 +503,7 @@
         // ---------- 认证检查 ----------
         const token = localStorage.getItem("token");
         if (!token) {
-            window.location.href = "../login.html";
+            window.location.href = "../login/login.html";
             return;
         }
 
@@ -647,7 +647,7 @@
         // ---------- 退出登录 ----------
         function handleLogout() {
             localStorage.clear();
-            window.location.href = "../login.html";
+            window.location.href = "../login/login.html";
         }
         logoutBtn.addEventListener('click', handleLogout);
 
