@@ -1,5 +1,6 @@
 package com.cpt202.controller.teacher;
 
+import com.cpt202.context.BaseContext;
 import com.cpt202.dto.ProjectRequestReviewDTO;
 import com.cpt202.dto.TeacherProjectRequestQueryDTO;
 import com.cpt202.result.Result;
@@ -23,11 +24,6 @@ public class TeacherProjectRequestController {
 
     private final ProjectRequestService projectRequestService;
 
-    /**
-     * 构造器注入项目申请服务。
-     *
-     * @param projectRequestService 项目申请服务
-     */
     public TeacherProjectRequestController(ProjectRequestService projectRequestService) {
         this.projectRequestService = projectRequestService;
     }
@@ -41,6 +37,7 @@ public class TeacherProjectRequestController {
     @GetMapping
     @Operation(summary = "List teacher requests for review")
     public Result<List<ProjectRequestVO>> list(@Valid TeacherProjectRequestQueryDTO queryDTO) {
+        queryDTO.setTeacherId(BaseContext.getCurrentUserId());
         return Result.success(projectRequestService.listTeacherRequests(queryDTO.getTeacherId(), queryDTO.getStatus()));
     }
 
@@ -55,6 +52,7 @@ public class TeacherProjectRequestController {
     @Operation(summary = "Review a project request")
     public Result<Void> review(@PathVariable Long requestId,
                                @Valid @RequestBody ProjectRequestReviewDTO projectRequestReviewDTO) {
+        projectRequestReviewDTO.setTeacherId(BaseContext.getCurrentUserId());
         projectRequestService.review(requestId, projectRequestReviewDTO);
         return Result.success();
     }

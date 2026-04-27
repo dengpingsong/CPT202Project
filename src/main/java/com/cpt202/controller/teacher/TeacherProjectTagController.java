@@ -1,7 +1,9 @@
 package com.cpt202.controller.teacher;
 
+import com.cpt202.context.BaseContext;
 import com.cpt202.dto.ProjectTagBindDTO;
 import com.cpt202.result.Result;
+import com.cpt202.service.ProjectService;
 import com.cpt202.service.ProjectTagService;
 import com.cpt202.vo.ProjectTagVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -23,14 +25,12 @@ import java.util.List;
 public class TeacherProjectTagController {
 
     private final ProjectTagService projectTagService;
+    private final ProjectService projectService;
 
-    /**
-     * 构造器注入项目标签服务。
-     *
-     * @param projectTagService 项目标签服务
-     */
-    public TeacherProjectTagController(ProjectTagService projectTagService) {
+    public TeacherProjectTagController(ProjectTagService projectTagService,
+                                       ProjectService projectService) {
         this.projectTagService = projectTagService;
+        this.projectService = projectService;
     }
 
     /**
@@ -42,6 +42,7 @@ public class TeacherProjectTagController {
     @GetMapping("/{projectId}")
     @Operation(summary = "List project tags")
     public Result<List<ProjectTagVO>> listProjectTags(@PathVariable Long projectId) {
+        projectService.getOwnedProject(projectId, BaseContext.getCurrentUserId());
         log.info("List project tags: {}", projectId);
         return Result.success(projectTagService.listProjectTags(projectId));
     }
@@ -57,6 +58,7 @@ public class TeacherProjectTagController {
     @Operation(summary = "Bind tags to a project")
     public Result<Void> bindProjectTags(@PathVariable Long projectId,
                                         @Valid @RequestBody ProjectTagBindDTO bindDTO) {
+        bindDTO.setTeacherId(BaseContext.getCurrentUserId());
         log.info("Bind project tags, projectId: {}, teacherId: {}, tagIds: {}",
                 projectId, bindDTO.getTeacherId(), bindDTO.getTagIds());
         projectTagService.bindProjectTags(projectId, bindDTO.getTeacherId(), bindDTO.getTagIds());

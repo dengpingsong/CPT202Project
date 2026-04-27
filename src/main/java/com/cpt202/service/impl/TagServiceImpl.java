@@ -1,10 +1,16 @@
 package com.cpt202.service.impl;
 
 import com.cpt202.dto.TagDTO;
+import com.cpt202.exception.NotFoundException;
+import com.cpt202.model.entity.Tag;
+import com.cpt202.repository.TagRepository;
 import com.cpt202.service.TagService;
 import com.cpt202.vo.TagVO;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -13,7 +19,10 @@ import java.util.List;
  * 当前仅保留方法定义，后续由仓储层完成真实持久化实现。
  */
 @Service
+@RequiredArgsConstructor
 public class TagServiceImpl implements TagService {
+
+    private final TagRepository tagRepository;
 
     /**
      * 查询全部标签列表。
@@ -22,7 +31,12 @@ public class TagServiceImpl implements TagService {
      */
     @Override
     public List<TagVO> listAll() {
-        throw new UnsupportedOperationException("Not implemented yet");
+        List<Tag> tags = tagRepository.findAll();
+        List<TagVO> tagVos = new ArrayList<>(tags.size());
+        for (Tag tag : tags) {
+            tagVos.add(toTagVO(tag));
+        }
+        return tagVos;
     }
 
     /**
@@ -33,7 +47,9 @@ public class TagServiceImpl implements TagService {
      */
     @Override
     public TagVO getById(Long tagId) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        Tag tag = tagRepository.findById(tagId)
+                .orElseThrow(() -> new NotFoundException("标签不存在。"));
+        return toTagVO(tag);
     }
 
     /**
@@ -43,7 +59,13 @@ public class TagServiceImpl implements TagService {
      */
     @Override
     public void create(TagDTO tagDTO) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        Tag tag = Tag.builder()
+                .tagName(tagDTO.getTagName())
+                .description(tagDTO.getDescription())
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+        tagRepository.save(tag);
     }
 
     /**
@@ -54,7 +76,14 @@ public class TagServiceImpl implements TagService {
      */
     @Override
     public void update(Long tagId, TagDTO tagDTO) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        Tag tag = tagRepository.findById(tagId)
+                .orElseThrow(() -> new NotFoundException("要修改的标签不存在。"));
+
+        tag.setTagName(tagDTO.getTagName());
+        tag.setDescription(tagDTO.getDescription());
+        tag.setUpdatedAt(LocalDateTime.now());
+
+        tagRepository.save(tag);
     }
 
     /**
@@ -64,6 +93,19 @@ public class TagServiceImpl implements TagService {
      */
     @Override
     public void delete(Long tagId) {
-        throw new UnsupportedOperationException("Not implemented yet");
+        if (!tagRepository.existsById(tagId)) {
+            throw new NotFoundException("要删除的标签不存在。");
+        }
+        tagRepository.deleteById(tagId);
+    }
+
+    private TagVO toTagVO(Tag tag) {
+        return TagVO.builder()
+                .tagId(tag.getTagId())
+                .tagName(tag.getTagName())
+                .description(tag.getDescription())
+                .createdAt(tag.getCreatedAt())
+                .updatedAt(tag.getUpdatedAt())
+                .build();
     }
 }

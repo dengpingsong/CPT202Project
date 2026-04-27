@@ -1,7 +1,6 @@
 package com.cpt202.dto;
 
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
@@ -13,11 +12,10 @@ import lombok.Data;
 public class ProjectRequestCreateDTO {
 
     /** 目标项目主键。 */
-    @NotNull
+    @jakarta.validation.constraints.NotNull
     private Long projectId;
 
     /** 发起申请的学生主键。 */
-    @NotNull
     private Long studentId;
 
     /** 学生对该申请的志愿顺位。 */

@@ -1,5 +1,6 @@
 package com.cpt202.controller.student;
 
+import com.cpt202.context.BaseContext;
 import com.cpt202.dto.ProjectRequestCreateDTO;
 import com.cpt202.dto.StudentProjectRequestQueryDTO;
 import com.cpt202.result.Result;
@@ -23,11 +24,6 @@ public class StudentProjectRequestController {
 
     private final ProjectRequestService projectRequestService;
 
-    /**
-     * 构造器注入项目申请服务。
-     *
-     * @param projectRequestService 项目申请服务
-     */
     public StudentProjectRequestController(ProjectRequestService projectRequestService) {
         this.projectRequestService = projectRequestService;
     }
@@ -41,6 +37,7 @@ public class StudentProjectRequestController {
     @GetMapping
     @Operation(summary = "List student requests")
     public Result<List<ProjectRequestVO>> list(@Valid StudentProjectRequestQueryDTO queryDTO) {
+        queryDTO.setStudentId(BaseContext.getCurrentUserId());
         return Result.success(projectRequestService.listStudentRequests(queryDTO.getStudentId()));
     }
 
@@ -53,6 +50,7 @@ public class StudentProjectRequestController {
     @PostMapping
     @Operation(summary = "Submit a project request")
     public Result<Void> create(@Valid @RequestBody ProjectRequestCreateDTO projectRequestCreateDTO) {
+        projectRequestCreateDTO.setStudentId(BaseContext.getCurrentUserId());
         projectRequestService.create(projectRequestCreateDTO);
         return Result.success();
     }
@@ -67,8 +65,9 @@ public class StudentProjectRequestController {
     @PutMapping("/{requestId}/withdraw")
     @Operation(summary = "Withdraw a project request")
     public Result<Void> withdraw(@PathVariable Long requestId,
-                                 @RequestParam Long studentId) {
-        projectRequestService.withdraw(requestId, studentId);
+                                 @RequestParam(required = false) Long studentId) {
+        Long currentStudentId = BaseContext.getCurrentUserId();
+        projectRequestService.withdraw(requestId, currentStudentId);
         return Result.success();
     }
 }

@@ -41,6 +41,15 @@ public interface ProjectService {
     ProjectVO getProject(Long projectId);
 
     /**
+     * 查询教师本人名下的项目详情。
+     *
+     * @param projectId 项目主键
+     * @param teacherId 当前教师主键
+     * @return 项目展示对象
+     */
+    ProjectVO getOwnedProject(Long projectId, Long teacherId);
+
+    /**
      * 新增项目。
      *
      * @param projectDTO 项目新增参数

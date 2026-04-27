@@ -21,11 +21,6 @@ public class AdminUserController {
 
     private final UserAdminService userAdminService;
 
-    /**
-     * 构造器注入管理端用户服务。
-     *
-     * @param userAdminService 用户管理服务
-     */
     public AdminUserController(UserAdminService userAdminService) {
         this.userAdminService = userAdminService;
     }
@@ -47,6 +42,7 @@ public class AdminUserController {
      *
      * @param userId 用户主键
      * @param accountStatus 账号状态
+     * @param operatorId 操作人主键
      * @return 统一成功响应
      */
     @PutMapping("/{userId}/status")

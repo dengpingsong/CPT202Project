@@ -1,6 +1,9 @@
 package com.cpt202.handler;
 
 import com.cpt202.exception.BusinessException;
+import com.cpt202.exception.NotFoundException;
+import com.cpt202.exception.RuleViolationException;
+import com.cpt202.exception.UnauthorizedAccessException;
 import com.cpt202.result.Result;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -11,6 +14,21 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public Result<Void> handleBusinessException(BusinessException ex) {
+        return Result.error(ex.getMessage());
+    }
+
+    @ExceptionHandler(NotFoundException.class)
+    public Result<Void> handleNotFoundException(NotFoundException ex) {
+        return Result.error(ex.getMessage());
+    }
+
+    @ExceptionHandler(RuleViolationException.class)
+    public Result<Void> handleRuleViolationException(RuleViolationException ex) {
+        return Result.error(ex.getMessage());
+    }
+
+    @ExceptionHandler(UnauthorizedAccessException.class)
+    public Result<Void> handleUnauthorizedAccessException(UnauthorizedAccessException ex) {
         return Result.error(ex.getMessage());
     }
 

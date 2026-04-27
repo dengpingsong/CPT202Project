@@ -25,11 +25,6 @@ public class AdminCategoryController {
 
     private final CategoryService categoryService;
 
-    /**
-     * 构造器注入分类服务。
-     *
-     * @param categoryService 分类服务
-     */
     public AdminCategoryController(CategoryService categoryService) {
         this.categoryService = categoryService;
     }
@@ -50,6 +45,7 @@ public class AdminCategoryController {
      * 根据分类主键查询分类详情。
      *
      * @param categoryId 分类主键
+     * @param operatorId 操作人主键
      * @return 分类展示对象
      */
     @GetMapping("/{categoryId}")
@@ -63,6 +59,7 @@ public class AdminCategoryController {
      * 新增分类。
      *
      * @param categoryDTO 分类新增参数
+     * @param operatorId 操作人主键
      * @return 统一成功响应
      */
     @PostMapping
@@ -78,11 +75,13 @@ public class AdminCategoryController {
      *
      * @param categoryId 分类主键
      * @param categoryDTO 分类更新参数
+     * @param operatorId 操作人主键
      * @return 统一成功响应
      */
     @PutMapping("/{categoryId}")
     @Operation(summary = "Update a category")
-    public Result<Void> update(@PathVariable Long categoryId, @Valid @RequestBody CategoryDTO categoryDTO) {
+    public Result<Void> update(@PathVariable Long categoryId,
+                               @Valid @RequestBody CategoryDTO categoryDTO) {
         log.info("Update category: {}, payload: {}", categoryId, categoryDTO);
         categoryService.update(categoryId, categoryDTO);
         return Result.success();
@@ -92,6 +91,7 @@ public class AdminCategoryController {
      * 删除指定分类。
      *
      * @param categoryId 分类主键
+     * @param operatorId 操作人主键
      * @return 统一成功响应
      */
     @DeleteMapping("/{categoryId}")

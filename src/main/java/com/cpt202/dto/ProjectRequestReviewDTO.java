@@ -13,7 +13,6 @@ import lombok.Data;
 public class ProjectRequestReviewDTO {
 
     /** 审核该申请的教师主键。 */
-    @NotNull
     private Long teacherId;
 
     /** 审核后的申请状态。 */

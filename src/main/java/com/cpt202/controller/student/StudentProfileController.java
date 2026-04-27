@@ -1,5 +1,6 @@
 package com.cpt202.controller.student;
 
+import com.cpt202.context.BaseContext;
 import com.cpt202.dto.StudentProfileUpdateDTO;
 import com.cpt202.result.Result;
 import com.cpt202.service.ProfileService;
@@ -22,11 +23,6 @@ public class StudentProfileController {
 
     private final ProfileService profileService;
 
-    /**
-     * 构造器注入资料服务。
-     *
-     * @param profileService 资料服务
-     */
     public StudentProfileController(ProfileService profileService) {
         this.profileService = profileService;
     }
@@ -34,12 +30,12 @@ public class StudentProfileController {
     /**
      * 查询学生资料详情。
      *
-     * @param studentId 学生主键
      * @return 学生资料展示对象
      */
-    @GetMapping("/{studentId}")
-    @Operation(summary = "Get student profile")
-    public Result<StudentProfileVO> getById(@PathVariable Long studentId) {
+    @GetMapping("/me")
+    @Operation(summary = "Get current student profile")
+    public Result<StudentProfileVO> getMyProfile() {
+        Long studentId = BaseContext.getCurrentUserId();
         log.info("Get student profile: {}", studentId);
         return Result.success(profileService.getStudentProfile(studentId));
     }
@@ -47,14 +43,13 @@ public class StudentProfileController {
     /**
      * 修改学生资料。
      *
-     * @param studentId 学生主键
      * @param studentProfileUpdateDTO 学生资料更新参数
      * @return 统一成功响应
      */
-    @PutMapping("/{studentId}")
-    @Operation(summary = "Update student profile")
-    public Result<Void> update(@PathVariable Long studentId,
-                               @Valid @RequestBody StudentProfileUpdateDTO studentProfileUpdateDTO) {
+    @PutMapping("/me")
+    @Operation(summary = "Update current student profile")
+    public Result<Void> updateMyProfile(@Valid @RequestBody StudentProfileUpdateDTO studentProfileUpdateDTO) {
+        Long studentId = BaseContext.getCurrentUserId();
         log.info("Update student profile: {}, payload: {}", studentId, studentProfileUpdateDTO);
         profileService.updateStudentProfile(studentId, studentProfileUpdateDTO);
         return Result.success();

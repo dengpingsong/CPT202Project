@@ -1,7 +1,6 @@
 package com.cpt202.dto;
 
 import com.cpt202.model.entity.Project;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
@@ -13,7 +12,6 @@ import lombok.Data;
 public class TeacherProjectQueryDTO {
 
     /** 当前教师主键。 */
-    @NotNull
     private Long teacherId;
     /** 项目状态筛选条件，可选。 */
     private Project.ProjectStatus status;

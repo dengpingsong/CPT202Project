@@ -1,6 +1,5 @@
 package com.cpt202.dto;
 
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
@@ -12,6 +11,5 @@ import lombok.Data;
 public class StudentProjectRequestQueryDTO {
 
     /** 当前学生主键。 */
-    @NotNull
     private Long studentId;
 }

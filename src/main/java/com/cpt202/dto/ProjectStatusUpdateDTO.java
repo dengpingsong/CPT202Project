@@ -13,7 +13,6 @@ import lombok.Data;
 public class ProjectStatusUpdateDTO {
 
     /** 执行本次状态修改的教师主键。 */
-    @NotNull
     private Long teacherId;
 
     /** 目标项目状态。 */

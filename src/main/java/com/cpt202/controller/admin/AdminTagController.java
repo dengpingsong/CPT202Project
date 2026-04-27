@@ -24,11 +24,6 @@ public class AdminTagController {
 
     private final TagService tagService;
 
-    /**
-     * 构造器注入标签服务。
-     *
-     * @param tagService 标签服务
-     */
     public AdminTagController(TagService tagService) {
         this.tagService = tagService;
     }
@@ -49,6 +44,7 @@ public class AdminTagController {
      * 根据标签主键查询标签详情。
      *
      * @param tagId 标签主键
+     * @param operatorId 操作人主键
      * @return 标签展示对象
      */
     @GetMapping("/{tagId}")
@@ -62,6 +58,7 @@ public class AdminTagController {
      * 新增标签。
      *
      * @param tagDTO 标签新增参数
+     * @param operatorId 操作人主键
      * @return 统一成功响应
      */
     @PostMapping
@@ -77,11 +74,13 @@ public class AdminTagController {
      *
      * @param tagId 标签主键
      * @param tagDTO 标签更新参数
+     * @param operatorId 操作人主键
      * @return 统一成功响应
      */
     @PutMapping("/{tagId}")
     @Operation(summary = "Update a tag")
-    public Result<Void> update(@PathVariable Long tagId, @Valid @RequestBody TagDTO tagDTO) {
+    public Result<Void> update(@PathVariable Long tagId,
+                               @Valid @RequestBody TagDTO tagDTO) {
         log.info("Update tag: {}, payload: {}", tagId, tagDTO);
         tagService.update(tagId, tagDTO);
         return Result.success();
@@ -91,6 +90,7 @@ public class AdminTagController {
      * 删除标签。
      *
      * @param tagId 标签主键
+     * @param operatorId 操作人主键
      * @return 统一成功响应
      */
     @DeleteMapping("/{tagId}")
