@@ -53,31 +53,8 @@
         </header>
         
         <div class="panel">
-            <div class="grid">
-                <div class="outline-card">
-                    <h4>An online project selection system</h4>
-                    <p class="meta">Web 开发 / Spring Boot / Vue ...</p>
-                    <div style="flex-grow: 1;">
-                        <span class="status-pill status-available">Available - 正在招募 (2/3)</span>
-                    </div>
-                    <button class="btn-secondary" style="width: 100%;">查看申请配置</button>
-                </div>
-                <div class="outline-card">
-                    <h4>AI Chatbot for Education</h4>
-                    <p class="meta">人工智能 / 大语言模型 / GPT ...</p>
-                    <div style="flex-grow: 1;">
-                        <span class="status-pill status-available">Available - 正在招募 (1/2)</span>
-                    </div>
-                    <button class="btn-secondary" style="width: 100%;">查看申请配置</button>
-                </div>
-                <div class="outline-card">
-                    <h4>Campus Navigation App</h4>
-                    <p class="meta">移动开发 / GIS / React Native ...</p>
-                    <div style="flex-grow: 1;">
-                        <span class="status-pill status-unavailable">Closed - 已满员 (3/3)</span>
-                    </div>
-                    <button class="btn-secondary" style="width: 100%;">查看详情</button>
-                </div>
+            <div class="grid" id="projectsContainer">
+                <!-- 通过JS动态加载项目 -->
             </div>
         </div>
     </main>
@@ -97,6 +74,81 @@
             });
         }
     })();
+
+    document.addEventListener("DOMContentLoaded", async function () {
+        const token = localStorage.getItem("token") || "";
+        const userId = localStorage.getItem("userId") || "";
+        if (!token || !userId) {
+            alert("请先登录");
+            window.location.href = "../login/login.html";
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/teacher/projects?teacherId=${userId}`, {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+            const res = await response.json();
+            if (res.code === 1) {
+                renderProjects(res.data);
+            } else {
+                alert(res.msg || "获取项目列表失败");
+            }
+        } catch (error) {
+            console.error("Error fetching projects:", error);
+            alert("网络错误");
+        }
+    });
+
+    function renderProjects(projects) {
+        const container = document.getElementById("projectsContainer");
+        container.innerHTML = "";
+        
+        if (!projects || projects.length === 0) {
+            container.innerHTML = "<p>当前没有项目，请创建新项目。</p>";
+            return;
+        }
+
+        projects.forEach(project => {
+            const maxStudents = project.maxStudents || 0;
+            const currentAgreed = project.currentAgreedCount || 0;
+            
+            let isAvailable = false;
+            // projectStatus corresponds to Project.ProjectStatus enum, such as 'AVAILABLE', 'CLOSED', 'DRAFT'
+            if (project.projectStatus === "AVAILABLE" || project.projectStatus === 0) {
+                isAvailable = true;
+            }
+
+            const pillClass = isAvailable ? "status-available" : "status-unavailable";
+            const pillText = isAvailable ? `Available - 正在招募 (${currentAgreed}/${maxStudents})` : `Closed - 已满员 (${currentAgreed}/${maxStudents})`;
+            
+            // Collect tags from topicArea, requiredSkills
+            let tagsArray = [];
+            if (project.topicArea) tagsArray.push(project.topicArea);
+            if (project.requiredSkills) {
+                // If there are multiple skills separated by comma or space, just keep them as part of the string or split
+                tagsArray.push(project.requiredSkills);
+            }
+            const tagsText = tagsArray.length > 0 ? tagsArray.join(" / ") : "暂无分类";
+
+            const btnText = isAvailable ? "查看申请配置" : "查看详情";
+            
+            const card = document.createElement("div");
+            card.className = "outline-card";
+            card.innerHTML = `
+                <h4>${project.title}</h4>
+                <p class="meta">${tagsText}</p>
+                <div style="flex-grow: 1;">
+                    <span class="status-pill ${pillClass}">${pillText}</span>
+                </div>
+                <button class="btn-secondary" style="width: 100%;" onclick="location.href='request-detail.html?projectId=${project.projectId}'">${btnText}</button>
+            `;
+            container.appendChild(card);
+        });
+    }
 </script>
 </body>
 </html>

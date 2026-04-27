@@ -1,5 +1,6 @@
 package com.cpt202.service.impl;
 
+import com.cpt202.constant.MessageConstants;
 import com.cpt202.dto.LoginDTO;
 import com.cpt202.dto.RegisterUserDTO;
 import com.cpt202.exception.BusinessException;
@@ -11,9 +12,10 @@ import com.cpt202.repository.StudentProfileRepository;
 import com.cpt202.repository.TeacherProfileRepository;
 import com.cpt202.repository.UserRepository;
 import com.cpt202.service.AuthService;
-import com.cpt202.service.CallbackAuthService;
+import com.cpt202.service.JwtTokenService;
 import com.cpt202.vo.LoginVO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,7 +38,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final StudentProfileRepository studentProfileRepository;
     private final TeacherProfileRepository teacherProfileRepository;
-    private final CallbackAuthService callbackAuthService;
+    private final JwtTokenService jwtTokenService;
 
     /**
      * 注册新用户。
@@ -50,47 +52,34 @@ public class AuthServiceImpl implements AuthService {
         validateRegisterPayload(registerUserDTO);
 
         if (userRepository.existsByUsername(registerUserDTO.getUsername())) {
-            throw new RuleViolationException("用户名已存在，请更换后重试。");
+            throw new RuleViolationException(MessageConstants.USERNAME_EXISTS);
         }
         if (userRepository.existsByEmail(registerUserDTO.getEmail())) {
-            throw new RuleViolationException("邮箱已被注册，请更换后重试。");
+            throw new RuleViolationException(MessageConstants.EMAIL_EXISTS);
         }
 
-        User user = User.builder()
-                .username(registerUserDTO.getUsername())
-                .passwordHash(hashPassword(registerUserDTO.getPassword()))
-                .email(registerUserDTO.getEmail())
-                .fullName(registerUserDTO.getFullName())
-                .role(registerUserDTO.getRole())
-                .accountStatus(DEFAULT_ACCOUNT_STATUS)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
+        LocalDateTime now = LocalDateTime.now();
+        User user = new User();
+        BeanUtils.copyProperties(registerUserDTO, user, "password");
+        user.setPasswordHash(hashPassword(registerUserDTO.getPassword()));
+        user.setAccountStatus(DEFAULT_ACCOUNT_STATUS);
+        user.setCreatedAt(now);
+        user.setUpdatedAt(now);
 
         user = userRepository.save(user);
 
         if (user.getRole() == User.UserRole.STUDENT) {
-            StudentProfile studentProfile = StudentProfile.builder()
-                    .studentNo(registerUserDTO.getStudentNo())
-                    .programme(registerUserDTO.getProgramme())
-                    .enrollmentDate(registerUserDTO.getEnrollmentDate())
-                    .phone(registerUserDTO.getPhone())
-                    .interests(registerUserDTO.getInterests())
-                    .updatedAt(LocalDateTime.now())
-                    .user(user)
-                    .build();
+            StudentProfile studentProfile = new StudentProfile();
+            BeanUtils.copyProperties(registerUserDTO, studentProfile);
+            studentProfile.setUpdatedAt(now);
+            studentProfile.setUser(user);
             studentProfileRepository.save(studentProfile);
             user.setStudentProfile(studentProfile);
         } else if (user.getRole() == User.UserRole.TEACHER) {
-            TeacherProfile teacherProfile = TeacherProfile.builder()
-                    .staffNo(registerUserDTO.getStaffNo())
-                    .department(registerUserDTO.getDepartment())
-                    .title(registerUserDTO.getTitle())
-                    .researchArea(registerUserDTO.getResearchArea())
-                    .office(registerUserDTO.getOffice())
-                    .updatedAt(LocalDateTime.now())
-                    .user(user)
-                    .build();
+            TeacherProfile teacherProfile = new TeacherProfile();
+            BeanUtils.copyProperties(registerUserDTO, teacherProfile);
+            teacherProfile.setUpdatedAt(now);
+            teacherProfile.setUser(user);
             teacherProfileRepository.save(teacherProfile);
             user.setTeacherProfile(teacherProfile);
         }
@@ -107,14 +96,14 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public LoginVO login(LoginDTO loginDTO) {
         User user = userRepository.findByUsername(loginDTO.getUsername())
-                .orElseThrow(() -> new BusinessException("用户名或密码错误。"));
+                .orElseThrow(() -> new BusinessException(MessageConstants.INVALID_CREDENTIALS));
 
         if (!user.getPasswordHash().equals(hashPassword(loginDTO.getPassword()))) {
-            throw new BusinessException("用户名或密码错误。" );
+            throw new BusinessException(MessageConstants.INVALID_CREDENTIALS);
         }
 
         if (!DEFAULT_ACCOUNT_STATUS.equalsIgnoreCase(user.getAccountStatus())) {
-            throw new BusinessException("账户当前不可用，请联系管理员。" );
+            throw new BusinessException(MessageConstants.ACCOUNT_UNAVAILABLE_CONTACT_ADMIN);
         }
 
         return buildLoginVO(user);
@@ -122,47 +111,39 @@ public class AuthServiceImpl implements AuthService {
 
     private void validateRegisterPayload(RegisterUserDTO dto) {
         if (dto.getRole() == null) {
-            throw new RuleViolationException("注册角色不能为空。");
-        }
-
-        if (dto.getRole() == User.UserRole.ADMIN) {
-            throw new RuleViolationException("管理员账号不能通过公共注册接口创建。");
+            throw new RuleViolationException(MessageConstants.REGISTER_ROLE_REQUIRED);
         }
 
         if (dto.getRole() == User.UserRole.STUDENT) {
             if (dto.getStudentNo() == null || dto.getStudentNo().isBlank()) {
-                throw new RuleViolationException("学生学号不能为空。");
+                throw new RuleViolationException(MessageConstants.STUDENT_NO_REQUIRED);
             }
             if (dto.getProgramme() == null || dto.getProgramme().isBlank()) {
-                throw new RuleViolationException("学生专业不能为空。");
+                throw new RuleViolationException(MessageConstants.STUDENT_PROGRAMME_REQUIRED);
             }
             if (dto.getEnrollmentDate() == null) {
-                throw new RuleViolationException("入学日期不能为空。");
+                throw new RuleViolationException(MessageConstants.STUDENT_ENROLLMENT_DATE_REQUIRED);
             }
         }
 
         if (dto.getRole() == User.UserRole.TEACHER) {
             if (dto.getStaffNo() == null || dto.getStaffNo().isBlank()) {
-                throw new RuleViolationException("教师工号不能为空。");
+                throw new RuleViolationException(MessageConstants.TEACHER_STAFF_NO_REQUIRED);
             }
             if (dto.getDepartment() == null || dto.getDepartment().isBlank()) {
-                throw new RuleViolationException("教师院系不能为空。");
+                throw new RuleViolationException(MessageConstants.TEACHER_DEPARTMENT_REQUIRED);
             }
             if (dto.getTitle() == null || dto.getTitle().isBlank()) {
-                throw new RuleViolationException("教师职称不能为空。");
+                throw new RuleViolationException(MessageConstants.TEACHER_TITLE_REQUIRED);
             }
         }
     }
 
     private LoginVO buildLoginVO(User user) {
-        return LoginVO.builder()
-                .userId(user.getUserId())
-                .username(user.getUsername())
-                .fullName(user.getFullName())
-                .role(user.getRole())
-                .accountStatus(user.getAccountStatus())
-                .token(callbackAuthService.generateToken(user))
-                .build();
+        LoginVO loginVO = new LoginVO();
+        BeanUtils.copyProperties(user, loginVO);
+        loginVO.setToken(jwtTokenService.generateToken(user));
+        return loginVO;
     }
 
     private String hashPassword(String password) {

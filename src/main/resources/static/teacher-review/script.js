@@ -103,7 +103,7 @@ async function submitProject() {
     // 教师身份校验
     // if (!token || role !== "TEACHER" || !userId) {
     //     alert("请先以教师身份登录");
-    //     window.location.href = "/login.html";
+    //     window.location.href = "/login/login.html";
     //     return;
     // }
 

@@ -1,7 +1,6 @@
 package com.cpt202.dto;
 
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.util.List;
@@ -13,10 +12,6 @@ import java.util.List;
  */
 @Data
 public class ProjectTagBindDTO {
-
-    /** 发起本次绑定操作的教师主键。 */
-    @NotNull
-    private Long teacherId;
 
     /** 需要绑定到项目上的标签主键集合，不能为空。 */
     @NotEmpty

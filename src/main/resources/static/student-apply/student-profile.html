@@ -446,7 +446,7 @@
                 <div class="form-section">
                     <div class="section-title">基本信息</div>
                     <div class="form-row">
-                        <span class="form-label"><i class="bi bi-person"></i> 姓名</span>
+                        <span class="form-label"><i class="bi bi-person"></i> 姓名(real name)</span>
                         <input type="text" class="form-control" id="fullName" placeholder="未填写">
                     </div>
                     <div class="form-row">
@@ -503,7 +503,7 @@
         // ---------- 认证检查 ----------
         const token = localStorage.getItem("token");
         if (!token) {
-            window.location.href = "../login.html";
+            window.location.href = "../login/login.html";
             return;
         }
 
@@ -647,7 +647,7 @@
         // ---------- 退出登录 ----------
         function handleLogout() {
             localStorage.clear();
-            window.location.href = "../login.html";
+            window.location.href = "../login/login.html";
         }
         logoutBtn.addEventListener('click', handleLogout);
 
