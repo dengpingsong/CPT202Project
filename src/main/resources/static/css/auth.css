@@ -251,6 +251,10 @@ body.login-flow {
     gap: 10px;
 }
 
+.register-form .field-group.hidden {
+    display: none;
+}
+
 .form-field {
     min-width: 0;
 }
