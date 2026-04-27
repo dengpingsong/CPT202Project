@@ -180,6 +180,18 @@
         authOrbit.classList.toggle("hidden", panelId !== "loginPanel");
     }
 
+    function showInitialPanel() {
+        const hashPanels = {
+            "#register": "registerPanel",
+            "#reset": "resetPanel",
+            "#forgot-password": "resetPanel"
+        };
+        const panelId = hashPanels[window.location.hash];
+        if (panelId) {
+            showPanel(panelId);
+        }
+    }
+
     panelButtons.forEach(button => {
         button.addEventListener("click", () => showPanel(button.dataset.panel));
     });
@@ -199,6 +211,7 @@
 
     registerRole.addEventListener("change", toggleRegisterFields);
     toggleRegisterFields();
+    showInitialPanel();
 
     function redirectByRole(role) {
         // 根据后端返回的 role 跳到不同页面

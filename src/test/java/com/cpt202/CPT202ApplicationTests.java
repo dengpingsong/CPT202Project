@@ -45,10 +45,10 @@ class CPT202ApplicationTests {
 
     @ParameterizedTest
     @CsvSource({
-            "/,/index.html",
-            "/auth/login,/login.html",
-            "/auth/register,/register.html",
-            "/auth/forgot-password,/forgot-password.html"
+            "/,/login/login.html",
+            "/auth/login,/login/login.html",
+            "/auth/register,/login/login.html#register",
+            "/auth/forgot-password,/login/login.html#reset"
     })
     void friendlyRoutesRedirectToExpectedPages(String requestPath, String redirectTarget) throws Exception {
         mockMvc.perform(get(requestPath))
@@ -58,10 +58,8 @@ class CPT202ApplicationTests {
 
     @ParameterizedTest
     @ValueSource(strings = {
-            "/index.html",
-            "/login.html",
-            "/register.html",
-            "/forgot-password.html",
+            "/login/login.html",
+            "/login/register.html",
             "/doc.html"
     })
     void staticPagesAndDocumentationUiAreReachable(String requestPath) throws Exception {
