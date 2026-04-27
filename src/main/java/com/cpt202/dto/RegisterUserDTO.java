@@ -6,6 +6,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.time.LocalDate;
+
 /**
  * 用户注册参数。
  * <p>
@@ -40,8 +42,8 @@ public class RegisterUserDTO {
     private String studentNo;
     /** 专业。 */
     private String programme;
-    /** 学年。 */
-    private Integer academicYear;
+    /** 入学日期。 */
+    private LocalDate enrollmentDate;
     /** 联系电话。 */
     private String phone;
     /** 兴趣方向。 */

@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <title>个人设置 · 学生选题系统</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        /* ----- 全局变量 & 基础样式 (完全沿用 dashboard 设计语言) ----- */
+        :root {
+            --bg: #f4f3f7;
+            --deep: #5a2b98;
+            --mid: #7b4fbd;
+            --panel: #ffffff;
+            --text: #1c1b33;
+            --muted: #6b6b82;
+            --accent: #24b3ff;
+            --orange: #f6a63d;
+            --green: #2fc5a8;
+            --border: rgba(28, 27, 51, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+        }
+
+        /* 经典双列布局 */
+        .layout {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            min-height: 100vh;
+            transition: grid-template-columns .3s ease;
+        }
+
+        .layout.collapsed {
+            grid-template-columns: 80px 1fr;
+        }
+
+        /* ---------- 侧边栏 (与 dashboard 完全一致) ---------- */
+        .sidebar {
+            background: linear-gradient(180deg, #3d1566, #631e97);
+            padding: 24px 16px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sidebar::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top, rgba(255, 255, 255, 0.2), transparent 60%);
+            pointer-events: none;
+        }
+
+        .toggle-wrap {
+            width: 48px;
+            height: 48px;
+            border-radius: 16px;
+            margin-bottom: 4px;
+        }
+
+        .toggle {
+            width: 100%;
+            height: 100%;
+            border-radius: 16px;
+            border: none;
+            background: rgba(255, 255, 255, 0.18);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background .3s ease;
+            position: relative;
+        }
+
+        .toggle span,
+        .toggle span::before,
+        .toggle span::after {
+            display: block;
+            width: 22px;
+            height: 2px;
+            background: white;
+            transition: all .3s ease;
+            position: absolute;
+        }
+
+        .toggle span {
+            background: transparent;
+        }
+
+        .toggle span::before {
+            content: "";
+            top: 0;
+            transform: rotate(45deg);
+        }
+
+        .toggle span::after {
+            content: "";
+            top: 0;
+            transform: rotate(-45deg);
+        }
+
+        .layout.collapsed .toggle span {
+            background: white;
+        }
+
+        .layout.collapsed .toggle span::before {
+            top: -8px;
+            transform: none;
+        }
+
+        .layout.collapsed .toggle span::after {
+            top: 8px;
+            transform: none;
+        }
+
+        .nav-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .nav-group a,
+        .nav-group button {
+            border: none;
+            background: transparent;
+            color: white;
+            font-size: 0.95rem;
+            padding: 10px 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background .2s, padding .2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: flex-start;
+            text-decoration: none;
+            font-weight: 400;
+            font-family: inherit;
+        }
+
+        .nav-group a.active,
+        .nav-group button.active,
+        .nav-group a:hover,
+        .nav-group button:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .nav-icon {
+            font-size: 1.2rem;
+            width: 28px;
+            text-align: center;
+        }
+
+        .nav-label {
+            transition: opacity .3s ease;
+            white-space: nowrap;
+        }
+
+        .layout.collapsed .nav-group a,
+        .layout.collapsed .nav-group button {
+            justify-content: center;
+            padding: 12px;
+        }
+
+        .layout.collapsed .nav-label {
+            opacity: 0;
+            width: 0;
+            overflow: hidden;
+        }
+
+        /* ---------- 主内容区域 ---------- */
+        .main {
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+
+        .back-link {
+            color: var(--deep);
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 40px;
+            background: rgba(90, 43, 152, 0.08);
+            transition: background 0.2s;
+            font-size: 0.95rem;
+            border: 1px solid rgba(90, 43, 152, 0.15);
+        }
+
+        .back-link:hover {
+            background: rgba(90, 43, 152, 0.18);
+        }
+
+        .page-header h1 {
+            font-weight: 600;
+            font-size: 1.9rem;
+            color: var(--text);
+            margin: 0;
+            letter-spacing: -0.02em;
+        }
+
+        /* 卡片面板 */
+        .content-panel {
+            background: var(--panel);
+            border-radius: 28px;
+            box-shadow: 0 20px 60px rgba(21, 16, 45, 0.12);
+            padding: 32px 36px;
+            border: 1px solid var(--border);
+            max-width: 700px;
+        }
+
+        /* 表单样式 */
+        .settings-form {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .form-section {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .section-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--deep);
+            margin-bottom: 4px;
+            border-left: 4px solid var(--deep);
+            padding-left: 14px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .form-label {
+            font-weight: 500;
+            color: var(--text);
+            font-size: 0.95rem;
+        }
+
+        .form-label i {
+            color: var(--muted);
+            margin-right: 6px;
+            font-size: 1rem;
+        }
+
+        .form-control {
+            padding: 12px 16px;
+            border: 1.5px solid #d9d2e8;
+            border-radius: 16px;
+            font-size: 0.95rem;
+            background: white;
+            transition: border 0.2s, box-shadow 0.2s;
+            font-family: inherit;
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--deep);
+            box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.1);
+        }
+
+        /* 占位文本样式 (灰色未填写) */
+        .form-control.placeholder-shown {
+            color: var(--muted);
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 16px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(156, 156, 178, 0.25);
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            background: var(--deep);
+            border: none;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--deep);
+        }
+
+        .btn-primary:hover {
+            background: #4a2380;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 18px rgba(90, 43, 152, 0.25);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1.5px solid var(--muted);
+            color: var(--text);
+            padding: 12px 28px;
+            border-radius: 40px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--deep);
+            color: var(--deep);
+            background: rgba(90, 43, 152, 0.03);
+        }
+
+        /* 退出登录按钮专用样式 (红色边框) */
+        .btn-logout {
+            background: transparent;
+            border: 1.5px solid #dc3545;
+            color: #dc3545;
+            padding: 12px 28px;
+            border-radius: 40px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: auto;
+        }
+
+        .btn-logout:hover {
+            background-color: rgba(220, 53, 69, 0.05);
+            border-color: #b02a37;
+            color: #b02a37;
+        }
+
+        /* 响应式 */
+        @media (max-width: 960px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                position: relative;
+                flex-direction: row;
+                gap: 8px;
+                padding: 12px;
+            }
+            .sidebar::after { display: none; }
+            .layout.collapsed {
+                grid-template-columns: 1fr;
+            }
+            .nav-group a,
+            .nav-group button {
+                justify-content: flex-start;
+            }
+            .form-row {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+            .content-panel {
+                padding: 24px;
+            }
+            .btn-logout {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="layout" id="layout">
+    <!-- 侧边栏 (高亮“个人设置”) -->
+    <aside class="sidebar" id="sidebar">
+        <div class="toggle-wrap">
+            <button class="toggle" id="toggleSidebar" aria-label="切换菜单">
+                <span></span>
+            </button>
+        </div>
+        <div class="nav-group">
+            <a href="student-dashboard.html">
+                <i class="bi bi-kanban nav-icon"></i>
+                <span class="nav-label">申请状态</span>
+            </a>
+            <a href="student-project-search-list.html">
+                <i class="bi bi-search nav-icon"></i>
+                <span class="nav-label">搜索项目</span>
+            </a>
+            <a href="student-request-history.html">
+                <i class="bi bi-clock-history nav-icon"></i>
+                <span class="nav-label">请求历史</span>
+            </a>
+            <a href="student-notification.html">
+                <i class="bi bi-chat-dots nav-icon"></i>
+                <span class="nav-label">消息/通知</span>
+            </a>
+            <a href="#" class="active">
+                <i class="bi bi-person-gear nav-icon"></i>
+                <span class="nav-label">个人设置</span>
+            </a>
+        </div>
+    </aside>
+
+    <main class="main">
+        <div class="page-header">
+            <a href="student-dashboard.html" class="back-link">
+                <i class="bi bi-arrow-left"></i> 返回工作台
+            </a>
+            <h1>⚙️ 个人设置</h1>
+        </div>
+
+        <div class="content-panel">
+            <form class="settings-form" id="profileForm">
+                <!-- 基本信息 -->
+                <div class="form-section">
+                    <div class="section-title">基本信息</div>
+                    <div class="form-row">
+                        <span class="form-label"><i class="bi bi-person"></i> 姓名(real name)</span>
+                        <input type="text" class="form-control" id="fullName" placeholder="未填写">
+                    </div>
+                    <div class="form-row">
+                        <span class="form-label"><i class="bi bi-upc-scan"></i> 学号</span>
+                        <input type="text" class="form-control" id="studentNo" placeholder="未填写" disabled>
+                        <small style="color: var(--muted); margin-left: 12px;">学号不可修改</small>
+                    </div>
+                    <div class="form-row">
+                        <span class="form-label"><i class="bi bi-envelope"></i> 邮箱</span>
+                        <input type="email" class="form-control" id="email" placeholder="未填写">
+                    </div>
+                    <div class="form-row">
+                        <span class="form-label"><i class="bi bi-book"></i> 专业</span>
+                        <input type="text" class="form-control" id="programme" placeholder="未填写">
+                    </div>
+                    <div class="form-row">
+                        <span class="form-label"><i class="bi bi-calendar"></i> 入学日期</span>
+                        <input type="date" class="form-control" id="enrollmentDate">
+                    </div>
+                    <div class="form-row">
+                        <span class="form-label"><i class="bi bi-phone"></i> 手机号</span>
+                        <input type="tel" class="form-control" id="phone" placeholder="未填写">
+                    </div>
+                    <div class="form-row">
+                        <span class="form-label"><i class="bi bi-heart"></i> 兴趣方向</span>
+                        <input type="text" class="form-control" id="interests" placeholder="例如：机器学习、Web开发">
+                    </div>
+                </div>
+
+                <!-- 操作按钮（包含退出登录） -->
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary">
+                        <i class="bi bi-check-lg"></i> 保存更改
+                    </button>
+                    <button type="button" class="btn-secondary" id="clearBtn">
+                        <i class="bi bi-eraser"></i> 清空信息
+                    </button>
+                    <button type="button" class="btn-logout" id="logoutBtn">
+                        <i class="bi bi-box-arrow-right"></i> 退出登录
+                    </button>
+                    <span style="flex:1; text-align:right; font-size:0.8rem; color:var(--muted);">
+                        <i class="bi bi-shield-check"></i> 信息加密传输
+                    </span>
+                </div>
+            </form>
+        </div>
+    </main>
+</div>
+
+<script>
+    (function() {
+        "use strict";
+
+        // ---------- 认证检查 ----------
+        const token = localStorage.getItem("token");
+        if (!token) {
+            window.location.href = "../login/login.html";
+            return;
+        }
+
+        // ---------- API 配置 ----------
+        const API_BASE = "/api/student/profile/me";   // 根据实际接口调整
+
+        const profileForm = document.getElementById('profileForm');
+        const clearBtn = document.getElementById('clearBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        // 获取输入框引用（与新增字段对应）
+        const inputs = {
+            fullName: document.getElementById('fullName'),
+            studentNo: document.getElementById('studentNo'),
+            email: document.getElementById('email'),
+            programme: document.getElementById('programme'),
+            enrollmentDate: document.getElementById('enrollmentDate'),
+            phone: document.getElementById('phone'),
+            interests: document.getElementById('interests')
+        };
+
+        // ---------- 从后端加载当前学生信息 ----------
+        async function fetchProfile() {
+            try {
+                const res = await fetch(API_BASE, {
+                    method: "GET",
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+                const data = await res.json();
+                if (data.code === 1 && data.data) {
+                    const profile = data.data;
+                    inputs.fullName.value = profile.fullName || "";
+                    inputs.studentNo.value = profile.studentNo || "";
+                    inputs.email.value = profile.email || "";
+                    inputs.programme.value = profile.programme || "";
+                    // 日期格式处理：后端可能返回 ISO 字符串，截取 yyyy-MM-dd 部分
+                    if (profile.enrollmentDate) {
+                        const dateStr = profile.enrollmentDate.split('T')[0];
+                        inputs.enrollmentDate.value = dateStr;
+                    } else {
+                        inputs.enrollmentDate.value = "";
+                    }
+                    inputs.phone.value = profile.phone || "";
+                    inputs.interests.value = profile.interests || "";
+                } else if (data.code === 401) {
+                    handleLogout();
+                } else {
+                    console.warn("获取信息失败: " + (data.message || "未知错误"));
+                }
+            } catch (err) {
+                console.error("网络错误", err);
+            }
+        }
+
+        fetchProfile();
+
+        // ---------- 清空信息按钮（仅清空可编辑字段） ----------
+        clearBtn.addEventListener('click', () => {
+            inputs.fullName.value = '';
+            inputs.email.value = '';
+            inputs.programme.value = '';
+            inputs.enrollmentDate.value = '';
+            inputs.phone.value = '';
+            inputs.interests.value = '';
+        });
+
+        // ---------- 表单提交：保存修改到后端 ----------
+        profileForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // 1. 姓名非空校验
+            const fullNameVal = inputs.fullName.value.trim();
+            if (!fullNameVal) {
+                alert("姓名不能为空，请填写。");
+                return;
+            }
+
+            // 2. 邮箱非空校验
+            const emailVal = inputs.email.value.trim();
+            if (!emailVal) {
+                alert("邮箱不能为空，请填写。");
+                return;
+            }
+
+            // 3. 邮箱格式校验（简单的正则）
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailPattern.test(emailVal)) {
+                alert("邮箱格式不正确，请检查后重新输入。");
+                return;
+            }
+
+            const saveBtn = profileForm.querySelector('button[type="submit"]');
+            const originalText = saveBtn.innerHTML;
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> 保存中...';
+
+
+
+            // 构建请求体，严格匹配 StudentProfileUpdateDTO 字段
+            const payload = {
+                fullName: inputs.fullName.value.trim(),
+                email: inputs.email.value.trim(),
+                programme: inputs.programme.value.trim(),
+                enrollmentDate: inputs.enrollmentDate.value || null, // 空字符串后端应处理为 null
+                phone: inputs.phone.value.trim(),
+                interests: inputs.interests.value.trim()
+            };
+
+            try {
+                const res = await fetch(API_BASE, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.code === 1) {
+                    alert("✅ 个人设置已保存");
+                    // 更新 localStorage 中的姓名
+                    if (payload.fullName) {
+                        localStorage.setItem("fullName", payload.fullName);
+                    }
+                } else if (data.code === 401) {
+                    handleLogout();
+                } else {
+                    alert("保存失败: " + (data.message || "未知错误"));
+                }
+            } catch (err) {
+                console.error(err);
+                alert("网络错误，请稍后重试");
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
+            }
+        });
+
+        // ---------- 退出登录 ----------
+        function handleLogout() {
+            localStorage.clear();
+            window.location.href = "../login/login.html";
+        }
+        logoutBtn.addEventListener('click', handleLogout);
+
+        // ---------- 侧边栏折叠 ----------
+        const layout = document.getElementById("layout");
+        const toggle = document.getElementById("toggleSidebar");
+        let isCollapsed = false;
+        toggle.addEventListener("click", () => {
+            isCollapsed = !isCollapsed;
+            layout.classList.toggle("collapsed", isCollapsed);
+        });
+
+        // 输入框 placeholder 颜色
+        const style = document.createElement('style');
+        style.textContent = `
+            .form-control::placeholder {
+                color: var(--muted);
+                opacity: 0.7;
+            }
+        `;
+        document.head.appendChild(style);
+    })();
+</script>
+</body>
+</html>

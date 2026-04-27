@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spring Boot 静态资源规则参考</title>
+  <style>
+    body { font-family: "Segoe UI", Arial, sans-serif; max-width: 860px; margin: 40px auto; padding: 0 24px; color: #222; }
+    h1 { font-size: 1.6rem; border-bottom: 2px solid #4a90e2; padding-bottom: 8px; }
+    h2 { font-size: 1.15rem; margin-top: 2rem; color: #333; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: left; font-size: 0.92rem; }
+    th { background: #f0f4fa; font-weight: 600; }
+    pre { background: #f6f8fa; border: 1px solid #ddd; border-radius: 4px; padding: 14px; overflow-x: auto; font-size: 0.88rem; line-height: 1.6; }
+    .quote { background: #fff8e1; border-left: 4px solid #f5a623; padding: 10px 16px; margin: 12px 0; font-style: italic; font-size: 0.93rem; }
+    .ref { font-size: 0.85rem; color: #555; margin-top: 2rem; border-top: 1px solid #eee; padding-top: 12px; }
+    .ref a { color: #4a90e2; }
+    code { background: #f0f0f0; padding: 1px 5px; border-radius: 3px; font-size: 0.88em; }
+    .tag-good { color: #2e7d32; font-weight: bold; }
+    .tag-warn { color: #b26a00; }
+    .tag-avoid { color: #c62828; }
+  </style>
+</head>
+<body>
+
+<h1>Spring Boot 静态资源目录规则</h1>
+
+<div class="quote">
+  "By default, Spring Boot serves static content from a directory called
+  <code>/static</code> (or <code>/public</code> or <code>/resources</code> or
+  <code>/META-INF/resources</code>) <strong>in the classpath</strong>."
+  <br /><br />
+  — Spring Boot Reference Documentation · Static Content
+</div>
+
+<h2>1. 为什么是 <code>src/main/resources/</code> 下？</h2>
+<p>
+  关键词是 <strong>"in the classpath"</strong>。Maven 标准布局规定：
+</p>
+<pre>src/main/resources/  →  编译/打包后放入 JAR 的 classpath 根路径
+src/main/java/       →  编译后的 .class 文件放入 classpath 根路径</pre>
+<p>因此映射关系为：</p>
+<pre>src/main/resources/static/   →  classpath:/static/   →  HTTP 可访问 ✓
+src/main/resources/public/   →  classpath:/public/   →  HTTP 可访问 ✓
+src/main/resources/data.sql  →  classpath:/data.sql  →  HTTP 不可访问 ✗</pre>
+<p>
+  <code>src/main/</code> 本身不是 classpath；<code>src/main/webapp/</code>
+  仅在 WAR 打包时有效，JAR 部署请勿使用（官方文档 TIP 明确说明）。
+</p>
+
+<h2>2. 四个目录的行业惯例</h2>
+<table>
+  <thead>
+    <tr>
+      <th>目录</th>
+      <th>访问路径</th>
+      <th>行业用途</th>
+      <th>推荐程度</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>static/</code></td>
+      <td><code>/**</code></td>
+      <td>主力目录，绝大多数项目只用这一个</td>
+      <td class="tag-good">⭐ 首选</td>
+    </tr>
+    <tr>
+      <td><code>public/</code></td>
+      <td><code>/**</code></td>
+      <td>完全公开资源：<code>robots.txt</code>、<code>favicon.ico</code>、登录页（Spring Security 白名单语义更清晰）</td>
+      <td class="tag-good">可选</td>
+    </tr>
+    <tr>
+      <td><code>resources/</code></td>
+      <td><code>/**</code></td>
+      <td>历史遗留，与 Maven resources 概念同名，容易混淆，几乎不用</td>
+      <td class="tag-warn">不推荐</td>
+    </tr>
+    <tr>
+      <td><code>META-INF/resources/</code></td>
+      <td><code>/**</code></td>
+      <td>JAR 包作者专用（Knife4j / Webjars 把 UI 资源打进依赖 JAR 时放这里）</td>
+      <td class="tag-avoid">业务代码勿用</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>3. 主流做法对比</h2>
+
+<h3>方案 A：只用 <code>static/</code>（最常见）</h3>
+<pre>static/
+├── css/
+├── js/
+├── images/
+├── index.html
+├── favicon.ico
+└── robots.txt</pre>
+<p>99% 的 Spring Boot 项目只用 <code>static/</code>，其余三个目录留空或不创建。</p>
+
+<h3>方案 B：<code>static/</code> + <code>public/</code> 按语义区分（适合有权限控制的项目）</h3>
+<pre>static/             ← 需登录后才能访问的页面
+├── dashboard.html
+├── app.js
+└── style.css
+
+public/             ← 完全公开、无需认证的资源
+├── favicon.ico
+├── robots.txt
+├── login.html
+└── register.html</pre>
+<p>配合 Spring Security 白名单配置语义更清晰：</p>
+<pre>http.authorizeHttpRequests(auth -> auth
+    .requestMatchers("/public/**").permitAll()
+    .anyRequest().authenticated()
+);</pre>
+
+<h3>方案 C：<code>META-INF/resources/</code>（库作者专用）</h3>
+<p>普通业务开发者<strong>不应手动</strong>往这里放文件。这是给打包成 JAR 的前端库使用的，例如 Knife4j、Bootstrap Webjars。</p>
+
+<h2>4. 本项目建议</h2>
+<p>
+  本项目所有静态文件均位于 <code>static/</code>，这是<strong>正确且主流的做法</strong>。
+  若后续引入 Spring Security，可将登录/注册/忘记密码页移至 <code>public/</code>，
+  使权限白名单配置的语义更直观。
+</p>
+
+<div class="ref">
+  <strong>参考文献</strong><br />
+  [1] Spring Boot Reference Documentation — Static Content<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;<a href="https://docs.spring.io/spring-boot/reference/web/servlet.html#web.servlet.spring-mvc.static-content" target="_blank">
+    https://docs.spring.io/spring-boot/reference/web/servlet.html#web.servlet.spring-mvc.static-content
+  </a><br /><br />
+  [2] Maven Standard Directory Layout<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;<a href="https://maven.apache.org/guides/introduction/introduction-to-the-standard-directory-layout.html" target="_blank">
+    https://maven.apache.org/guides/introduction/introduction-to-the-standard-directory-layout.html
+  </a><br /><br />
+  [3] Spring Boot Reference — Embedded Web Servers / JAR vs WAR<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;<a href="https://docs.spring.io/spring-boot/reference/web/servlet.html#web.servlet.embedded-container" target="_blank">
+    https://docs.spring.io/spring-boot/reference/web/servlet.html#web.servlet.embedded-container
+  </a>
+</div>
+
+</body>
+</html>

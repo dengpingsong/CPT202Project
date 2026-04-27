@@ -1,15 +1,13 @@
 package com.cpt202.controller.student;
 
+import com.cpt202.context.BaseContext;
 import com.cpt202.result.Result;
 import com.cpt202.service.HistoryService;
 import com.cpt202.vo.RequestStatusHistoryVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -25,11 +23,6 @@ public class StudentRequestHistoryController {
 
     private final HistoryService historyService;
 
-    /**
-     * 构造器注入历史记录服务。
-     *
-     * @param historyService 历史记录服务
-     */
     public StudentRequestHistoryController(HistoryService historyService) {
         this.historyService = historyService;
     }
@@ -44,6 +37,6 @@ public class StudentRequestHistoryController {
     @Operation(summary = "Get request status history")
     public Result<List<RequestStatusHistoryVO>> getRequestHistory(@PathVariable Long requestId) {
         log.info("Get request history: {}", requestId);
-        return Result.success(historyService.getRequestHistory(requestId));
+        return Result.success(historyService.getRequestHistory(requestId, BaseContext.getCurrentUserId()));
     }
 }

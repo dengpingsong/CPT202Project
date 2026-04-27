@@ -24,11 +24,6 @@ public class AdminTagController {
 
     private final TagService tagService;
 
-    /**
-     * 构造器注入标签服务。
-     *
-     * @param tagService 标签服务
-     */
     public AdminTagController(TagService tagService) {
         this.tagService = tagService;
     }
@@ -81,7 +76,8 @@ public class AdminTagController {
      */
     @PutMapping("/{tagId}")
     @Operation(summary = "Update a tag")
-    public Result<Void> update(@PathVariable Long tagId, @Valid @RequestBody TagDTO tagDTO) {
+    public Result<Void> update(@PathVariable Long tagId,
+                               @Valid @RequestBody TagDTO tagDTO) {
         log.info("Update tag: {}, payload: {}", tagId, tagDTO);
         tagService.update(tagId, tagDTO);
         return Result.success();

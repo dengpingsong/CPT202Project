@@ -21,11 +21,6 @@ public class AdminUserController {
 
     private final UserAdminService userAdminService;
 
-    /**
-     * 构造器注入管理端用户服务。
-     *
-     * @param userAdminService 用户管理服务
-     */
     public AdminUserController(UserAdminService userAdminService) {
         this.userAdminService = userAdminService;
     }

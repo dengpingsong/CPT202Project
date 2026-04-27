@@ -25,11 +25,6 @@ public class AdminCategoryController {
 
     private final CategoryService categoryService;
 
-    /**
-     * 构造器注入分类服务。
-     *
-     * @param categoryService 分类服务
-     */
     public AdminCategoryController(CategoryService categoryService) {
         this.categoryService = categoryService;
     }
@@ -82,7 +77,8 @@ public class AdminCategoryController {
      */
     @PutMapping("/{categoryId}")
     @Operation(summary = "Update a category")
-    public Result<Void> update(@PathVariable Long categoryId, @Valid @RequestBody CategoryDTO categoryDTO) {
+    public Result<Void> update(@PathVariable Long categoryId,
+                               @Valid @RequestBody CategoryDTO categoryDTO) {
         log.info("Update category: {}, payload: {}", categoryId, categoryDTO);
         categoryService.update(categoryId, categoryDTO);
         return Result.success();

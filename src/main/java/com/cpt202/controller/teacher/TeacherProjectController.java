@@ -1,5 +1,6 @@
 package com.cpt202.controller.teacher;
 
+import com.cpt202.context.BaseContext;
 import com.cpt202.dto.ProjectDTO;
 import com.cpt202.dto.ProjectStatusUpdateDTO;
 import com.cpt202.dto.TeacherProjectQueryDTO;
@@ -25,11 +26,6 @@ public class TeacherProjectController {
 
     private final ProjectService projectService;
 
-    /**
-     * 构造器注入项目服务。
-     *
-     * @param projectService 项目服务
-     */
     public TeacherProjectController(ProjectService projectService) {
         this.projectService = projectService;
     }
@@ -43,7 +39,7 @@ public class TeacherProjectController {
     @GetMapping
     @Operation(summary = "List teacher projects")
     public Result<List<ProjectVO>> list(@Valid TeacherProjectQueryDTO queryDTO) {
-        return Result.success(projectService.listTeacherProjects(queryDTO.getTeacherId(), queryDTO.getStatus()));
+        return Result.success(projectService.listTeacherProjects(BaseContext.getCurrentUserId(), queryDTO.getStatus()));
     }
 
     /**
@@ -55,7 +51,7 @@ public class TeacherProjectController {
     @GetMapping("/{projectId}")
     @Operation(summary = "Get teacher project details")
     public Result<ProjectVO> getById(@PathVariable Long projectId) {
-        return Result.success(projectService.getProject(projectId));
+        return Result.success(projectService.getOwnedProject(projectId, BaseContext.getCurrentUserId()));
     }
 
     /**
@@ -67,7 +63,7 @@ public class TeacherProjectController {
     @PostMapping
     @Operation(summary = "Create a project")
     public Result<Void> create(@Valid @RequestBody ProjectDTO projectDTO) {
-        projectService.create(projectDTO);
+        projectService.create(BaseContext.getCurrentUserId(), projectDTO);
         return Result.success();
     }
 
@@ -82,7 +78,7 @@ public class TeacherProjectController {
     @Operation(summary = "Update a project")
     public Result<Void> update(@PathVariable Long projectId,
                                @Valid @RequestBody ProjectDTO projectDTO) {
-        projectService.update(projectId, projectDTO);
+        projectService.update(projectId, BaseContext.getCurrentUserId(), projectDTO);
         return Result.success();
     }
 
@@ -97,7 +93,7 @@ public class TeacherProjectController {
     @Operation(summary = "Change project status")
     public Result<Void> changeStatus(@PathVariable Long projectId,
                                      @Valid @RequestBody ProjectStatusUpdateDTO projectStatusUpdateDTO) {
-        projectService.changeStatus(projectId, projectStatusUpdateDTO);
+        projectService.changeStatus(projectId, BaseContext.getCurrentUserId(), projectStatusUpdateDTO);
         return Result.success();
     }
 }
