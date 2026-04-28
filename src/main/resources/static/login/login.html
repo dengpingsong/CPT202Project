@@ -151,7 +151,7 @@
 </section>
 
 <script>
-    const BASE_URL = "/api/common/auth";
+    const BASE_URL = "/api/common/auth";//后面所有登录、注册请求，都以这个地址开头
     const authCard = document.querySelector(".auth-panel-card");
     const authOrbit = document.querySelector(".auth-orbit");
     const authTabs = document.querySelectorAll(".auth-tab");
@@ -167,19 +167,9 @@
     const studentFields = document.getElementById("registerStudentFields");
     const teacherFields = document.getElementById("registerTeacherFields");
     const resetForm = document.getElementById("resetForm");
-    const resetMessage = document.getElementById("resetMessage");
+    const resetMessage = document.getElementById("resetMessage");//在 JS 里拿到 HTML 元素
 
-    function showPanel(panelId) {
-        authPanels.forEach(panel => {
-            panel.classList.toggle("active", panel.id === panelId);
-        });
-        authTabs.forEach(tab => {
-            tab.classList.toggle("active", tab.dataset.panel === panelId);
-        });
-        authCard.classList.toggle("register-mode", panelId === "registerPanel");
-        authOrbit.classList.toggle("hidden", panelId !== "loginPanel");
-    }
-
+    //主面板逻辑
     function showInitialPanel() {
         const hashPanels = {
             "#register": "registerPanel",
@@ -190,6 +180,18 @@
         if (panelId) {
             showPanel(panelId);
         }
+    }
+
+    //切换登录 / 注册 / 重置密码面板
+    function showPanel(panelId) {
+        authPanels.forEach(panel => {
+            panel.classList.toggle("active", panel.id === panelId);
+        });
+        authTabs.forEach(tab => {
+            tab.classList.toggle("active", tab.dataset.panel === panelId);
+        });
+        authCard.classList.toggle("register-mode", panelId === "registerPanel");
+        authOrbit.classList.toggle("hidden", panelId !== "loginPanel");
     }
 
     panelButtons.forEach(button => {
@@ -211,9 +213,9 @@
 
     registerRole.addEventListener("change", toggleRegisterFields);
     toggleRegisterFields();
-    showInitialPanel();
+    //showInitialPanel();
 
-    function redirectByRole(role) {
+    function redirectByRole(role) {//重定位
         // 根据后端返回的 role 跳到不同页面
         if (role === "TEACHER") {
             window.location.href = "../teacher-review/index.html";
@@ -233,7 +235,7 @@
 
     loginForm.addEventListener("submit", async (e) => {
         e.preventDefault();
-        generalError.textContent = "";
+        generalError.textContent = "";//generalError.textContent = "";
         loginBtn.disabled = true;
 
         const payload = {
@@ -326,7 +328,7 @@
         resetMessage.textContent = "Password reset is not available yet.";
     });
 </script>
-
+//animation
 <script type="module">
     import { animate, stagger, splitText } from "https://cdn.jsdelivr.net/npm/animejs/+esm";
 
