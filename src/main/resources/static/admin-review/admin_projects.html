@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>管理员 · 项目概览</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="../css/admin.css">
+</head>
+<body>
+<div class="layout" id="layout">
+    <aside class="sidebar">
+        <div class="toggle-wrap"><button class="toggle" id="toggleSidebar"><span></span></button></div>
+        <div class="nav-group">
+            <a href="admin_projects.html" class="active"><i class="bi bi-kanban nav-icon"></i><span class="nav-label">项目列表</span></a>
+            <a href="admin_categories.html"><i class="bi bi-tags nav-icon"></i><span class="nav-label">Category 列表</span></a>
+            <a href="admin_tags.html"><i class="bi bi-bookmark nav-icon"></i><span class="nav-label">Tag 列表</span></a>
+            <a href="admin_settings.html"><i class="bi bi-person-gear nav-icon"></i><span class="nav-label">个人设置</span></a>
+        </div>
+    </aside>
+    <main class="main-content">
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h2>📌 所有项目概览</h2>
+                <div class="badge-sub" id="projectCountBadge">加载中...</div>
+            </div>
+            <div id="projectTableWrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr><th>项目ID</th><th>项目名称</th><th>所属类别</th><th>标签列表</th></tr>
+                    </thead>
+                    <tbody id="projectTableBody"><tr><td colspan="4">正在加载数据...</td></tr></tbody>
+                </table>
+            </div>
+            <div class="project-demo-note">
+                💡 项目数据来源于后端 <code>/api/admin/records/projects</code>。<br>
+                🏷️ 标签通过 <code>/api/admin/projects/{id}/tags</code> 获取。
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="adminProject.js"></script>
+</body>
+</html>
