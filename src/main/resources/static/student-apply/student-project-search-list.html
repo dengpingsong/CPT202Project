@@ -73,9 +73,12 @@
     </main>
 </div>
 
+<script src="../js/api.js"></script>
 <script>
     (function () {
-        const API_URL = "/api/student/projects";
+        const user = ApiClient.requireAuth("STUDENT");
+        if (!user) return;
+
         const tbody = document.getElementById("tableBody");
         const projectCountSpan = document.getElementById("projectCount");
 
@@ -91,30 +94,26 @@
 
         function statusPill(status) {
             const text = status || "UNKNOWN";
-            const cls = (status === "AVAILABLE" || status === "REQUESTED" || status === "AGREED")
-                ? "status-available"
-                : "status-unavailable";
+            let cls = "status-unavailable";
+            if (status === "AVAILABLE") cls = "status-available";
+            if (status === "PENDING" || status === "REQUESTED") cls = "status-requested";
+            if (status === "ACCEPTED" || status === "AGREED") cls = "status-agreed";
             return `<span class="status-pill ${cls}">${esc(text)}</span>`;
         }
 
         async function loadProjects() {
             try {
-                const token = localStorage.getItem("token") || "";
-                const headers = token ? { "Authorization": `Bearer ${token}` } : {};
-
-                const res = await fetch(`${API_URL}?pageNum=1&pageSize=50`, { method: "GET", headers });
-                const result = await res.json();
-
-                console.log("student projects response:", result);
-
-                if (!res.ok || result.code !== 1) {
-                    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#888;">加载失败：${esc(result.msg || "请稍后重试")}</td></tr>`;
-                    projectCountSpan.textContent = "0";
-                    return;
-                }
-
-                const list = Array.isArray(result?.data?.records) ? result.data.records : [];
-                const total = Number(result?.data?.total || list.length);
+                const [projectPage, requests] = await Promise.all([
+                    ApiClient.get("/api/student/projects?pageNum=1&pageSize=50"),
+                    ApiClient.get("/api/student/requests")
+                ]);
+                const list = Array.isArray(projectPage?.records) ? projectPage.records : [];
+                const total = Number(projectPage?.total || list.length);
+                const activeRequestProjectIds = new Set(
+                    (Array.isArray(requests) ? requests : [])
+                        .filter(item => ["PENDING", "ACCEPTED"].includes(String(item.requestStatus || "").toUpperCase()))
+                        .map(item => String(item.projectId))
+                );
 
                 if (list.length === 0) {
                     tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#888;">暂无可申请项目</td></tr>`;
@@ -126,6 +125,9 @@
                 list.forEach(p => {
                     const current = Number(p.currentAgreedCount || 0);
                     const max = Number(p.maxStudents || 0);
+                    const displayStatus = activeRequestProjectIds.has(String(p.projectId))
+                        ? "REQUESTED"
+                        : p.projectStatus;
 
                     html += `
                 <tr>
@@ -135,10 +137,10 @@
                     <td>${esc(p.categoryName || "-")}</td>
                     <td>${esc(p.topicArea || "-")}</td>
                     <td>${current}/${max}</td>
-                    <td>${statusPill(p.projectStatus)}</td>
+                    <td>${statusPill(displayStatus)}</td>
                     <td>
                         <a class="view-btn"
-                           href="student-project-search-list-detail.html?projectId=${encodeURIComponent(p.projectId)}&code=${encodeURIComponent("SURF-" + p.projectId)}&from=list">
+                           href="student-project-search-list-detail.html?projectId=${encodeURIComponent(p.projectId)}&from=list">
                            View
                         </a>
                     </td>
@@ -150,7 +152,7 @@
                 projectCountSpan.textContent = String(total);
             } catch (e) {
                 console.error(e);
-                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#888;">网络异常，请稍后重试</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#888;">加载失败：${esc(e.message || "请稍后重试")}</td></tr>`;
                 projectCountSpan.textContent = "0";
             }
         }
