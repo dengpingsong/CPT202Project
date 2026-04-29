@@ -14,8 +14,8 @@
             <button class="toggle" id="toggleSidebar"><span></span></button>
         </div>
         <div class="nav-group">
-            <a href="student-dashboard.html"><i class="bi bi-kanban nav-icon"></i><span class="nav-label">申请状态</span></a>
-            <a href="student-project-search-list.html" class="active"><i class="bi bi-search nav-icon"></i><span class="nav-label">搜索项目</span></a>
+            <a href="student-dashboard.html" id="dashboardNav"><i class="bi bi-kanban nav-icon"></i><span class="nav-label">申请状态</span></a>
+            <a href="student-project-search-list.html" class="active" id="projectListNav"><i class="bi bi-search nav-icon"></i><span class="nav-label">搜索项目</span></a>
             <a href="student-request-history.html"><i class="bi bi-clock-history nav-icon"></i><span class="nav-label">请求历史</span></a>
             <a href="student-notification.html"><i class="bi bi-chat-dots nav-icon"></i><span class="nav-label">消息/通知</span></a>
             <a href="student-profile.html"><i class="bi bi-person-gear nav-icon"></i><span class="nav-label">个人设置</span></a>
@@ -24,7 +24,7 @@
 
     <main class="main">
         <div class="page-header">
-            <a href="student-project-search-list.html" class="back-link">← 返回项目列表</a>
+            <a href="student-project-search-list.html" class="back-link" id="backLink">← 返回项目列表</a>
             <h1>项目详情</h1>
         </div>
 
@@ -40,6 +40,21 @@
         const params = new URLSearchParams(window.location.search);
         const projectId = params.get("projectId");
         const code = params.get("code"); // 兼容旧链接
+        const from = params.get("from");
+        const cameFromDashboard = from === "dashboard" || document.referrer.includes("student-dashboard.html");
+        const backTarget = cameFromDashboard ? "student-dashboard.html" : "student-project-search-list.html";
+        const backText = cameFromDashboard ? "返回申请状态" : "返回项目列表";
+        const backLink = document.getElementById("backLink");
+        const dashboardNav = document.getElementById("dashboardNav");
+        const projectListNav = document.getElementById("projectListNav");
+        if (backLink) {
+            backLink.href = backTarget;
+            backLink.textContent = `← ${backText}`;
+        }
+        if (cameFromDashboard) {
+            dashboardNav?.classList.add("active");
+            projectListNav?.classList.remove("active");
+        }
 
         function esc(v) {
             if (v === null || v === undefined) return "";
@@ -102,14 +117,20 @@
 
             <div class="action-buttons">
                 <button class="btn-primary" id="applyBtn">申请该项目</button>
-                <button class="btn-secondary" onclick="window.location.href='student-project-search-list.html'">返回列表</button>
+                <button class="btn-secondary" id="detailBackBtn">返回</button>
             </div>
         `;
 
             const applyBtn = document.getElementById("applyBtn");
+            const detailBackBtn = document.getElementById("detailBackBtn");
             if (applyBtn) {
                 applyBtn.addEventListener("click", () => {
                     alert("下一步可接入申请接口：POST /api/student/requests");
+                });
+            }
+            if (detailBackBtn) {
+                detailBackBtn.addEventListener("click", () => {
+                    window.location.href = backTarget;
                 });
             }
         }
@@ -152,7 +173,7 @@
                 detailPanel.innerHTML = `
                 <div style="text-align:center; padding:40px;">
                     加载失败：${esc(e.message || "未知错误")}<br/>
-                    <a href="student-project-search-list.html">返回列表</a>
+                    <a href="${backTarget}">${backText}</a>
                 </div>`;
             }
         }

@@ -227,7 +227,7 @@
                         <h4>${esc(project.title || "未命名项目")}</h4>
                         <p class="meta">分类：${esc(project.categoryName || "-")} | 名额：${current}/${max}</p>
                         <p class="meta">指导教师：${esc(project.teacherName || "-")} | 方向：${esc(project.topicArea || "-")}</p>
-                        <button class="${buttonClass}" type="button" onclick="window.location.href='student-project-search-list-detail.html?projectId=${encodeURIComponent(projectId)}'">${buttonText}</button>
+                        <button class="${buttonClass}" type="button" onclick="window.location.href='student-project-search-list-detail.html?projectId=${encodeURIComponent(projectId)}&from=dashboard'">${buttonText}</button>
                     </article>
                 `;
             }).join("");
