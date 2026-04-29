@@ -44,6 +44,9 @@ public final class MessageConstants {
     public static final String CANNOT_REVIEW_OTHER_TEACHER_REQUEST = "不能审核其他教师名下项目的申请。";
     public static final String CANNOT_WITHDRAW_OTHER_STUDENT_REQUEST = "不能撤回其他学生的申请。";
     public static final String CANNOT_VIEW_OTHER_STUDENT_HISTORY = "不能查看其他学生的申请历史。";
+    public static final String INCORRECT_OLD_PASSWORD = "旧密码不正确。";
+    public static final String NEW_PASSWORD_SAME_AS_OLD = "新密码不能与旧密码相同。";
+
     public static final String NON_STUDENT_PROFILE_ACCESS = "该用户不是学生角色。无法查询学生资料。";
     public static final String NON_STUDENT_PROFILE_UPDATE = "该用户不是学生角色。无法修改学生资料。";
     public static final String NON_TEACHER_PROFILE_ACCESS = "该用户不是教师角色。无法查询教师资料。";
