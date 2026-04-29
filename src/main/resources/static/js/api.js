@@ -114,6 +114,11 @@
         clearAuth,
         requireAuth,
         request,
+        // logout function: clear token and redirect to login page
+        logout() {
+            clearAuth();
+            window.location.href = LOGIN_PAGE;
+        },
         get(url, options) {
             return request(url, {
                 ...(options || {}),
