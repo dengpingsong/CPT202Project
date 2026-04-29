@@ -1,5 +1,6 @@
 package com.cpt202.service;
 
+import com.cpt202.dto.ChangePasswordDTO;
 import com.cpt202.dto.StudentProfileUpdateDTO;
 import com.cpt202.dto.TeacherProfileUpdateDTO;
 import com.cpt202.vo.StudentProfileVO;
@@ -43,4 +44,13 @@ public interface ProfileService {
      * @param teacherProfileUpdateDTO 教师资料更新参数
      */
     void updateTeacherProfile(Long teacherId, TeacherProfileUpdateDTO teacherProfileUpdateDTO);
+
+    /**
+     * 修改当前用户密码。
+     * 需要验证旧密码正确后方可更新。
+     *
+     * @param userId            当前用户主键
+     * @param changePasswordDTO 修改密码参数（旧密码 + 新密码）
+     */
+    void changePassword(Long userId, ChangePasswordDTO changePasswordDTO);
 }
