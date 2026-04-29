@@ -1,6 +1,7 @@
 package com.cpt202.service.impl;
 
 import com.cpt202.constant.MessageConstants;
+import com.cpt202.dto.ChangePasswordDTO;
 import com.cpt202.dto.StudentProfileUpdateDTO;
 import com.cpt202.dto.TeacherProfileUpdateDTO;
 import com.cpt202.exception.BusinessException;
@@ -10,6 +11,7 @@ import com.cpt202.model.entity.TeacherProfile;
 import com.cpt202.model.entity.User;
 import com.cpt202.repository.StudentProfileRepository;
 import com.cpt202.repository.TeacherProfileRepository;
+import com.cpt202.repository.UserRepository;
 import com.cpt202.service.ProfileService;
 import com.cpt202.vo.StudentProfileVO;
 import com.cpt202.vo.TeacherProfileVO;
@@ -18,7 +20,11 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.util.HexFormat;
 
 /**
  * 用户资料服务实现类。
@@ -30,6 +36,7 @@ public class ProfileServiceImpl implements ProfileService {
 
     private final StudentProfileRepository studentProfileRepository;
     private final TeacherProfileRepository teacherProfileRepository;
+    private final UserRepository userRepository;
 
     /**
      * 查询学生资料。
@@ -125,5 +132,43 @@ public class ProfileServiceImpl implements ProfileService {
         profile.setUpdatedAt(LocalDateTime.now());
 
         teacherProfileRepository.save(profile);
+    }
+
+    /**
+     * Change the password for the given user.
+     * Verifies the old password before applying the new hash.
+     *
+     * @param userId            current user's primary key
+     * @param changePasswordDTO old and new password payload
+     */
+    @Override
+    @Transactional
+    public void changePassword(Long userId, ChangePasswordDTO changePasswordDTO) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException(MessageConstants.USER_NOT_FOUND));
+
+        String oldHash = hashPassword(changePasswordDTO.getOldPassword());
+        if (!oldHash.equals(user.getPasswordHash())) {
+            throw new BusinessException(MessageConstants.INCORRECT_OLD_PASSWORD);
+        }
+
+        String newHash = hashPassword(changePasswordDTO.getNewPassword());
+        if (newHash.equals(user.getPasswordHash())) {
+            throw new BusinessException(MessageConstants.NEW_PASSWORD_SAME_AS_OLD);
+        }
+
+        user.setPasswordHash(newHash);
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+    }
+
+    private String hashPassword(String password) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(password.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hashBytes);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("Unable to hash password", ex);
+        }
     }
 }
