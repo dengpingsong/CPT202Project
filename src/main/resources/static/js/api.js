@@ -1,18 +1,16 @@
-/**
- * Shared frontend API helper for static pages.
- *
- * The backend wraps every response as:
- * { code: 1 | 0, msg: string | null, data: any }
- */
+//登录状态：继续用 localStorage
+// 业务数据：全部从后端 API 获取
 (function (window) {
     "use strict";
 
-    const LOGIN_PAGE = "/login/login.html";
+    const LOGIN_PAGE = "/login/login.html";//login address
 
+    //Retrieve the saved JWT token from the browser's localStorage after login, and use it for subsequent backend API requests.
     function getToken() {
         return localStorage.getItem("token") || "";
     }
 
+    //get users information
     function getCurrentUser() {
         return {
             token: getToken(),
@@ -24,6 +22,7 @@
         };
     }
 
+    //clear login status
     function clearAuth() {
         localStorage.removeItem("token");
         localStorage.removeItem("role");
@@ -33,9 +32,11 @@
         localStorage.removeItem("accountStatus");
     }
 
+    //页面权限检查
     function requireAuth(expectedRole) {
         const user = getCurrentUser();
 
+        //return to login page
         if (!user.token) {
             window.location.href = LOGIN_PAGE;
             return null;
@@ -48,48 +49,47 @@
         return user;
     }
 
+    //解析 JSON
     async function parseResponse(response) {
-        const text = await response.text();
-        if (!text) return null;
-
-        try {
-            return JSON.parse(text);
-        } catch (error) {
-            throw new Error("Invalid server response.");
-        }
+        return await response.json();
     }
-
+    //get() post() put() delete()
     async function request(url, options) {
         const config = options || {};
         const token = getToken();
         const headers = new Headers(config.headers || {});
 
+        //fill Content-Type
         if (!headers.has("Content-Type") && config.body !== undefined) {
             headers.set("Content-Type", "application/json");
         }
 
+        //自动添加token
         if (token && !headers.has("Authorization")) {
             headers.set("Authorization", `Bearer ${token}`);
         }
 
+        //******core******
         const response = await fetch(url, {
             ...config,
             headers
         });
 
+        //401 situation
         if (response.status === 401) {
             clearAuth();
             window.location.href = LOGIN_PAGE;
             throw new Error("Login expired. Please log in again.");
         }
 
+        //json response
         const result = await parseResponse(response);
 
         if (!response.ok) {
             throw new Error(result?.msg || `Request failed with status ${response.status}.`);
         }
 
-        if (result && Object.prototype.hasOwnProperty.call(result, "code")) {
+        if (result && result.code !== undefined) {
             if (result.code !== 1) {
                 throw new Error(result.msg || "Request failed.");
             }
@@ -100,11 +100,11 @@
         return result;
     }
 
-    function withJsonBody(method, url, body, options) {
+    //turn json
+    function withJsonBody(method, url, body) {
         return request(url, {
-            ...(options || {}),
-            method,
-            body: JSON.stringify(body || {})
+            method: method,
+            body: JSON.stringify(body)
         });
     }
 
@@ -133,4 +133,4 @@
             });
         }
     };
-})(window);
+})(window);//package this part
