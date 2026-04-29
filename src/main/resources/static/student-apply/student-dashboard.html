@@ -48,13 +48,13 @@
     <main class="main">
         <section class="hero">
             <div>
-                <h1>欢迎，张三</h1>
+                <h1 id="welcomeTitle">欢迎</h1>
                 <p class="hero-info">
                     这是你的学生选题工作台。你可以查看当前申请、搜索指导教师发布的项目，或者查看以往的请求记录。
                 </p>
-                <span class="badge">当前活跃申请：2 个 Pending</span>
+                <span class="badge" id="activeRequestBadge">当前活跃申请：加载中</span>
             </div>
-            <button class="cta">
+            <button class="cta" id="quickApplyBtn" type="button">
                 快速申请推荐项目
                 <small>优先推荐适合你技能的课题</small>
             </button>
@@ -63,98 +63,246 @@
         <section class="stats">
             <div class="panel">
                 <h3>当前状态</h3>
-                <strong>Pending</strong>
-                <p class="rule">已有 2 个待审批项目，最多保留 1 个 Agreed</p>
+                <strong id="currentStatus">加载中</strong>
+                <p class="rule" id="currentStatusRule">正在读取你的申请状态</p>
             </div>
             <div class="panel">
                 <h3>已获同意项目</h3>
-                <strong>0</strong>
-                <p class="rule">若已有 Agreed，会自动禁用申请按钮</p>
+                <strong id="acceptedCount">0</strong>
+                <p class="rule">若已有 Accepted，会自动禁用申请按钮</p>
             </div>
             <div class="panel">
                 <h3>本学期申请次数</h3>
-                <strong>4</strong>
-                <p class="rule">剩余可提交：1 次，Closed 项目无法再申请</p>
+                <strong id="requestCount">0</strong>
+                <p class="rule" id="requestCountRule">申请记录正在同步</p>
             </div>
         </section>
 
         <section>
             <h2 style="margin-top: 0;">推荐项目</h2>
-            <div class="grid">
+            <div class="grid" id="recommendedProjects">
                 <article class="card">
-                    <span class="status-pill status-available">Available</span>
-                    <h4>智能教学系统研究</h4>
-                    <p class="meta">关键词：AI，数据分析，教师协作 | 剩余名额：2/3</p>
-                    <p class="meta">指导教师：李老师 | 方向：教学数据建模</p>
-                    <button>立即申请</button>
-                </article>
-                <article class="card">
-                    <span class="status-pill status-requested">Requested</span>
-                    <h4>校园智慧导航系统</h4>
-                    <p class="meta">关键词：Mobile, GIS, React | 剩余名额：1/2</p>
-                    <p class="meta">指导教师：王老师 | 当前已申请</p>
-                    <button disabled>等待处理</button>
-                </article>
-                <article class="card">
-                    <span class="status-pill status-available">Available</span>
-                    <h4>实验室管理大屏</h4>
-                    <p class="meta">关键词：Web, Dashboard, SpringBoot | 剩余名额：3/3</p>
-                    <p class="meta">指导教师：赵老师 | 需要前端实战能力</p>
-                    <button class="secondary">查看详情</button>
+                    <h4>正在加载推荐项目</h4>
+                    <p class="meta">请稍候</p>
                 </article>
             </div>
         </section>
 
         <section class="timeline">
             <h3>近期申请记录</h3>
-            <div class="item">
-                <div style="display: flex; flex-direction: column;">
-                    <strong style="margin-bottom: 6px;">智能教学系统</strong>
-                    <div style="display: flex; gap: 16px; font-size: 0.85rem; color: var(--muted);">
-                        <span>申请时间：04/10</span>
-                        <span>最后更新：04/13</span>
-                        <span>导师：李老师</span>
+            <div id="recentRequests">
+                <div class="item">
+                    <div style="display: flex; flex-direction: column;">
+                        <strong style="margin-bottom: 6px;">正在加载申请记录</strong>
+                        <p class="meta" style="margin-top: 8px;">请稍候</p>
                     </div>
-                    <p class="meta" style="margin-top: 8px;">备注：希望参与可视化模块</p>
                 </div>
-                <span class="status status-requested" style="align-self: center;">Pending</span>
-            </div>
-            <div class="item">
-                <div style="display: flex; flex-direction: column;">
-                    <strong style="margin-bottom: 6px;">校园智慧导航</strong>
-                    <div style="display: flex; gap: 16px; font-size: 0.85rem; color: var(--muted);">
-                        <span>申请时间：03/28</span>
-                        <span>最后更新：04/02</span>
-                        <span>导师：王老师</span>
-                    </div>
-                    <p class="meta" style="margin-top: 8px;">备注：补充了学习经历</p>
-                </div>
-                <span class="status status-unavailable" style="align-self: center;">已拒绝</span>
-            </div>
-            <div class="item">
-                <div style="display: flex; flex-direction: column;">
-                    <strong style="margin-bottom: 6px;">实验室管理大屏</strong>
-                    <div style="display: flex; gap: 16px; font-size: 0.85rem; color: var(--muted);">
-                        <span>申请时间：03/12</span>
-                        <span>最后更新：03/15</span>
-                        <span>导师：赵老师</span>
-                    </div>
-                    <p class="meta" style="margin-top: 8px;">备注：前端+交互设计</p>
-                </div>
-                <span class="status status-unavailable" style="align-self: center;">Withdrawn</span>
             </div>
         </section>
     </main>
 </div>
 
+<script src="../js/api.js"></script>
 <script>
-    const layout = document.getElementById("layout");
-    const toggle = document.getElementById("toggleSidebar");
-    let isCollapsed = false;
-    toggle.addEventListener("click", () => {
-        isCollapsed = !isCollapsed;
-        layout.classList.toggle("collapsed", isCollapsed);
-    });
+    (function () {
+        "use strict";
+
+        const layout = document.getElementById("layout");
+        const toggle = document.getElementById("toggleSidebar");
+        const welcomeTitle = document.getElementById("welcomeTitle");
+        const activeRequestBadge = document.getElementById("activeRequestBadge");
+        const currentStatus = document.getElementById("currentStatus");
+        const currentStatusRule = document.getElementById("currentStatusRule");
+        const acceptedCount = document.getElementById("acceptedCount");
+        const requestCount = document.getElementById("requestCount");
+        const requestCountRule = document.getElementById("requestCountRule");
+        const recommendedProjects = document.getElementById("recommendedProjects");
+        const recentRequests = document.getElementById("recentRequests");
+        const quickApplyBtn = document.getElementById("quickApplyBtn");
+
+        let isCollapsed = false;
+        toggle.addEventListener("click", () => {
+            isCollapsed = !isCollapsed;
+            layout.classList.toggle("collapsed", isCollapsed);
+        });
+
+        quickApplyBtn.addEventListener("click", () => {
+            window.location.href = "student-project-search-list.html";
+        });
+
+        function esc(value) {
+            if (value === null || value === undefined) return "";
+            return String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function normalizeStatus(status) {
+            return String(status || "UNKNOWN").toUpperCase();
+        }
+
+        function statusClass(status) {
+            const normalized = normalizeStatus(status);
+            if (normalized === "AVAILABLE") return "status-available";
+            if (normalized === "PENDING" || normalized === "REQUESTED") return "status-requested";
+            if (normalized === "ACCEPTED" || normalized === "AGREED") return "status-agreed";
+            return "status-unavailable";
+        }
+
+        function formatDate(value) {
+            if (!value) return "-";
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
+            return date.toLocaleDateString("zh-CN", {
+                month: "2-digit",
+                day: "2-digit"
+            });
+        }
+
+        function renderStats(requests) {
+            const user = ApiClient.getCurrentUser();
+            const displayName = user.fullName || user.username || "同学";
+            const pending = requests.filter(item => normalizeStatus(item.requestStatus) === "PENDING").length;
+            const accepted = requests.filter(item => normalizeStatus(item.requestStatus) === "ACCEPTED").length;
+            const active = pending + accepted;
+
+            welcomeTitle.textContent = `欢迎，${displayName}`;
+            activeRequestBadge.textContent = `当前活跃申请：${active} 个`;
+            acceptedCount.textContent = String(accepted);
+            requestCount.textContent = String(requests.length);
+
+            if (accepted > 0) {
+                currentStatus.textContent = "Accepted";
+                currentStatusRule.textContent = `已有 ${accepted} 个通过申请，新的申请可能会受到限制`;
+                requestCountRule.textContent = "你已经有通过的项目，请优先确认后续安排";
+                return;
+            }
+
+            if (pending > 0) {
+                currentStatus.textContent = "Pending";
+                currentStatusRule.textContent = `已有 ${pending} 个待审批项目`;
+                requestCountRule.textContent = "可继续查看项目详情，避免重复申请同一项目";
+                return;
+            }
+
+            currentStatus.textContent = "No Active Request";
+            currentStatusRule.textContent = "当前没有待审批或已通过的申请";
+            requestCountRule.textContent = "可以从推荐项目或搜索项目开始申请";
+        }
+
+        function renderProjects(projectPage, requests) {
+            const projects = Array.isArray(projectPage?.records) ? projectPage.records.slice(0, 3) : [];
+            const requestedProjectIds = new Set(
+                requests
+                    .filter(item => ["PENDING", "ACCEPTED"].includes(normalizeStatus(item.requestStatus)))
+                    .map(item => String(item.projectId))
+            );
+
+            if (projects.length === 0) {
+                recommendedProjects.innerHTML = `
+                    <article class="card">
+                        <h4>暂无可推荐项目</h4>
+                        <p class="meta">当前没有可展示的项目，请稍后再试</p>
+                        <button class="secondary" type="button" onclick="window.location.href='student-project-search-list.html'">查看项目列表</button>
+                    </article>
+                `;
+                return;
+            }
+
+            recommendedProjects.innerHTML = projects.map(project => {
+                const projectId = project.projectId;
+                const current = Number(project.currentAgreedCount || 0);
+                const max = Number(project.maxStudents || 0);
+                const hasRequested = requestedProjectIds.has(String(projectId));
+                const status = hasRequested ? "REQUESTED" : project.projectStatus;
+                const buttonText = hasRequested ? "查看申请" : "查看详情";
+                const buttonClass = hasRequested ? "" : "secondary";
+
+                return `
+                    <article class="card">
+                        <span class="status-pill ${statusClass(status)}">${esc(status)}</span>
+                        <h4>${esc(project.title || "未命名项目")}</h4>
+                        <p class="meta">分类：${esc(project.categoryName || "-")} | 名额：${current}/${max}</p>
+                        <p class="meta">指导教师：${esc(project.teacherName || "-")} | 方向：${esc(project.topicArea || "-")}</p>
+                        <button class="${buttonClass}" type="button" onclick="window.location.href='student-project-search-list-detail.html?projectId=${encodeURIComponent(projectId)}'">${buttonText}</button>
+                    </article>
+                `;
+            }).join("");
+        }
+
+        function renderRecentRequests(requests) {
+            const latest = requests.slice(0, 3);
+
+            if (latest.length === 0) {
+                recentRequests.innerHTML = `
+                    <div class="item">
+                        <div style="display: flex; flex-direction: column;">
+                            <strong style="margin-bottom: 6px;">暂无申请记录</strong>
+                            <p class="meta" style="margin-top: 8px;">你提交申请后会显示在这里</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            recentRequests.innerHTML = latest.map(item => `
+                <div class="item">
+                    <div style="display: flex; flex-direction: column;">
+                        <strong style="margin-bottom: 6px;">${esc(item.projectTitle || "未命名项目")}</strong>
+                        <div style="display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.85rem; color: var(--muted);">
+                            <span>申请时间：${esc(formatDate(item.submittedAt))}</span>
+                            <span>最后更新：${esc(formatDate(item.reviewedAt || item.withdrawnAt || item.submittedAt))}</span>
+                            <span>志愿顺位：${esc(item.preferenceRank || "-")}</span>
+                        </div>
+                        <p class="meta" style="margin-top: 8px;">备注：${esc(item.notes || "-")}</p>
+                        ${item.decisionComment ? `<p class="meta" style="margin-top: 4px;">反馈：${esc(item.decisionComment)}</p>` : ""}
+                    </div>
+                    <span class="status ${statusClass(item.requestStatus)}" style="align-self: center;">${esc(normalizeStatus(item.requestStatus))}</span>
+                </div>
+            `).join("");
+        }
+
+        async function initDashboard() {
+            try {
+                const user = ApiClient.requireAuth("STUDENT");
+                if (!user) return;
+
+                const [requests, projectPage] = await Promise.all([
+                    ApiClient.get("/api/student/requests"),
+                    ApiClient.get("/api/student/projects?pageNum=1&pageSize=3")
+                ]);
+
+                const safeRequests = Array.isArray(requests) ? requests : [];
+                renderStats(safeRequests);
+                renderProjects(projectPage, safeRequests);
+                renderRecentRequests(safeRequests);
+            } catch (error) {
+                console.error(error);
+                activeRequestBadge.textContent = "当前活跃申请：加载失败";
+                currentStatus.textContent = "Load Failed";
+                currentStatusRule.textContent = error.message || "读取申请状态失败";
+                recommendedProjects.innerHTML = `
+                    <article class="card">
+                        <h4>推荐项目加载失败</h4>
+                        <p class="meta">${esc(error.message || "请稍后重试")}</p>
+                    </article>
+                `;
+                recentRequests.innerHTML = `
+                    <div class="item">
+                        <div style="display: flex; flex-direction: column;">
+                            <strong style="margin-bottom: 6px;">申请记录加载失败</strong>
+                            <p class="meta" style="margin-top: 8px;">${esc(error.message || "请稍后重试")}</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        initDashboard();
+    })();
 </script>
 </body>
 </html>
