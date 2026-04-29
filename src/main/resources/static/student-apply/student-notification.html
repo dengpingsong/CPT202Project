@@ -110,7 +110,7 @@
                 <span style="font-weight: 600; color: var(--text);">
                     <i class="bi bi-bell"></i> 通知中心
                 </span>
-                <span class="unread-badge" id="unreadCountDisplay">3 条未读</span>
+                <span class="unread-badge" id="unreadCountDisplay">加载中</span>
             </div>
             <button class="mark-all-read" id="markAllReadBtn">
                 <i class="bi bi-check-all"></i> 全部标为已读
@@ -128,77 +128,125 @@
     </main>
 </div>
 
+<script src="../js/api.js"></script>
 <script>
     (function() {
         "use strict";
 
-        // ---------- 模拟通知数据 ----------
-        let notifications = [
-            {
-                id: 'n1',
-                type: 'application',
-                title: '申请状态更新',
-                message: '您对“智能教学系统研究”的申请已被导师查看，目前状态为“待审批”。',
-                time: '2025-04-13 09:24',
-                read: false,
-                link: '#'
-            },
-            {
-                id: 'n2',
-                type: 'approval',
-                title: '项目申请通过',
-                message: '恭喜！您申请的“区块链证书验证”项目已被周教授同意，请及时联系导师确认后续安排。',
-                time: '2025-03-01 14:15',
-                read: true,
-                link: '#'
-            },
-            {
-                id: 'n3',
-                type: 'feedback',
-                title: '导师反馈',
-                message: '王老师对您的申请“校园智慧导航系统”给出了反馈：“名额已满，欢迎下次合作”。',
-                time: '2025-04-02 10:03',
-                read: false,
-                link: '#'
-            },
-            {
-                id: 'n4',
-                type: 'system',
-                title: '系统提醒',
-                message: '您有一项待处理的申请已超过7天，建议主动联系导师或考虑其他项目。',
-                time: '2025-04-12 16:30',
-                read: false,
-                link: '#'
-            },
-            {
-                id: 'n5',
-                type: 'message',
-                title: '导师私信',
-                message: '李老师：你好，关于智能教学系统项目，能否补充一下你在可视化方面的经验？',
-                time: '2025-04-11 19:02',
-                read: true,
-                link: '#'
-            },
-            {
-                id: 'n6',
-                type: 'deadline',
-                title: '截止日期提醒',
-                message: '“实验室管理大屏”项目的申请截止日期为2025-04-20，请尽快提交申请材料。',
-                time: '2025-04-10 08:00',
-                read: true,
-                link: '#'
-            }
-        ];
+        const user = ApiClient.requireAuth("STUDENT");
+        if (!user) return;
+
+        let notifications = [];
+        const readStorageKey = `studentNotificationRead:${user.userId || user.username || "current"}`;
 
         // DOM 元素
         const notificationListEl = document.getElementById('notificationList');
         const unreadCountDisplay = document.getElementById('unreadCountDisplay');
         const markAllReadBtn = document.getElementById('markAllReadBtn');
 
+        function esc(value) {
+            if (value === null || value === undefined) return "";
+            return String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function normalizeStatus(status) {
+            return String(status || "UNKNOWN").toUpperCase();
+        }
+
+        function readMap() {
+            try {
+                return JSON.parse(localStorage.getItem(readStorageKey) || "{}");
+            } catch (error) {
+                return {};
+            }
+        }
+
+        function saveRead(id) {
+            const map = readMap();
+            map[id] = true;
+            localStorage.setItem(readStorageKey, JSON.stringify(map));
+        }
+
+        function formatDate(value) {
+            if (!value) return "-";
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return String(value).replace("T", " ").slice(0, 16);
+            return date.toLocaleString("zh-CN", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+        }
+
+        function notificationTime(request) {
+            return request.reviewedAt || request.withdrawnAt || request.submittedAt;
+        }
+
+        function notificationType(status) {
+            if (status === "ACCEPTED") return "approval";
+            if (status === "REJECTED") return "feedback";
+            if (status === "WITHDRAWN") return "system";
+            return "application";
+        }
+
+        function notificationTitle(status) {
+            if (status === "ACCEPTED") return "项目申请通过";
+            if (status === "REJECTED") return "项目申请未通过";
+            if (status === "WITHDRAWN") return "申请已撤回";
+            if (status === "PENDING") return "申请已提交";
+            return "申请状态更新";
+        }
+
+        function notificationMessage(request, status) {
+            const projectTitle = request.projectTitle || "未命名项目";
+            if (status === "ACCEPTED") {
+                return `恭喜！你申请的“${projectTitle}”项目已通过，请及时确认后续安排。`;
+            }
+            if (status === "REJECTED") {
+                const comment = request.decisionComment ? `反馈：“${request.decisionComment}”` : "请查看其他可申请项目。";
+                return `你申请的“${projectTitle}”项目未通过，${comment}`;
+            }
+            if (status === "WITHDRAWN") {
+                return `你已撤回“${projectTitle}”项目申请。`;
+            }
+            if (status === "PENDING") {
+                return `你对“${projectTitle}”项目的申请已提交，目前正在等待审核。`;
+            }
+            return `“${projectTitle}”项目申请状态已更新为 ${status}。`;
+        }
+
+        function buildNotifications(requests) {
+            const map = readMap();
+            return requests.map(request => {
+                const status = normalizeStatus(request.requestStatus);
+                const time = notificationTime(request);
+                const id = `request-${request.requestId}-${status}-${time || "unknown"}`;
+                return {
+                    id,
+                    type: notificationType(status),
+                    title: notificationTitle(status),
+                    message: notificationMessage(request, status),
+                    time,
+                    status,
+                    read: Boolean(map[id]),
+                    projectId: request.projectId,
+                    requestId: request.requestId
+                };
+            });
+        }
+
         // 更新未读数量显示
         function updateUnreadCount() {
             const unreadCount = notifications.filter(n => !n.read).length;
             unreadCountDisplay.textContent = unreadCount === 0 ? '暂无未读' : `${unreadCount} 条未读`;
+            markAllReadBtn.disabled = unreadCount === 0;
         }
 
         // 渲染通知列表（结构与教师端统一）
@@ -218,8 +266,10 @@
             }
 
             let html = '';
-            // 未读优先
-            notifications.sort((a, b) => (a.read === b.read) ? 0 : a.read ? 1 : -1);
+            notifications.sort((a, b) => {
+                if (a.read !== b.read) return a.read ? 1 : -1;
+                return new Date(b.time || 0) - new Date(a.time || 0);
+            });
 
             notifications.forEach(item => {
                 const unreadClass = item.read ? '' : 'unread';
@@ -239,13 +289,13 @@
                         </div>
                         <div class="msg-body">
                             <div class="notification-title">
-                                ${item.title}
+                                ${esc(item.title)}
                                 ${!item.read ? '<span class="unread-dot"></span>' : ''}
                             </div>
-                            <div class="notification-message">${item.message}</div>
+                            <div class="notification-message">${esc(item.message)}</div>
                             <div class="notification-meta">
-                                <span><i class="bi bi-clock"></i> ${item.time}</span>
-                                <span><i class="bi bi-tag"></i> ${item.type}</span>
+                                <span><i class="bi bi-clock"></i> ${esc(formatDate(item.time))}</span>
+                                <span><i class="bi bi-tag"></i> ${esc(item.status)}</span>
                             </div>
                         </div>
                         <div class="notification-actions" style="display: flex; gap: 8px; align-items: center;">
@@ -253,7 +303,7 @@
                     `<button class="action-icon-btn mark-read-btn" data-id="${item.id}" title="标为已读">
                                     <i class="bi bi-check-lg"></i> 已读
                                 </button>` : ''}
-                            <button class="action-icon-btn" title="查看详情" onclick="alert('详情功能开发中')">
+                            <button class="action-icon-btn detail-btn" data-project-id="${esc(item.projectId)}" title="查看详情">
                                 <i class="bi bi-arrow-right-circle"></i>
                             </button>
                         </div>
@@ -272,7 +322,18 @@
                     const notif = notifications.find(n => n.id === id);
                     if (notif) {
                         notif.read = true;
+                        saveRead(id);
                         renderNotifications();
+                    }
+                });
+            });
+
+            document.querySelectorAll('.detail-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const projectId = btn.getAttribute('data-project-id');
+                    if (projectId && projectId !== "null" && projectId !== "undefined") {
+                        window.location.href = `student-project-search-list-detail.html?projectId=${encodeURIComponent(projectId)}&from=notification`;
                     }
                 });
             });
@@ -285,6 +346,7 @@
                     const notif = notifications.find(n => n.id === id);
                     if (notif && !notif.read) {
                         notif.read = true;
+                        saveRead(id);
                         renderNotifications();
                     }
                 });
@@ -293,12 +355,39 @@
 
         // 全部标为已读
         markAllReadBtn.addEventListener('click', () => {
-            notifications.forEach(n => n.read = true);
+            notifications.forEach(n => {
+                n.read = true;
+                saveRead(n.id);
+            });
             renderNotifications();
         });
 
-        // 初始化渲染
-        renderNotifications();
+        async function initNotifications() {
+            try {
+                notificationListEl.innerHTML = `
+                    <div class="empty-state">
+                        <i class="bi bi-hourglass-split" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                        <p style="font-size:1.1rem; margin-top: 12px;">正在加载通知</p>
+                    </div>
+                `;
+
+                const requests = await ApiClient.get("/api/student/requests");
+                notifications = buildNotifications(Array.isArray(requests) ? requests : []);
+                renderNotifications();
+            } catch (error) {
+                console.error(error);
+                unreadCountDisplay.textContent = "加载失败";
+                notificationListEl.innerHTML = `
+                    <div class="empty-state">
+                        <i class="bi bi-exclamation-circle" style="font-size: 2.5rem; opacity: 0.5;"></i>
+                        <p style="font-size:1.1rem; margin-top: 12px;">通知加载失败</p>
+                        <p style="font-size:0.9rem;">${esc(error.message || "请稍后重试")}</p>
+                    </div>
+                `;
+            }
+        }
+
+        initNotifications();
 
         // ---------- 侧边栏折叠功能 ----------
         const layout = document.getElementById("layout");
