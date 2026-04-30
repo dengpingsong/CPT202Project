@@ -50,6 +50,7 @@
 
         <div class="panel">
             <h3>待处理的申请</h3>
+            <div id="reviewStatus" class="footnote" style="text-align:left;">正在加载待审批申请...</div>
             <div class="table-wrapper">
                 <table class="project-table mt-3">
                     <thead>
@@ -63,19 +64,164 @@
                     </thead>
                     <tbody id="requestTableBody">
                         <tr>
-                            <td colspan="5" class="text-center" style="color: var(--muted);">暂无待审批的申请数据，这里可以等后端接口联调。</td>
+                            <td colspan="5" class="text-center" style="color: var(--muted);">正在加载...</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
     </main>
-    <script src="script.js"></script>
 </div>
 
+<script src="../js/api.js"></script>
 <script>
     (function() {
         "use strict";
+        const user = ApiClient.requireAuth("TEACHER");
+        if (!user) return;
+
+        const requestTableBody = document.getElementById("requestTableBody");
+        const reviewStatus = document.getElementById("reviewStatus");
+
+        function esc(value) {
+            if (value === null || value === undefined) return "";
+            return String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function formatDate(value) {
+            if (!value) return "-";
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return String(value).replace("T", " ").slice(0, 16);
+            return date.toLocaleString("zh-CN", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+        }
+
+        function statusText(status) {
+            const map = {
+                PENDING: "待审批",
+                ACCEPTED: "已同意",
+                REJECTED: "已拒绝",
+                WITHDRAWN: "已撤回"
+            };
+            const normalized = String(status || "UNKNOWN").toUpperCase();
+            return map[normalized] || normalized;
+        }
+
+        function setStatus(message, type) {
+            if (!reviewStatus) return;
+            reviewStatus.textContent = message;
+            reviewStatus.style.color = type === "error" ? "#c74545" : "var(--muted)";
+        }
+
+        function renderRequests(requests) {
+            if (!requestTableBody) return;
+
+            if (!requests.length) {
+                requestTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center" style="color: var(--muted);">暂无待审批的申请。</td>
+                    </tr>
+                `;
+                setStatus("当前没有待审批申请。", "");
+                return;
+            }
+
+            requestTableBody.innerHTML = requests.map(request => {
+                const requestId = esc(request.requestId);
+                const notes = request.notes ? `<br><span style="color: var(--muted); font-size: 0.86rem;">备注：${esc(request.notes)}</span>` : "";
+                return `
+                    <tr>
+                        <td>${esc(request.studentName || "-")}</td>
+                        <td>
+                            <strong>${esc(request.projectTitle || "-")}</strong>
+                            ${notes}
+                        </td>
+                        <td>${esc(formatDate(request.submittedAt))}</td>
+                        <td><span class="status-pill status-requested">${esc(statusText(request.requestStatus))}</span></td>
+                        <td>
+                            <button class="btn-primary review-btn" data-id="${requestId}" data-action="ACCEPTED" style="padding: 8px 14px; margin-right: 8px;">
+                                <i class="bi bi-check2-circle"></i> 同意
+                            </button>
+                            <button class="btn-secondary review-btn" data-id="${requestId}" data-action="REJECTED" style="padding: 8px 14px; border-color: #f56c6c; color: #f56c6c;">
+                                <i class="bi bi-x-circle"></i> 拒绝
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join("");
+
+            setStatus(`共 ${requests.length} 条待审批申请。`, "");
+            bindReviewButtons();
+        }
+
+        async function submitReview(requestId, requestStatus, decisionComment) {
+            setStatus("正在提交审核结果...", "");
+            try {
+                await ApiClient.teacher.reviewRequest(requestId, requestStatus, decisionComment);
+                setStatus("审核结果已保存。", "");
+                await loadRequests();
+            } catch (error) {
+                console.error(error);
+                setStatus(error.message || "审核失败，请稍后重试。", "error");
+            }
+        }
+
+        function bindReviewButtons() {
+            document.querySelectorAll(".review-btn").forEach(btn => {
+                btn.addEventListener("click", async () => {
+                    const requestId = btn.getAttribute("data-id");
+                    const action = btn.getAttribute("data-action");
+                    if (!requestId || !action) return;
+
+                    if (action === "REJECTED") {
+                        const comment = window.prompt("请输入拒绝原因（可选）：", "");
+                        if (comment === null) return;
+                        await submitReview(requestId, action, comment.trim());
+                        return;
+                    }
+
+                    if (window.confirm("确认同意这条申请吗？")) {
+                        await submitReview(requestId, action, "");
+                    }
+                });
+            });
+        }
+
+        async function loadRequests() {
+            if (!requestTableBody) return;
+            requestTableBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center" style="color: var(--muted);">正在加载...</td>
+                </tr>
+            `;
+            setStatus("正在加载待审批申请...", "");
+
+            try {
+                const requests = await ApiClient.teacher.listRequests("PENDING");
+                renderRequests(Array.isArray(requests) ? requests : []);
+            } catch (error) {
+                console.error(error);
+                requestTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center" style="color: #c74545;">加载失败：${esc(error.message || "请稍后重试")}</td>
+                    </tr>
+                `;
+                setStatus(error.message || "待审批申请加载失败。", "error");
+            }
+        }
+
+        loadRequests();
+
         const layout = document.getElementById("layout");
         const toggle = document.getElementById("toggleSidebar");
         if(layout && toggle) {
