@@ -136,10 +136,9 @@
         const user = ApiClient.requireAuth("STUDENT");
         if (!user) return;
 
-        let notifications = [];
-        const readStorageKey = `studentNotificationRead:${user.userId || user.username || "current"}`;
+        let notifications = [];//保存页面上的通知列表
+        const readStorageKey = `studentNotificationRead:${user.userId || user.username || "current"}`;//记录哪些通知已经读过
 
-        // DOM 元素
         const notificationListEl = document.getElementById('notificationList');
         const unreadCountDisplay = document.getElementById('unreadCountDisplay');
         const markAllReadBtn = document.getElementById('markAllReadBtn');
@@ -158,6 +157,7 @@
             return String(status || "UNKNOWN").toUpperCase();
         }
 
+        //读取 已读 记录
         function readMap() {
             try {
                 return JSON.parse(localStorage.getItem(readStorageKey) || "{}");
@@ -184,7 +184,7 @@
                 minute: "2-digit"
             });
         }
-
+        //优先级选时间
         function notificationTime(request) {
             return request.reviewedAt || request.withdrawnAt || request.submittedAt;
         }
@@ -222,12 +222,14 @@
             return `“${projectTitle}”项目申请状态已更新为 ${status}。`;
         }
 
+        //****核心*****
         function buildNotifications(requests) {
             const map = readMap();
             return requests.map(request => {
                 const status = normalizeStatus(request.requestStatus);
                 const time = notificationTime(request);
-                const id = `request-${request.requestId}-${status}-${time || "unknown"}`;
+                const id = `request-${request.requestId}-${status}-${time || "unknown"}`;//生成通知的唯一 ID。
+                //它包含三部分：申请 ID、状态、时间
                 return {
                     id,
                     type: notificationType(status),
@@ -242,14 +244,14 @@
             });
         }
 
-        // 更新未读数量显示
+        // 更新未读数量
         function updateUnreadCount() {
             const unreadCount = notifications.filter(n => !n.read).length;
             unreadCountDisplay.textContent = unreadCount === 0 ? '暂无未读' : `${unreadCount} 条未读`;
             markAllReadBtn.disabled = unreadCount === 0;
         }
 
-        // 渲染通知列表（结构与教师端统一）
+        //通知列表
         function renderNotifications() {
             if (!notificationListEl) return;
 
@@ -265,13 +267,12 @@
                 return;
             }
 
-            let html = '';
             notifications.sort((a, b) => {
                 if (a.read !== b.read) return a.read ? 1 : -1;
                 return new Date(b.time || 0) - new Date(a.time || 0);
             });
 
-            notifications.forEach(item => {
+            const html = notifications.map(item => {
                 const unreadClass = item.read ? '' : 'unread';
                 const iconType = {
                     'application': 'bi-file-text',
@@ -282,7 +283,7 @@
                     'deadline': 'bi-calendar-exclamation'
                 }[item.type] || 'bi-bell';
 
-                html += `
+                return `
                     <div class="notification-item ${unreadClass}" data-id="${item.id}">
                         <div class="notification-icon">
                             <i class="bi ${iconType}"></i>
@@ -309,12 +310,12 @@
                         </div>
                     </div>
                 `;
-            });
+            }).join("");
 
             notificationListEl.innerHTML = html;
             updateUnreadCount();
 
-            // 绑定单条“标为已读”按钮事件
+            // 绑定按钮
             document.querySelectorAll('.mark-read-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -327,7 +328,7 @@
                     }
                 });
             });
-
+            //*******逻辑再理解一下********
             document.querySelectorAll('.detail-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -338,7 +339,6 @@
                 });
             });
 
-            // 点击通知项也可标记为已读（避开按钮点击）
             document.querySelectorAll('.notification-item').forEach(item => {
                 item.addEventListener('click', (e) => {
                     if (e.target.closest('button')) return;
@@ -389,7 +389,7 @@
 
         initNotifications();
 
-        // ---------- 侧边栏折叠功能 ----------
+        //default sidebar
         const layout = document.getElementById("layout");
         const toggle = document.getElementById("toggleSidebar");
         let isCollapsed = false;
