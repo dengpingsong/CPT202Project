@@ -61,7 +61,12 @@ public class ProjectServiceImpl implements ProjectService {
                 queryDTO.getTagIds(),
                 pageable);
         List<ProjectVO> projectVos = toProjectVOList(projectPage.getContent());
-        return new PageResult<>(projectPage.getTotalElements(), projectVos);
+        return new PageResult<>(
+                projectPage.getTotalElements(),
+                projectVos,
+                projectPage.getNumber() + 1,
+                projectPage.getSize(),
+                projectPage.getTotalPages());
     }
 
     /**
