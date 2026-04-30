@@ -1,6 +1,7 @@
 package com.cpt202.controller.teacher;
 
 import com.cpt202.context.BaseContext;
+import com.cpt202.dto.ChangePasswordDTO;
 import com.cpt202.dto.TeacherProfileUpdateDTO;
 import com.cpt202.result.Result;
 import com.cpt202.service.ProfileService;
@@ -52,6 +53,22 @@ public class TeacherProfileController {
         Long teacherId = BaseContext.getCurrentUserId();
         log.info("Update teacher profile: {}, payload: {}", teacherId, teacherProfileUpdateDTO);
         profileService.updateTeacherProfile(teacherId, teacherProfileUpdateDTO);
+        return Result.success();
+    }
+
+    /**
+     * 修改当前教师账号密码。
+     * 需要提供旧密码进行身份验证。
+     *
+     * @param changePasswordDTO 修改密码参数（旧密码 + 新密码）
+     * @return 统一成功响应
+     */
+    @PutMapping("/me/password")
+    @Operation(summary = "Change current teacher password")
+    public Result<Void> changeMyPassword(@Valid @RequestBody ChangePasswordDTO changePasswordDTO) {
+        Long teacherId = BaseContext.getCurrentUserId();
+        log.info("Change password for teacher: {}", teacherId);
+        profileService.changePassword(teacherId, changePasswordDTO);
         return Result.success();
     }
 }

@@ -202,11 +202,12 @@
                 alert("Register success");
                 window.location.href = "login.html";
             } else {
-                generalError.textContent = data.message || "Register failed";
-                if (data.message?.includes("用户名")) showHelper("username", data.message, "error");
-                else if (data.message?.includes("邮箱")) showHelper("email", data.message, "error");
-                else if (data.message?.includes("学号")) showHelper("studentNo", data.message, "error");
-                else if (data.message?.includes("工号")) showHelper("staffNo", data.message, "error");
+                const errorMessage = data.msg || data.message || "Register failed";
+                generalError.textContent = errorMessage;
+                if (errorMessage.includes("用户名")) showHelper("username", errorMessage, "error");
+                else if (errorMessage.includes("邮箱")) showHelper("email", errorMessage, "error");
+                else if (errorMessage.includes("学号")) showHelper("studentNo", errorMessage, "error");
+                else if (errorMessage.includes("工号")) showHelper("staffNo", errorMessage, "error");
             }
         } catch (err) {
             console.error(err);
