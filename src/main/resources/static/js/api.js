@@ -120,6 +120,11 @@
                 method: "GET"
             });
         },
+        getProject(projectId) {
+            return request(`/api/teacher/projects/${encodeURIComponent(projectId)}`, {
+                method: "GET"
+            });
+        },
         listRequests(status) {
             const params = new URLSearchParams();
             if (status) {
