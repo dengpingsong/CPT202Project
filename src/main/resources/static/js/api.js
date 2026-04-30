@@ -109,12 +109,32 @@
         });
     }
 
+    const teacherApi = {
+        listRequests(status) {
+            const params = new URLSearchParams();
+            if (status) {
+                params.set("status", status);
+            }
+            const query = params.toString();
+            return request(`/api/teacher/requests${query ? `?${query}` : ""}`, {
+                method: "GET"
+            });
+        },
+        reviewRequest(requestId, requestStatus, decisionComment) {
+            return sendJsonRequest("PUT", `/api/teacher/requests/${encodeURIComponent(requestId)}/review`, {
+                requestStatus,
+                decisionComment: decisionComment || ""
+            });
+        }
+    };
+
     window.ApiClient = {
         getToken,
         getCurrentUser,
         clearAuth,
         requireAuth,
         request,
+        teacher: teacherApi,
         // logout function: clear token and redirect to login page
         logout() {
             clearAuth();
