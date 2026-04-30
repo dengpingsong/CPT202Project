@@ -130,6 +130,19 @@
                 method: "GET"
             });
         },
+        listHistory() {
+            return request("/api/teacher/requests", {
+                method: "GET"
+            });
+        },
+        getProfile() {
+            return request("/api/teacher/profile/me", {
+                method: "GET"
+            });
+        },
+        updateProfile(payload) {
+            return sendJsonRequest("PUT", "/api/teacher/profile/me", payload);
+        },
         reviewRequest(requestId, requestStatus, decisionComment) {
             return sendJsonRequest("PUT", `/api/teacher/requests/${encodeURIComponent(requestId)}/review`, {
                 requestStatus,
