@@ -149,6 +149,9 @@
                         <td>${esc(formatDate(request.submittedAt))}</td>
                         <td><span class="status-pill status-requested">${esc(statusText(request.requestStatus))}</span></td>
                         <td>
+                            <button class="btn-secondary" type="button" onclick="location.href='request-detail.html?requestId=${requestId}'" style="padding: 8px 14px; margin-right: 8px;">
+                                <i class="bi bi-eye"></i> 详情
+                            </button>
                             <button class="btn-primary review-btn" data-id="${requestId}" data-action="ACCEPTED" style="padding: 8px 14px; margin-right: 8px;">
                                 <i class="bi bi-check2-circle"></i> 同意
                             </button>
