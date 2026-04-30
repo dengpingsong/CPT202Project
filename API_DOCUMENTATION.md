@@ -528,6 +528,56 @@
 }
 ```
 
+### 9.3 修改学生密码
+
+- 请求方式：`PUT`
+- 请求路径：`/api/student/profile/me/password`
+- 接口说明：修改当前登录学生的账号密码，需验证旧密码
+
+请求头：
+- `Authorization: Bearer <token>`
+
+请求体：
+
+```json
+{
+  "oldPassword": "123456",
+  "newPassword": "newpass123"
+}
+```
+
+字段说明：
+- `oldPassword`：当前密码，用于身份验证，不能为空
+- `newPassword`：新密码，不能为空，长度不少于 6 位，不能与旧密码相同
+
+成功响应：
+
+```json
+{
+  "code": 1,
+  "msg": null,
+  "data": null
+}
+```
+
+失败响应示例：
+
+```json
+{
+  "code": 0,
+  "msg": "旧密码不正确。",
+  "data": null
+}
+```
+
+```json
+{
+  "code": 0,
+  "msg": "新密码不能与旧密码相同。",
+  "data": null
+}
+```
+
 ## 10. 学生端申请历史接口
 
 接口前缀：`/api/student/request-history`
@@ -778,6 +828,56 @@
 {
   "code": 1,
   "msg": null,
+  "data": null
+}
+```
+
+### 14.3 修改教师密码
+
+- 请求方式：`PUT`
+- 请求路径：`/api/teacher/profile/me/password`
+- 接口说明：修改当前登录教师的账号密码，需验证旧密码
+
+请求头：
+- `Authorization: Bearer <token>`
+
+请求体：
+
+```json
+{
+  "oldPassword": "123456",
+  "newPassword": "newpass123"
+}
+```
+
+字段说明：
+- `oldPassword`：当前密码，用于身份验证，不能为空
+- `newPassword`：新密码，不能为空，长度不少于 6 位，不能与旧密码相同
+
+成功响应：
+
+```json
+{
+  "code": 1,
+  "msg": null,
+  "data": null
+}
+```
+
+失败响应示例：
+
+```json
+{
+  "code": 0,
+  "msg": "旧密码不正确。",
+  "data": null
+}
+```
+
+```json
+{
+  "code": 0,
+  "msg": "新密码不能与旧密码相同。",
   "data": null
 }
 ```

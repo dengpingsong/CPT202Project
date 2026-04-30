@@ -225,7 +225,7 @@
         }
         // 预留管理员
         if (role === "ADMIN") {
-            window.location.href = "../admin-dashboard.html";
+            window.location.href = "../admin-review/admin_projects.html";
             return;
         }
         generalError.textContent = "Unknown role, cannot redirect.";
@@ -311,7 +311,7 @@
                 showPanel("loginPanel");
                 generalError.textContent = "Register success. Please log in.";
             } else {
-                registerError.textContent = data.message || data.msg || "Register failed";
+                registerError.textContent = data.msg || data.message || "Register failed";
             }
         } catch (err) {
             console.error(err);
