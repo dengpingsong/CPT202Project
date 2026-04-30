@@ -106,7 +106,7 @@
 <script>
     (function () {
         "use strict";
-
+        //get html
         const layout = document.getElementById("layout");
         const toggle = document.getElementById("toggleSidebar");
         const welcomeTitle = document.getElementById("welcomeTitle");
@@ -119,13 +119,13 @@
         const recommendedProjects = document.getElementById("recommendedProjects");
         const recentRequests = document.getElementById("recentRequests");
         const quickApplyBtn = document.getElementById("quickApplyBtn");
-
+        //sidebar
         let isCollapsed = false;
         toggle.addEventListener("click", () => {
             isCollapsed = !isCollapsed;
             layout.classList.toggle("collapsed", isCollapsed);
         });
-
+        //apply
         quickApplyBtn.addEventListener("click", () => {
             window.location.href = "student-project-search-list.html";
         });
@@ -139,11 +139,11 @@
                 .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#39;");
         }
-
+        //status toUpperCase ***我们系统都统一大写
         function normalizeStatus(status) {
             return String(status || "UNKNOWN").toUpperCase();
         }
-
+        //css 样式
         function statusClass(status) {
             const normalized = normalizeStatus(status);
             if (normalized === "AVAILABLE") return "status-available";
@@ -151,7 +151,7 @@
             if (normalized === "ACCEPTED" || normalized === "AGREED") return "status-agreed";
             return "status-unavailable";
         }
-
+        //日期格式化
         function formatDate(value) {
             if (!value) return "-";
             const date = new Date(value);
@@ -161,7 +161,7 @@
                 day: "2-digit"
             });
         }
-
+        //main context update
         function renderStats(requests) {
             const user = ApiClient.getCurrentUser();
             const displayName = user.fullName || user.username || "同学";
@@ -192,8 +192,8 @@
             currentStatusRule.textContent = "当前没有待审批或已通过的申请";
             requestCountRule.textContent = "可以从推荐项目或搜索项目开始申请";
         }
-
-        function renderProjects(projectPage, requests) {
+        //推荐项目
+        function renderProjects(projectPage, requests) {//后端返回的项目列表数据
             const projects = Array.isArray(projectPage?.records) ? projectPage.records.slice(0, 3) : [];
             const requestedProjectIds = new Set(
                 requests
@@ -230,7 +230,7 @@
                         <button class="${buttonClass}" type="button" onclick="window.location.href='student-project-search-list-detail.html?projectId=${encodeURIComponent(projectId)}&from=dashboard'">${buttonText}</button>
                     </article>
                 `;
-            }).join("");
+            }).join("");//遍历项目生成多张卡片 HTML，然后把它们拼成一个完整 HTML 字符串。
         }
 
         function renderRecentRequests(requests) {
@@ -271,8 +271,8 @@
                 if (!user) return;
 
                 const [requests, projectPage] = await Promise.all([
-                    ApiClient.get("/api/student/requests"),
-                    ApiClient.get("/api/student/projects?pageNum=1&pageSize=3")
+                    ApiClient.get("/api/student/requests"),//获取当前学生的申请记录
+                    ApiClient.get("/api/student/projects?pageNum=1&pageSize=3")//获取推荐项目列表
                 ]);
 
                 const safeRequests = Array.isArray(requests) ? requests : [];
