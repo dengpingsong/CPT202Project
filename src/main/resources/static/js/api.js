@@ -125,6 +125,9 @@
                 method: "GET"
             });
         },
+        createProject(payload) {
+            return sendJsonRequest("POST", "/api/teacher/projects", payload);
+        },
         listRequests(status) {
             const params = new URLSearchParams();
             if (status) {
@@ -136,6 +139,11 @@
             });
         },
         listHistory() {
+            return request("/api/teacher/requests", {
+                method: "GET"
+            });
+        },
+        listNotifications() {
             return request("/api/teacher/requests", {
                 method: "GET"
             });

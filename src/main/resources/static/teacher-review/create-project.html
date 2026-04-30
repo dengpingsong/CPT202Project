@@ -123,12 +123,12 @@
                         <span class="badge me-2 mb-2 p-2 tag-wrapper" data-tag="Java"
                               style="background-color:#5f3391; font-size:14px; font-weight:normal;">
                             Java
-                            <i class="bi bi-x-circle ms-1" style="cursor:pointer;" onclick="this.parentElement.remove()"></i>
+                            <i class="bi bi-x-circle ms-1" style="cursor:pointer;"></i>
                         </span>
                         <span class="badge me-2 mb-2 p-2 tag-wrapper" data-tag="Web开发"
                               style="background-color:#5f3391; font-size:14px; font-weight:normal;">
                             Web开发
-                            <i class="bi bi-x-circle ms-1" style="cursor:pointer;" onclick="this.parentElement.remove()"></i>
+                            <i class="bi bi-x-circle ms-1" style="cursor:pointer;"></i>
                         </span>
 
                         <!-- 添加框 -->
@@ -137,7 +137,7 @@
                             <button
                                     class="btn btn-outline-secondary btn-sm"
                                     type="button"
-                                    onclick="addTag()"
+                                    id="addTagBtn"
                                     style="background: white; border-color: #ddd;"
                             >
                                 添加
@@ -154,14 +154,14 @@
                 <div class="text-danger mb-3" id="formError"></div>
 
                 <div class="d-flex gap-3">
-                    <button type="button" class="btn btn-publish" id="publishBtn" onclick="submitProject()">
+                    <button type="submit" class="btn btn-publish" id="publishBtn">
                         <i class="bi bi-rocket-takeoff"></i> 确认发布 (Publish)
                     </button>
                     <button
                             type="button"
                             class="btn btn-light"
                             style="border-radius: 20px; padding: 10px 25px;"
-                            onclick="window.location.href='projects.html'"
+                            id="cancelBtn"
                     >
                         取消 (Cancel)
                     </button>
@@ -171,13 +171,131 @@
     </main>
 </div>
 
-<!-- 调用外部脚本 -->
-<script src="script.js"></script>
-
-<!-- 侧边栏收起/展开 -->
+<script src="../js/api.js"></script>
 <script>
     (function () {
         "use strict";
+        const user = ApiClient.requireAuth("TEACHER");
+        if (!user) return;
+
+        const form = document.getElementById("createProjectForm");
+        const publishBtn = document.getElementById("publishBtn");
+        const formError = document.getElementById("formError");
+        const tagInput = document.getElementById("tagInput");
+        const addTagBtn = document.getElementById("addTagBtn");
+        const cancelBtn = document.getElementById("cancelBtn");
+        const tagsContainer = document.getElementById("tagsContainer");
+        const tagInputGroup = document.getElementById("tagInputGroup");
+
+        function setError(message, type) {
+            if (!formError) return;
+            formError.textContent = message || "";
+            formError.style.color = type === "success" ? "var(--green)" : "#c74545";
+        }
+
+        function getTagList() {
+            const wrappers = document.querySelectorAll("#tagsContainer .tag-wrapper");
+            const tags = [];
+
+            wrappers.forEach(tagEl => {
+                const value = (tagEl.dataset.tag || "").trim();
+                if (value) tags.push(value);
+            });
+
+            return tags;
+        }
+
+        function addTag() {
+            if (!tagInput || !tagsContainer || !tagInputGroup) return;
+
+            const value = tagInput.value.trim();
+            if (!value) return;
+
+            const exists = Array.from(tagsContainer.querySelectorAll(".tag-wrapper"))
+                .some(el => (el.dataset.tag || "").toLowerCase() === value.toLowerCase());
+            if (exists) {
+                tagInput.value = "";
+                return;
+            }
+
+            const tag = document.createElement("span");
+            tag.className = "badge me-2 mb-2 p-2 tag-wrapper";
+            tag.dataset.tag = value;
+            tag.style.backgroundColor = "#5f3391";
+            tag.style.fontSize = "14px";
+            tag.style.fontWeight = "normal";
+            tag.innerHTML = `${value} <i class="bi bi-x-circle ms-1" style="cursor:pointer;"></i>`;
+
+            tag.querySelector("i").addEventListener("click", () => tag.remove());
+            tagsContainer.insertBefore(tag, tagInputGroup);
+            tagInput.value = "";
+        }
+
+        function buildPayload() {
+            const requirements = document.getElementById("projectRequirements").value.trim();
+            const tags = getTagList();
+            const requiredSkills = [requirements, ...tags].filter(Boolean).join(" / ");
+
+            return {
+                categoryId: Number(document.getElementById("projectCategoryId").value),
+                title: document.getElementById("projectTitle").value.trim(),
+                description: document.getElementById("projectDescription").value.trim(),
+                requiredSkills,
+                topicArea: document.getElementById("projectTopicArea").value.trim(),
+                maxStudents: Number(document.getElementById("projectQuota").value)
+            };
+        }
+
+        function validatePayload(payload) {
+            if (!payload.categoryId) return "Category ID 不能为空。";
+            if (!payload.title) return "项目名称不能为空。";
+            if (!payload.description) return "项目描述不能为空。";
+            if (!payload.maxStudents || payload.maxStudents < 1) return "招募人数必须大于等于 1。";
+            return "";
+        }
+
+        async function submitProject(event) {
+            event.preventDefault();
+            const payload = buildPayload();
+            const error = validatePayload(payload);
+            if (error) {
+                setError(error, "error");
+                return;
+            }
+
+            const originalText = publishBtn.innerHTML;
+            publishBtn.disabled = true;
+            publishBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> 发布中...';
+            setError("正在发布项目...", "success");
+
+            try {
+                await ApiClient.teacher.createProject(payload);
+                setError("发布成功，正在返回项目列表...", "success");
+                window.location.href = "projects.html";
+            } catch (error) {
+                console.error(error);
+                setError(error.message || "发布失败，请稍后重试。", "error");
+            } finally {
+                publishBtn.disabled = false;
+                publishBtn.innerHTML = originalText;
+            }
+        }
+
+        addTagBtn.addEventListener("click", addTag);
+        cancelBtn.addEventListener("click", () => {
+            window.location.href = "projects.html";
+        });
+        tagInput.addEventListener("keydown", event => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                addTag();
+            }
+        });
+        document.querySelectorAll("#tagsContainer .tag-wrapper i").forEach(icon => {
+            icon.addEventListener("click", () => icon.parentElement.remove());
+        });
+        form.addEventListener("submit", submitProject);
+
         const layout = document.getElementById("layout");
         const toggle = document.getElementById("toggleSidebar");
         if (layout && toggle) {

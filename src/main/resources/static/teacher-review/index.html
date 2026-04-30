@@ -149,7 +149,7 @@
                         <td>${esc(formatDate(request.submittedAt))}</td>
                         <td><span class="status-pill status-requested">${esc(statusText(request.requestStatus))}</span></td>
                         <td>
-                            <button class="btn-secondary" type="button" onclick="location.href='request-detail.html?requestId=${requestId}'" style="padding: 8px 14px; margin-right: 8px;">
+                            <button class="btn-secondary detail-btn" type="button" data-id="${requestId}" style="padding: 8px 14px; margin-right: 8px;">
                                 <i class="bi bi-eye"></i> 详情
                             </button>
                             <button class="btn-primary review-btn" data-id="${requestId}" data-action="ACCEPTED" style="padding: 8px 14px; margin-right: 8px;">
@@ -180,6 +180,15 @@
         }
 
         function bindReviewButtons() {
+            document.querySelectorAll(".detail-btn").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const requestId = btn.getAttribute("data-id");
+                    if (requestId) {
+                        window.location.href = `request-detail.html?requestId=${encodeURIComponent(requestId)}`;
+                    }
+                });
+            });
+
             document.querySelectorAll(".review-btn").forEach(btn => {
                 btn.addEventListener("click", async () => {
                     const requestId = btn.getAttribute("data-id");
