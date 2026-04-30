@@ -43,16 +43,14 @@
         const detailPanel = document.getElementById("detailPanel");
         const params = new URLSearchParams(window.location.search);
         const projectId = params.get("projectId");
-        const code = params.get("code"); // 兼容旧链接
-        const from = params.get("from");
-        const cameFromDashboard = from === "dashboard" || document.referrer.includes("student-dashboard.html");
+        const from = params.get("from") || "list";//为了满足总推荐页面返回 直接到dashboard
         const backMap = {
             dashboard: { target: "student-dashboard.html", text: "返回申请状态" },
             notification: { target: "student-notification.html", text: "返回消息/通知" },
             history: { target: "student-request-history.html", text: "返回请求历史" },
             list: { target: "student-project-search-list.html", text: "返回项目列表" }
         };
-        const backConfig = cameFromDashboard ? backMap.dashboard : (backMap[from] || backMap.list);
+        const backConfig = backMap[from] || backMap.list;
         const backTarget = backConfig.target;
         const backText = backConfig.text;
         const backLink = document.getElementById("backLink");
@@ -62,7 +60,7 @@
             backLink.href = backTarget;
             backLink.textContent = `← ${backText}`;
         }
-        if (cameFromDashboard) {
+        if (from === "dashboard") {
             dashboardNav?.classList.add("active");
             projectListNav?.classList.remove("active");
         }
@@ -76,7 +74,7 @@
                 .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#39;");
         }
-
+        //全部大写映射成正常
         function statusText(status) {
             const map = {
                 AVAILABLE: "Available",
@@ -97,10 +95,11 @@
             }
         }
 
+        //判断时候用大写
         function normalizeStatus(status) {
             return String(status || "UNKNOWN").toUpperCase();
         }
-
+        //状态css
         function statusClass(status) {
             const normalized = normalizeStatus(status);
             if (normalized === "AVAILABLE") return "status-available";
@@ -108,14 +107,14 @@
             if (normalized === "ACCEPTED" || normalized === "AGREED") return "status-agreed";
             return "status-unavailable";
         }
-
+        //判断学生是否申请过
         function activeRequestForProject(requests, id) {
             return requests.find(item =>
                 String(item.projectId) === String(id)
                 && ["PENDING", "ACCEPTED"].includes(normalizeStatus(item.requestStatus))
             );
         }
-
+        //是否被录取（如果就不能再申请新项目）
         function hasAcceptedRequest(requests) {
             return requests.some(item => normalizeStatus(item.requestStatus) === "ACCEPTED");
         }
@@ -163,6 +162,7 @@
             };
         }
 
+        //项目详情面板
         function renderProject(p, requests) {
             const current = Number(p.currentAgreedCount || 0);
             const max = Number(p.maxStudents || 0);
@@ -213,12 +213,12 @@
             if (applyBtn) {
                 applyBtn.addEventListener("click", async () => {
                     if (buttonState.disabled) return;
-                    const notesEl = document.getElementById("applyNotes");
+                    const notesEl = document.getElementById("applyNotes");//读取申请备注？？？？？？？
                     const notes = notesEl ? notesEl.value.trim() : "";
                     applyBtn.disabled = true;
                     const originalText = applyBtn.textContent;
                     applyBtn.textContent = "提交中...";
-                    applyStatus.textContent = "正在提交申请...";
+                    applyStatus.textContent = "正在提交申请...";//禁用按钮，防止重复提交
 
                     try {
                         await ApiClient.post("/api/student/requests", {
@@ -248,13 +248,6 @@
             return ApiClient.get(`/api/student/projects/${encodeURIComponent(id)}`);
         }
 
-        async function loadByCodeFallback(codeValue) {
-            // 兼容旧的 code= SURF-xxx 链接
-            const id = (codeValue || "").replace("SURF-", "").trim();
-            if (!id) throw new Error("缺少项目ID");
-            return loadById(id);
-        }
-
         async function init() {
             try {
                 let project;
@@ -262,11 +255,6 @@
                 if (projectId) {
                     [project, requests] = await Promise.all([
                         loadById(projectId),
-                        ApiClient.get("/api/student/requests")
-                    ]);
-                } else if (code) {
-                    [project, requests] = await Promise.all([
-                        loadByCodeFallback(code),
                         ApiClient.get("/api/student/requests")
                     ]);
                 } else {
@@ -283,6 +271,7 @@
             }
         }
 
+        //default sidebar
         const layout = document.getElementById("layout");
         const toggle = document.getElementById("toggleSidebar");
         let isCollapsed = false;
