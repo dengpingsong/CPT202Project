@@ -47,7 +47,7 @@
         <header class="page-header">
             <h1 class="mb-0">我的项目 (My Projects)</h1>
             <div style="flex-grow: 1;"></div>
-            <button class="btn-primary" onclick="window.location.href='create-project.html'">
+            <button class="btn-primary" id="createProjectBtn" type="button">
                 <i class="bi bi-plus-lg"></i> 创建新项目
             </button>
         </header>
@@ -136,12 +136,17 @@
                         <div style="flex-grow: 1;">
                             <span class="status-pill ${statusClass(status)}">${esc(statusText(status))}</span>
                         </div>
-                        <button class="btn-secondary" style="width: 100%;" onclick="location.href='index.html'">查看申请</button>
+                        <button class="btn-secondary view-requests-btn" type="button" style="width: 100%;">查看申请</button>
                     </div>
                 `;
             }).join("");
 
             setStatus(`共 ${projects.length} 个项目。`, "");
+            document.querySelectorAll(".view-requests-btn").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    window.location.href = "index.html";
+                });
+            });
         }
 
         async function loadProjects() {
@@ -159,6 +164,9 @@
             }
         }
 
+        document.getElementById("createProjectBtn").addEventListener("click", () => {
+            window.location.href = "create-project.html";
+        });
         loadProjects();
 
         const layout = document.getElementById("layout");
