@@ -110,6 +110,16 @@
     }
 
     const teacherApi = {
+        listProjects(status) {
+            const params = new URLSearchParams();
+            if (status) {
+                params.set("status", status);
+            }
+            const query = params.toString();
+            return request(`/api/teacher/projects${query ? `?${query}` : ""}`, {
+                method: "GET"
+            });
+        },
         listRequests(status) {
             const params = new URLSearchParams();
             if (status) {
