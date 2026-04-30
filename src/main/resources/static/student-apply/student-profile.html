@@ -308,6 +308,21 @@
             flex-wrap: wrap;
         }
 
+        .form-status {
+            width: 100%;
+            min-height: 22px;
+            font-size: 0.9rem;
+            color: var(--muted);
+        }
+
+        .form-status.success {
+            color: #167d68;
+        }
+
+        .form-status.error {
+            color: #b02a37;
+        }
+
         .btn-primary {
             background: var(--deep);
             border: none;
@@ -342,6 +357,85 @@
             border-color: var(--deep);
             color: var(--deep);
             background: rgba(90, 43, 152, 0.03);
+        }
+
+        .password-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: rgba(28, 27, 51, 0.45);
+            z-index: 20;
+        }
+
+        .password-modal.open {
+            display: flex;
+        }
+
+        .password-dialog {
+            width: min(440px, 100%);
+            background: var(--panel);
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            box-shadow: 0 24px 80px rgba(21, 16, 45, 0.22);
+            padding: 28px;
+        }
+
+        .password-dialog-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .password-dialog-header h2 {
+            margin: 0;
+            color: var(--text);
+            font-size: 1.35rem;
+            font-weight: 600;
+        }
+
+        .icon-button {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            border: 1px solid rgba(90, 43, 152, 0.16);
+            background: rgba(90, 43, 152, 0.06);
+            color: var(--deep);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .password-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .password-field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .password-field label {
+            color: var(--text);
+            font-weight: 500;
+            font-size: 0.92rem;
+        }
+
+        .password-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 8px;
+            flex-wrap: wrap;
         }
 
         /* 退出登录按钮专用样式 (红色边框) */
@@ -452,7 +546,6 @@
                     <div class="form-row">
                         <span class="form-label"><i class="bi bi-upc-scan"></i> 学号</span>
                         <input type="text" class="form-control" id="studentNo" placeholder="未填写" disabled>
-                        <small style="color: var(--muted); margin-left: 12px;">学号不可修改</small>
                     </div>
                     <div class="form-row">
                         <span class="form-label"><i class="bi bi-envelope"></i> 邮箱</span>
@@ -484,35 +577,74 @@
                     <button type="button" class="btn-secondary" id="clearBtn">
                         <i class="bi bi-eraser"></i> 清空信息
                     </button>
+                    <button type="button" class="btn-secondary" id="changePasswordBtn">
+                        <i class="bi bi-key"></i> 修改密码
+                    </button>
                     <button type="button" class="btn-logout" id="logoutBtn">
                         <i class="bi bi-box-arrow-right"></i> 退出登录
                     </button>
                     <span style="flex:1; text-align:right; font-size:0.8rem; color:var(--muted);">
                         <i class="bi bi-shield-check"></i> 信息加密传输
                     </span>
+                    <div class="form-status" id="profileStatus" aria-live="polite"></div>
                 </div>
             </form>
         </div>
     </main>
 </div>
 
+<div class="password-modal" id="passwordModal" aria-hidden="true">
+    <div class="password-dialog" role="dialog" aria-modal="true" aria-labelledby="passwordModalTitle">
+        <div class="password-dialog-header">
+            <h2 id="passwordModalTitle">修改密码</h2>
+            <button type="button" class="icon-button" id="closePasswordModalBtn" aria-label="关闭修改密码窗口">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <form class="password-form" id="passwordForm">
+            <div class="password-field">
+                <label for="newPassword">新密码</label>
+                <input type="password" class="form-control" id="newPassword" autocomplete="new-password" placeholder="请输入新密码">
+            </div>
+            <div class="password-field">
+                <label for="confirmPassword">确认新密码</label>
+                <input type="password" class="form-control" id="confirmPassword" autocomplete="new-password" placeholder="请再次输入新密码">
+            </div>
+            <div class="form-status" id="passwordStatus" aria-live="polite"></div>
+            <div class="password-actions">
+                <button type="button" class="btn-secondary" id="cancelPasswordBtn">取消</button>
+                <button type="submit" class="btn-primary">
+                    <i class="bi bi-check-lg"></i> 确认修改
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="../js/api.js"></script>
 <script>
     (function() {
         "use strict";
 
-        // ---------- 认证检查 ----------
-        const token = localStorage.getItem("token");
-        if (!token) {
-            window.location.href = "../login/login.html";
+        const user = ApiClient.requireAuth("STUDENT");
+        if (!user) {
             return;
         }
 
-        // ---------- API 配置 ----------
-        const API_BASE = "/api/student/profile/me";   // 根据实际接口调整
+        const API_BASE = "/api/student/profile/me";
 
         const profileForm = document.getElementById('profileForm');
         const clearBtn = document.getElementById('clearBtn');
+        const changePasswordBtn = document.getElementById('changePasswordBtn');
         const logoutBtn = document.getElementById('logoutBtn');
+        const profileStatus = document.getElementById('profileStatus');
+        const passwordModal = document.getElementById('passwordModal');
+        const passwordForm = document.getElementById('passwordForm');
+        const newPassword = document.getElementById('newPassword');
+        const confirmPassword = document.getElementById('confirmPassword');
+        const passwordStatus = document.getElementById('passwordStatus');
+        const closePasswordModalBtn = document.getElementById('closePasswordModalBtn');
+        const cancelPasswordBtn = document.getElementById('cancelPasswordBtn');
 
         // 获取输入框引用（与新增字段对应）
         const inputs = {
@@ -525,38 +657,60 @@
             interests: document.getElementById('interests')
         };
 
+        function setStatus(message, type) {
+            profileStatus.textContent = message || "";
+            profileStatus.className = type ? `form-status ${type}` : "form-status";
+        }
+
+        function setPasswordStatus(message, type) {
+            passwordStatus.textContent = message || "";
+            passwordStatus.className = type ? `form-status ${type}` : "form-status";
+        }
+
+        function openPasswordModal() {
+            passwordModal.classList.add("open");
+            passwordModal.setAttribute("aria-hidden", "false");
+            passwordForm.reset();
+            setPasswordStatus("", "");
+            newPassword.focus();
+        }
+
+        function closePasswordModal() {
+            passwordModal.classList.remove("open");
+            passwordModal.setAttribute("aria-hidden", "true");
+            passwordForm.reset();
+            setPasswordStatus("", "");
+        }
+
+        function formatDateForInput(value) {
+            if (!value) return "";
+            return String(value).split("T")[0];
+        }
+
+        function fillProfile(profile) {
+            inputs.fullName.value = profile.fullName || "";
+            inputs.studentNo.value = profile.studentNo || "";
+            inputs.email.value = profile.email || "";
+            inputs.programme.value = profile.programme || "";
+            inputs.enrollmentDate.value = formatDateForInput(profile.enrollmentDate);
+            inputs.phone.value = profile.phone || "";
+            inputs.interests.value = profile.interests || "";
+        }
+
         // ---------- 从后端加载当前学生信息 ----------
         async function fetchProfile() {
+            setStatus("正在加载个人资料...", "");
             try {
-                const res = await fetch(API_BASE, {
-                    method: "GET",
-                    headers: {
-                        "Authorization": `Bearer ${token}`
-                    }
-                });
-                const data = await res.json();
-                if (data.code === 1 && data.data) {
-                    const profile = data.data;
-                    inputs.fullName.value = profile.fullName || "";
-                    inputs.studentNo.value = profile.studentNo || "";
-                    inputs.email.value = profile.email || "";
-                    inputs.programme.value = profile.programme || "";
-                    // 日期格式处理：后端可能返回 ISO 字符串，截取 yyyy-MM-dd 部分
-                    if (profile.enrollmentDate) {
-                        const dateStr = profile.enrollmentDate.split('T')[0];
-                        inputs.enrollmentDate.value = dateStr;
-                    } else {
-                        inputs.enrollmentDate.value = "";
-                    }
-                    inputs.phone.value = profile.phone || "";
-                    inputs.interests.value = profile.interests || "";
-                } else if (data.code === 401) {
-                    handleLogout();
-                } else {
-                    console.warn("获取信息失败: " + (data.message || "未知错误"));
+                const profile = await ApiClient.get(API_BASE);
+                fillProfile(profile || {});
+
+                if (profile?.fullName) {
+                    localStorage.setItem("fullName", profile.fullName);
                 }
+                setStatus("个人资料已同步。", "success");
             } catch (err) {
-                console.error("网络错误", err);
+                console.error(err);
+                setStatus(err.message || "个人资料加载失败，请稍后重试。", "error");
             }
         }
 
@@ -570,6 +724,51 @@
             inputs.enrollmentDate.value = '';
             inputs.phone.value = '';
             inputs.interests.value = '';
+            setStatus("已清空可编辑字段，保存后才会提交到后端。", "");
+        });
+
+        changePasswordBtn.addEventListener('click', openPasswordModal);
+        closePasswordModalBtn.addEventListener('click', closePasswordModal);
+        cancelPasswordBtn.addEventListener('click', closePasswordModal);
+        passwordModal.addEventListener('click', (event) => {
+            if (event.target === passwordModal) {
+                closePasswordModal();
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === "Escape" && passwordModal.classList.contains("open")) {
+                closePasswordModal();
+            }
+        });
+
+        passwordForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            const passwordValue = newPassword.value.trim();
+            const confirmValue = confirmPassword.value.trim();
+
+            if (!passwordValue) {
+                setPasswordStatus("请输入新密码。", "error");
+                newPassword.focus();
+                return;
+            }
+
+            if (!confirmValue) {
+                setPasswordStatus("请再次输入新密码。", "error");
+                confirmPassword.focus();
+                return;
+            }
+
+            if (passwordValue !== confirmValue) {
+                setPasswordStatus("两次输入的密码不一致。", "error");
+                confirmPassword.focus();
+                return;
+            }
+
+            setPasswordStatus("密码已通过前端校验。", "success");
+            setStatus("密码已通过校验。", "success");
+            setTimeout(closePasswordModal, 700);
         });
 
         // ---------- 表单提交：保存修改到后端 ----------
@@ -579,21 +778,24 @@
             // 1. 姓名非空校验
             const fullNameVal = inputs.fullName.value.trim();
             if (!fullNameVal) {
-                alert("姓名不能为空，请填写。");
+                setStatus("姓名不能为空，请填写。", "error");
+                inputs.fullName.focus();
                 return;
             }
 
             // 2. 邮箱非空校验
             const emailVal = inputs.email.value.trim();
             if (!emailVal) {
-                alert("邮箱不能为空，请填写。");
+                setStatus("邮箱不能为空，请填写。", "error");
+                inputs.email.focus();
                 return;
             }
 
             // 3. 邮箱格式校验（简单的正则）
             const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailPattern.test(emailVal)) {
-                alert("邮箱格式不正确，请检查后重新输入。");
+                setStatus("邮箱格式不正确，请检查后重新输入。", "error");
+                inputs.email.focus();
                 return;
             }
 
@@ -601,13 +803,12 @@
             const originalText = saveBtn.innerHTML;
             saveBtn.disabled = true;
             saveBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> 保存中...';
-
-
+            setStatus("正在保存个人资料...", "");
 
             // 构建请求体，严格匹配 StudentProfileUpdateDTO 字段
             const payload = {
-                fullName: inputs.fullName.value.trim(),
-                email: inputs.email.value.trim(),
+                fullName: fullNameVal,
+                email: emailVal,
                 programme: inputs.programme.value.trim(),
                 enrollmentDate: inputs.enrollmentDate.value || null, // 空字符串后端应处理为 null
                 phone: inputs.phone.value.trim(),
@@ -615,29 +816,13 @@
             };
 
             try {
-                const res = await fetch(API_BASE, {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${token}`
-                    },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                if (data.code === 1) {
-                    alert("✅ 个人设置已保存");
-                    // 更新 localStorage 中的姓名
-                    if (payload.fullName) {
-                        localStorage.setItem("fullName", payload.fullName);
-                    }
-                } else if (data.code === 401) {
-                    handleLogout();
-                } else {
-                    alert("保存失败: " + (data.message || "未知错误"));
-                }
+                await ApiClient.put(API_BASE, payload);
+                localStorage.setItem("fullName", payload.fullName);
+                localStorage.setItem("username", localStorage.getItem("username") || user.username || "");
+                setStatus("个人设置已保存。", "success");
             } catch (err) {
                 console.error(err);
-                alert("网络错误，请稍后重试");
+                setStatus(err.message || "保存失败，请稍后重试。", "error");
             } finally {
                 saveBtn.disabled = false;
                 saveBtn.innerHTML = originalText;
@@ -646,7 +831,7 @@
 
         // ---------- 退出登录 ----------
         function handleLogout() {
-            localStorage.clear();
+            ApiClient.clearAuth();
             window.location.href = "../login/login.html";
         }
         logoutBtn.addEventListener('click', handleLogout);

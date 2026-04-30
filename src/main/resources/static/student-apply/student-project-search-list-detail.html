@@ -14,8 +14,8 @@
             <button class="toggle" id="toggleSidebar"><span></span></button>
         </div>
         <div class="nav-group">
-            <a href="student-dashboard.html"><i class="bi bi-kanban nav-icon"></i><span class="nav-label">申请状态</span></a>
-            <a href="student-project-search-list.html" class="active"><i class="bi bi-search nav-icon"></i><span class="nav-label">搜索项目</span></a>
+            <a href="student-dashboard.html" id="dashboardNav"><i class="bi bi-kanban nav-icon"></i><span class="nav-label">申请状态</span></a>
+            <a href="student-project-search-list.html" class="active" id="projectListNav"><i class="bi bi-search nav-icon"></i><span class="nav-label">搜索项目</span></a>
             <a href="student-request-history.html"><i class="bi bi-clock-history nav-icon"></i><span class="nav-label">请求历史</span></a>
             <a href="student-notification.html"><i class="bi bi-chat-dots nav-icon"></i><span class="nav-label">消息/通知</span></a>
             <a href="student-profile.html"><i class="bi bi-person-gear nav-icon"></i><span class="nav-label">个人设置</span></a>
@@ -24,7 +24,7 @@
 
     <main class="main">
         <div class="page-header">
-            <a href="student-project-search-list.html" class="back-link">← 返回项目列表</a>
+            <a href="student-project-search-list.html" class="back-link" id="backLink">← 返回项目列表</a>
             <h1>项目详情</h1>
         </div>
 
@@ -34,12 +34,38 @@
     </main>
 </div>
 
+<script src="../js/api.js"></script>
 <script>
     (function () {
+        const user = ApiClient.requireAuth("STUDENT");
+        if (!user) return;
+
         const detailPanel = document.getElementById("detailPanel");
         const params = new URLSearchParams(window.location.search);
         const projectId = params.get("projectId");
         const code = params.get("code"); // 兼容旧链接
+        const from = params.get("from");
+        const cameFromDashboard = from === "dashboard" || document.referrer.includes("student-dashboard.html");
+        const backMap = {
+            dashboard: { target: "student-dashboard.html", text: "返回申请状态" },
+            notification: { target: "student-notification.html", text: "返回消息/通知" },
+            history: { target: "student-request-history.html", text: "返回请求历史" },
+            list: { target: "student-project-search-list.html", text: "返回项目列表" }
+        };
+        const backConfig = cameFromDashboard ? backMap.dashboard : (backMap[from] || backMap.list);
+        const backTarget = backConfig.target;
+        const backText = backConfig.text;
+        const backLink = document.getElementById("backLink");
+        const dashboardNav = document.getElementById("dashboardNav");
+        const projectListNav = document.getElementById("projectListNav");
+        if (backLink) {
+            backLink.href = backTarget;
+            backLink.textContent = `← ${backText}`;
+        }
+        if (cameFromDashboard) {
+            dashboardNav?.classList.add("active");
+            projectListNav?.classList.remove("active");
+        }
 
         function esc(v) {
             if (v === null || v === undefined) return "";
@@ -71,10 +97,77 @@
             }
         }
 
-        function renderProject(p) {
+        function normalizeStatus(status) {
+            return String(status || "UNKNOWN").toUpperCase();
+        }
+
+        function statusClass(status) {
+            const normalized = normalizeStatus(status);
+            if (normalized === "AVAILABLE") return "status-available";
+            if (normalized === "PENDING" || normalized === "REQUESTED") return "status-requested";
+            if (normalized === "ACCEPTED" || normalized === "AGREED") return "status-agreed";
+            return "status-unavailable";
+        }
+
+        function activeRequestForProject(requests, id) {
+            return requests.find(item =>
+                String(item.projectId) === String(id)
+                && ["PENDING", "ACCEPTED"].includes(normalizeStatus(item.requestStatus))
+            );
+        }
+
+        function hasAcceptedRequest(requests) {
+            return requests.some(item => normalizeStatus(item.requestStatus) === "ACCEPTED");
+        }
+
+        function applyButtonState(project, requests) {
+            const existing = activeRequestForProject(requests, project.projectId);
+            if (existing) {
+                return {
+                    disabled: true,
+                    text: normalizeStatus(existing.requestStatus) === "ACCEPTED" ? "已通过该项目" : "已申请该项目",
+                    hint: "你已经对该项目有活跃申请记录。"
+                };
+            }
+
+            if (hasAcceptedRequest(requests)) {
+                return {
+                    disabled: true,
+                    text: "已有通过项目",
+                    hint: "你已有通过申请，暂不能继续申请新项目。"
+                };
+            }
+
+            if (normalizeStatus(project.projectStatus) !== "AVAILABLE") {
+                return {
+                    disabled: true,
+                    text: "项目不可申请",
+                    hint: "当前项目状态不支持申请。"
+                };
+            }
+
+            const current = Number(project.currentAgreedCount || 0);
+            const max = Number(project.maxStudents || 0);
+            if (max > 0 && current >= max) {
+                return {
+                    disabled: true,
+                    text: "名额已满",
+                    hint: "当前项目名额已满。"
+                };
+            }
+
+            return {
+                disabled: false,
+                text: "申请该项目",
+                hint: ""
+            };
+        }
+
+        function renderProject(p, requests) {
             const current = Number(p.currentAgreedCount || 0);
             const max = Number(p.maxStudents || 0);
             const surfCode = `SURF-${p.projectId}`;
+            const buttonState = applyButtonState(p, requests);
 
             document.title = `${p.title} | 项目详情`;
 
@@ -91,7 +184,7 @@
                 <div class="meta-item"><span class="meta-label">Topic Area</span><span class="meta-value">${esc(p.topicArea || "-")}</span></div>
                 <div class="meta-item"><span class="meta-label">Required Skills</span><span class="meta-value">${esc(p.requiredSkills || "-")}</span></div>
                 <div class="meta-item"><span class="meta-label">Quota</span><span class="meta-value">${current}/${max}</span></div>
-                <div class="meta-item"><span class="meta-label">Status</span><span class="meta-value">${esc(statusText(p.projectStatus))}</span></div>
+                <div class="meta-item"><span class="meta-label">Status</span><span class="meta-value"><span class="status-pill ${statusClass(p.projectStatus)}">${esc(statusText(p.projectStatus))}</span></span></div>
                 <div class="meta-item"><span class="meta-label">Publish Date</span><span class="meta-value">${esc(fmtDate(p.publishDate))}</span></div>
             </div>
 
@@ -100,33 +193,59 @@
                 <div class="detail-text">${esc(p.description || "-")}</div>
             </div>
 
-            <div class="action-buttons">
-                <button class="btn-primary" id="applyBtn">申请该项目</button>
-                <button class="btn-secondary" onclick="window.location.href='student-project-search-list.html'">返回列表</button>
+            ${!buttonState.disabled ? `
+            <div class="detail-block">
+                <h3>申请备注</h3>
+                <textarea id="applyNotes" rows="4" style="width:100%; max-width:720px; padding:12px 14px; border:1.5px solid rgba(90,43,152,0.18); border-radius:16px; font-family:inherit; resize:vertical;" placeholder="可以补充你的兴趣、经验或申请理由"></textarea>
             </div>
+            ` : ""}
+
+            <div class="action-buttons">
+                <button class="btn-primary" id="applyBtn" ${buttonState.disabled ? "disabled" : ""}>${esc(buttonState.text)}</button>
+                <button class="btn-secondary" id="detailBackBtn">返回</button>
+            </div>
+            <div id="applyStatus" class="footnote" style="text-align:left;">${esc(buttonState.hint)}</div>
         `;
 
             const applyBtn = document.getElementById("applyBtn");
+            const detailBackBtn = document.getElementById("detailBackBtn");
+            const applyStatus = document.getElementById("applyStatus");
             if (applyBtn) {
-                applyBtn.addEventListener("click", () => {
-                    alert("下一步可接入申请接口：POST /api/student/requests");
+                applyBtn.addEventListener("click", async () => {
+                    if (buttonState.disabled) return;
+                    const notesEl = document.getElementById("applyNotes");
+                    const notes = notesEl ? notesEl.value.trim() : "";
+                    applyBtn.disabled = true;
+                    const originalText = applyBtn.textContent;
+                    applyBtn.textContent = "提交中...";
+                    applyStatus.textContent = "正在提交申请...";
+
+                    try {
+                        await ApiClient.post("/api/student/requests", {
+                            projectId: p.projectId,
+                            preferenceRank: 1,
+                            notes
+                        });
+                        applyStatus.textContent = "申请已提交。";
+                        applyBtn.textContent = "已申请该项目";
+                        applyBtn.disabled = true;
+                    } catch (error) {
+                        console.error(error);
+                        applyStatus.textContent = error.message || "申请提交失败，请稍后重试。";
+                        applyBtn.disabled = false;
+                        applyBtn.textContent = originalText;
+                    }
+                });
+            }
+            if (detailBackBtn) {
+                detailBackBtn.addEventListener("click", () => {
+                    window.location.href = backTarget;
                 });
             }
         }
 
         async function loadById(id) {
-            const token = localStorage.getItem("token") || "";
-            const headers = token ? { "Authorization": `Bearer ${token}` } : {};
-
-            const res = await fetch(`/api/student/projects/${encodeURIComponent(id)}`, {
-                method: "GET",
-                headers
-            });
-            const result = await res.json();
-            if (!res.ok || result.code !== 1 || !result.data) {
-                throw new Error(result.msg || "项目不存在");
-            }
-            return result.data;
+            return ApiClient.get(`/api/student/projects/${encodeURIComponent(id)}`);
         }
 
         async function loadByCodeFallback(codeValue) {
@@ -139,20 +258,27 @@
         async function init() {
             try {
                 let project;
+                let requests;
                 if (projectId) {
-                    project = await loadById(projectId);
+                    [project, requests] = await Promise.all([
+                        loadById(projectId),
+                        ApiClient.get("/api/student/requests")
+                    ]);
                 } else if (code) {
-                    project = await loadByCodeFallback(code);
+                    [project, requests] = await Promise.all([
+                        loadByCodeFallback(code),
+                        ApiClient.get("/api/student/requests")
+                    ]);
                 } else {
                     throw new Error("链接缺少 projectId 参数");
                 }
-                renderProject(project);
+                renderProject(project, Array.isArray(requests) ? requests : []);
             } catch (e) {
                 console.error(e);
                 detailPanel.innerHTML = `
                 <div style="text-align:center; padding:40px;">
                     加载失败：${esc(e.message || "未知错误")}<br/>
-                    <a href="student-project-search-list.html">返回列表</a>
+                    <a href="${backTarget}">${backText}</a>
                 </div>`;
             }
         }
