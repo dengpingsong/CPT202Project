@@ -49,142 +49,188 @@
 
         <div class="panel">
             <div class="timeline-vertical" id="historyTimeline">
-                <!-- 时间轴条目将通过 JS 动态渲染 -->
+                <div class="item">
+                    <div class="timeline-title">正在加载请求历史</div>
+                    <div class="timeline-desc">请稍候</div>
+                </div>
             </div>
         </div>
     </main>
 </div>
 
+<script src="../js/api.js"></script>
 <script>
     (function() {
         "use strict";
 
-        // ---------- 模拟请求历史数据 ----------
-        const historyData = [
-            {
-                id: 'req-001',
-                projectTitle: '智能教学系统研究',
-                projectId: 'proj-ai-01',
-                supervisor: '李老师',
-                applyDate: '2025-04-10',
-                lastUpdate: '2025-04-13',
-                status: 'Pending',
-                note: '希望参与可视化模块，有前端经验',
-                feedback: ''
-            },
-            {
-                id: 'req-002',
-                projectTitle: '校园智慧导航系统',
-                projectId: 'proj-gis-02',
-                supervisor: '王老师',
-                applyDate: '2025-03-28',
-                lastUpdate: '2025-04-02',
-                status: 'Rejected',
-                note: '补充了移动开发学习经历',
-                feedback: '名额已满，欢迎下次合作'
-            },
-            {
-                id: 'req-003',
-                projectTitle: '实验室管理大屏',
-                projectId: 'proj-dash-03',
-                supervisor: '赵老师',
-                applyDate: '2025-03-12',
-                lastUpdate: '2025-03-15',
-                status: 'Withdrawn',
-                note: '前端+交互设计，后因时间冲突撤回',
-                feedback: ''
-            },
-            {
-                id: 'req-004',
-                projectTitle: '区块链证书验证',
-                projectId: 'proj-bc-04',
-                supervisor: '周教授',
-                applyDate: '2025-02-20',
-                lastUpdate: '2025-03-01',
-                status: 'Accepted',
-                note: '熟悉Solidity和智能合约',
-                feedback: '欢迎加入课题组，请查看邮件'
-            },
-            {
-                id: 'req-005',
-                projectTitle: '水质监测IoT',
-                projectId: 'proj-iot-05',
-                supervisor: '郑老师',
-                applyDate: '2025-04-01',
-                lastUpdate: '2025-04-05',
-                status: 'Pending',
-                note: '有嵌入式开发经验，可参与硬件',
-                feedback: ''
-            },
-            {
-                id: 'req-006',
-                projectTitle: 'NLP课程问答系统',
-                projectId: 'proj-nlp-06',
-                supervisor: '孙老师',
-                applyDate: '2025-01-15',
-                lastUpdate: '2025-01-20',
-                status: 'Rejected',
-                note: '对BERT微调感兴趣',
-                feedback: '课题已结题，不再接收新成员'
-            }
-        ];
+        const user = ApiClient.requireAuth("STUDENT");
+        if (!user) return;
 
         const timelineEl = document.getElementById('historyTimeline');
 
+        function esc(value) {
+            if (value === null || value === undefined) return "";
+            return String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function normalizeStatus(status) {
+            return String(status || "UNKNOWN").toUpperCase();
+        }
+
         // 状态映射：颜色与教师端类似
         function getStatusStyle(status) {
-            switch(status) {
-                case 'Pending': return 'color: var(--orange);';
-                case 'Accepted': return 'color: var(--green);';
-                case 'Rejected': return 'color: #c74545;';
-                case 'Withdrawn': return 'color: var(--muted);';
+            switch(normalizeStatus(status)) {
+                case 'PENDING': return 'color: var(--orange);';
+                case 'ACCEPTED': return 'color: var(--green);';
+                case 'REJECTED': return 'color: #c74545;';
+                case 'WITHDRAWN': return 'color: var(--muted);';
                 default: return 'color: var(--deep);';
             }
         }
 
         function getStatusText(status) {
             const map = {
-                'Pending': '待审批',
-                'Accepted': '已同意',
-                'Rejected': '已拒绝',
-                'Withdrawn': '已撤回'
+                'PENDING': '待审批',
+                'ACCEPTED': '已同意',
+                'REJECTED': '已拒绝',
+                'WITHDRAWN': '已撤回'
             };
-            return map[status] || status;
+            const normalized = normalizeStatus(status);
+            return map[normalized] || normalized;
         }
 
-        // 构建时间轴 HTML（按申请日期倒序）
-        function renderTimeline() {
-            if (!timelineEl) return;
+        function formatDate(value) {
+            if (!value) return "-";
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return String(value).replace("T", " ").slice(0, 16);
+            return date.toLocaleString("zh-CN", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+        }
 
-            // 按日期倒序排列（最新的在前）
-            const sorted = [...historyData].sort((a, b) =>
-                new Date(b.applyDate) - new Date(a.applyDate)
-            );
+        function requestLastUpdate(request) {
+            return request.reviewedAt || request.withdrawnAt || request.submittedAt;
+        }
 
-            let html = '';
-            sorted.forEach(item => {
-                const statusColor = getStatusStyle(item.status);
-                const statusText = getStatusText(item.status);
-                // 标题：项目名称 + 状态
-                const title = `${item.projectTitle} · ${statusText}`;
-                // 描述：导师、申请时间、备注、反馈等
-                let desc = `导师：${item.supervisor}  |  申请时间：${item.applyDate}  |  最后更新：${item.lastUpdate}`;
-                if (item.note) desc += `<br>📝 备注：${item.note}`;
-                if (item.feedback) desc += `<br>💬 反馈：${item.feedback}`;
+        function fallbackHistory(request) {
+            const status = normalizeStatus(request.requestStatus);
+            return [{
+                requestId: request.requestId,
+                newStatus: status,
+                remark: request.decisionComment || request.notes || "",
+                changedAt: requestLastUpdate(request)
+            }];
+        }
 
-                html += `
-                    <div class="item">
-                        <div class="timeline-date">${item.applyDate}</div>
-                        <div class="timeline-title" style="${statusColor}">${title}</div>
-                        <div class="timeline-desc">${desc}</div>
-                    </div>
-                `;
+        function buildTimelineEntries(requests, historyGroups) {
+            const entries = [];
+
+            requests.forEach(request => {
+                const histories = historyGroups.get(String(request.requestId)) || fallbackHistory(request);
+                histories.forEach(history => {
+                    const status = history.newStatus || request.requestStatus;
+                    entries.push({
+                        requestId: request.requestId,
+                        projectId: request.projectId,
+                        projectTitle: request.projectTitle || "未命名项目",
+                        status,
+                        submittedAt: request.submittedAt,
+                        preferenceRank: request.preferenceRank,
+                        notes: request.notes,
+                        decisionComment: request.decisionComment,
+                        remark: history.remark,
+                        changedByStudentName: history.changedByStudentName,
+                        changedAt: history.changedAt || requestLastUpdate(request)
+                    });
+                });
             });
 
-            timelineEl.innerHTML = html || `<div class="item"><div class="timeline-desc">暂无请求历史</div></div>`;
+            return entries.sort((a, b) => new Date(b.changedAt || 0) - new Date(a.changedAt || 0));
         }
 
-        renderTimeline();
+        function renderTimeline(entries) {
+            if (!timelineEl) return;
+
+            if (entries.length === 0) {
+                timelineEl.innerHTML = `
+                    <div class="item">
+                        <div class="timeline-title">暂无请求历史</div>
+                        <div class="timeline-desc">提交项目申请后，状态变化会显示在这里。</div>
+                    </div>
+                `;
+                return;
+            }
+
+            timelineEl.innerHTML = entries.map(item => {
+                const statusColor = getStatusStyle(item.status);
+                const statusText = getStatusText(item.status);
+                const detailUrl = `student-project-search-list-detail.html?projectId=${encodeURIComponent(item.projectId)}&from=history`;
+                const parts = [
+                    `申请时间：${esc(formatDate(item.submittedAt))}`,
+                    `志愿顺位：${esc(item.preferenceRank || "-")}`
+                ];
+                if (item.notes) parts.push(`申请备注：${esc(item.notes)}`);
+                if (item.remark) parts.push(`状态备注：${esc(item.remark)}`);
+                if (item.decisionComment) parts.push(`审核反馈：${esc(item.decisionComment)}`);
+                if (item.changedByStudentName) parts.push(`操作人：${esc(item.changedByStudentName)}`);
+
+                return `
+                    <div class="item">
+                        <div class="timeline-date">${esc(formatDate(item.changedAt))}</div>
+                        <div class="timeline-title" style="${statusColor}">
+                            ${esc(item.projectTitle)} · ${esc(statusText)}
+                        </div>
+                        <div class="timeline-desc">
+                            ${parts.join("<br>")}
+                            <br><a href="${detailUrl}" style="color: var(--deep); font-weight: 600; text-decoration: none;">查看项目详情</a>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        async function loadRequestHistories(requests) {
+            const settled = await Promise.allSettled(
+                requests.map(request => ApiClient.get(`/api/student/request-history/${encodeURIComponent(request.requestId)}`))
+            );
+
+            const historyGroups = new Map();
+            settled.forEach((result, index) => {
+                const request = requests[index];
+                if (result.status === "fulfilled" && Array.isArray(result.value) && result.value.length > 0) {
+                    historyGroups.set(String(request.requestId), result.value);
+                }
+            });
+            return historyGroups;
+        }
+
+        async function initRequestHistory() {
+            try {
+                const requests = await ApiClient.get("/api/student/requests");
+                const safeRequests = Array.isArray(requests) ? requests : [];
+                const historyGroups = await loadRequestHistories(safeRequests);
+                renderTimeline(buildTimelineEntries(safeRequests, historyGroups));
+            } catch (error) {
+                console.error(error);
+                timelineEl.innerHTML = `
+                    <div class="item">
+                        <div class="timeline-title" style="color: #c74545;">请求历史加载失败</div>
+                        <div class="timeline-desc">${esc(error.message || "请稍后重试")}</div>
+                    </div>
+                `;
+            }
+        }
+
+        initRequestHistory();
 
         // ---------- 侧边栏折叠功能 ----------
         const layout = document.getElementById("layout");
