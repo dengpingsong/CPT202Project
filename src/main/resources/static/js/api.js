@@ -101,8 +101,9 @@
     }
 
     //turn json
-    function withJsonBody(method, url, body) {
+    function sendJsonRequest(method, url, body, options) {
         return request(url, {
+            ...(options || {}),
             method: method,
             body: JSON.stringify(body)
         });
@@ -126,10 +127,10 @@
             });
         },
         post(url, body, options) {
-            return withJsonBody("POST", url, body, options);
+            return sendJsonRequest("POST", url, body, options);
         },
         put(url, body, options) {
-            return withJsonBody("PUT", url, body, options);
+            return sendJsonRequest("PUT", url, body, options);
         },
         delete(url, options) {
             return request(url, {
