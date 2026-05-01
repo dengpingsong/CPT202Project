@@ -93,6 +93,7 @@
             return map[normalized] || normalized;
         }
 
+        //mapping css
         function statusClass(status) {
             const normalized = String(status || "").toUpperCase();
             if (normalized === "AVAILABLE") return "status-available";
@@ -103,14 +104,15 @@
             return "status-requested";
         }
 
+        //提示词 （error 红色）
         function setStatus(message, type) {
             if (!projectStatus) return;
             projectStatus.textContent = message;
             projectStatus.style.color = type === "error" ? "#c74545" : "var(--muted)";
         }
-
+        //渲染项目列表
         function renderProjects(projects) {
-            if (!projectsContainer) return;
+            if (!projectsContainer) return;//如果页面上没有这个容器
 
             if (!projects.length) {
                 projectsContainer.innerHTML = `<p style="color: var(--muted);">当前没有项目，请创建新项目。</p>`;
@@ -126,7 +128,7 @@
                 if (project.categoryName) tags.push(project.categoryName);
                 if (project.topicArea) tags.push(project.topicArea);
                 if (project.requiredSkills) tags.push(project.requiredSkills);
-                const tagsText = tags.length ? tags.join(" / ") : "暂无分类";
+                const tagsText = tags.length ? tags.join(" / ") : "暂无分类";//tag 拼接
 
                 return `
                     <div class="outline-card">
@@ -140,8 +142,8 @@
                     </div>
                 `;
             }).join("");
-
             setStatus(`共 ${projects.length} 个项目。`, "");
+
             document.querySelectorAll(".view-requests-btn").forEach(btn => {
                 btn.addEventListener("click", () => {
                     window.location.href = "index.html";
@@ -149,6 +151,7 @@
             });
         }
 
+        //核心：加载项目列表
         async function loadProjects() {
             if (!projectsContainer) return;
             projectsContainer.innerHTML = `<p style="color: var(--muted);">正在加载...</p>`;
@@ -169,6 +172,7 @@
         });
         loadProjects();
 
+        //default sidebar
         const layout = document.getElementById("layout");
         const toggle = document.getElementById("toggleSidebar");
         if(layout && toggle) {

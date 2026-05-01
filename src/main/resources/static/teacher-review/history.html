@@ -93,6 +93,7 @@
             });
         }
 
+        //统一大写
         function normalizeStatus(status) {
             return String(status || "UNKNOWN").toUpperCase();
         }
@@ -108,6 +109,7 @@
             return map[normalized] || normalized;
         }
 
+        //设置css颜色
         function statusColor(status) {
             const normalized = normalizeStatus(status);
             if (normalized === "ACCEPTED") return "color: var(--green);";
@@ -116,19 +118,22 @@
             return "color: var(--deep);";
         }
 
+        //时间优先级
         function historyTime(request) {
             return request.reviewedAt || request.withdrawnAt || request.submittedAt;
         }
 
+        //提示词（error: 红色）
         function setStatus(message, type) {
             if (!historyStatus) return;
             historyStatus.textContent = message;
             historyStatus.style.color = type === "error" ? "#c74545" : "var(--muted)";
         }
 
+        //构建历史记录项（申请后自动构建）
         function buildHistoryItems(requests) {
             return requests
-                .filter(request => normalizeStatus(request.requestStatus) !== "PENDING")
+                .filter(request => normalizeStatus(request.requestStatus) !== "PENDING")//过滤掉待审批申请
                 .map(request => ({
                     requestId: request.requestId,
                     studentName: request.studentName || "-",
@@ -139,7 +144,7 @@
                     decisionComment: request.decisionComment || "",
                     changedAt: historyTime(request)
                 }))
-                .sort((a, b) => new Date(b.changedAt || 0) - new Date(a.changedAt || 0));
+                .sort((a, b) => new Date(b.changedAt || 0) - new Date(a.changedAt || 0));//按时间倒序排序
         }
 
         function renderHistory(items) {
@@ -203,6 +208,7 @@
 
         loadHistory();
 
+        //default sidebar
         const layout = document.getElementById("layout");
         const toggle = document.getElementById("toggleSidebar");
         if(layout && toggle) {
