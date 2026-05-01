@@ -82,7 +82,7 @@
             return String(status || "UNKNOWN").toUpperCase();
         }
 
-        // 状态映射：颜色与教师端类似
+        // 状态css
         function getStatusStyle(status) {
             switch(normalizeStatus(status)) {
                 case 'PENDING': return 'color: var(--orange);';
@@ -92,7 +92,7 @@
                 default: return 'color: var(--deep);';
             }
         }
-
+        // 状态映射
         function getStatusText(status) {
             const map = {
                 'PENDING': '待审批',
@@ -116,11 +116,11 @@
                 minute: "2-digit"
             });
         }
-
+        // 获取请求的最后更新时间，优先级：审核时间 > 撤回时间 > 提交时间
         function requestLastUpdate(request) {
             return request.reviewedAt || request.withdrawnAt || request.submittedAt;
         }
-
+        //就是伪造一条的简单逻辑
         function fallbackHistory(request) {
             const status = normalizeStatus(request.requestStatus);
             return [{
@@ -135,7 +135,7 @@
             const entries = [];
 
             requests.forEach(request => {
-                const histories = historyGroups.get(String(request.requestId)) || fallbackHistory(request);
+                const histories = historyGroups[request.requestId] || fallbackHistory(request);
                 histories.forEach(history => {
                     const status = history.newStatus || request.requestStatus;
                     entries.push({
@@ -154,7 +154,7 @@
                 });
             });
 
-            return entries.sort((a, b) => new Date(b.changedAt || 0) - new Date(a.changedAt || 0));
+            return entries.sort((a, b) => new Date(b.changedAt || 0) - new Date(a.changedAt || 0));//排序
         }
 
         function renderTimeline(entries) {
@@ -199,17 +199,19 @@
         }
 
         async function loadRequestHistories(requests) {
-            const settled = await Promise.allSettled(
-                requests.map(request => ApiClient.get(`/api/student/request-history/${encodeURIComponent(request.requestId)}`))
-            );
+            const historyGroups = {};
 
-            const historyGroups = new Map();
-            settled.forEach((result, index) => {
-                const request = requests[index];
-                if (result.status === "fulfilled" && Array.isArray(result.value) && result.value.length > 0) {
-                    historyGroups.set(String(request.requestId), result.value);
+            for (const request of requests) {
+                try {
+                    const histories = await ApiClient.get(`/api/student/request-history/${encodeURIComponent(request.requestId)}`);
+                    if (Array.isArray(histories) && histories.length > 0) {
+                        historyGroups[request.requestId] = histories;
+                    }
+                } catch (error) {
+                    console.error(error);
                 }
-            });
+            }
+
             return historyGroups;
         }
 
@@ -232,7 +234,7 @@
 
         initRequestHistory();
 
-        // ---------- 侧边栏折叠功能 ----------
+        //default sidebar
         const layout = document.getElementById("layout");
         const toggle = document.getElementById("toggleSidebar");
         let isCollapsed = false;
