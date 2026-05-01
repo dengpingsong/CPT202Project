@@ -117,7 +117,7 @@
                 .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#39;");
         }
-
+        // 根据状态返回对应的标签css
         function statusPill(status) {
             const text = status || "UNKNOWN";
             let cls = "status-unavailable";
@@ -294,7 +294,7 @@
 
         initPage();
     })();
-
+    //default sidebar toggle behavior
     const layout = document.getElementById("layout");
     const toggle = document.getElementById("toggleSidebar");
     let isCollapsed = false;
