@@ -76,17 +76,111 @@
                 </div>
                 <div class="d-flex gap-3">
                     <button type="submit" class="btn btn-primary px-4" style="border-radius:20px; background-color:#35b8e0; border:none;" id="saveBtn">保存修改</button>
-                    <button type="button" class="btn btn-outline-danger px-4" style="border-radius:20px;" onclick="handleLogout()">退出登录</button>
+                    <button type="button" class="btn btn-outline-danger px-4" style="border-radius:20px;" id="logoutBtn">退出登录</button>
                 </div>
+                <div id="settingsStatus" class="footnote" style="text-align:left; margin-top:16px;">正在加载个人资料...</div>
             </form>
         </div>
     </main>
-    <script src="script.js"></script>
 </div>
 
+<script src="../js/api.js"></script>
 <script>
     (function() {
         "use strict";
+        const user = ApiClient.requireAuth("TEACHER");
+        if (!user) return;
+
+        const settingsForm = document.getElementById("settingsForm");
+        const saveBtn = document.getElementById("saveBtn");
+        const logoutBtn = document.getElementById("logoutBtn");
+        const settingsStatus = document.getElementById("settingsStatus");
+        const inputs = {
+            fullName: document.getElementById("fullName"),
+            email: document.getElementById("email"),
+            department: document.getElementById("department"),
+            title: document.getElementById("title"),
+            researchArea: document.getElementById("researchArea"),
+            office: document.getElementById("office")
+        };
+
+        function setStatus(message, type) {
+            if (!settingsStatus) return;
+            settingsStatus.textContent = message;
+            settingsStatus.style.color = type === "error" ? "#c74545" : type === "success" ? "var(--green)" : "var(--muted)";
+        }
+
+        function fillProfile(profile) {
+            inputs.fullName.value = profile.fullName || "";
+            inputs.email.value = profile.email || "";
+            inputs.department.value = profile.department || "";
+            inputs.title.value = profile.title || "";
+            inputs.researchArea.value = profile.researchArea || "";
+            inputs.office.value = profile.office || "";
+        }
+
+        async function fetchProfile() {
+            setStatus("正在加载个人资料...", "");
+            try {
+                const profile = await ApiClient.teacher.getProfile();
+                fillProfile(profile || {});
+                if (profile?.fullName) {
+                    localStorage.setItem("fullName", profile.fullName);
+                }
+                setStatus("个人资料已同步。", "success");
+            } catch (error) {
+                console.error(error);
+                setStatus(error.message || "个人资料加载失败，请稍后重试。", "error");
+            }
+        }
+
+        async function saveProfile(event) {
+            event.preventDefault();
+
+            const fullName = inputs.fullName.value.trim();
+            const email = inputs.email.value.trim();
+            if (!fullName) {
+                setStatus("姓名不能为空，请填写。", "error");
+                inputs.fullName.focus();
+                return;
+            }
+            if (!email) {
+                setStatus("邮箱不能为空，请填写。", "error");
+                inputs.email.focus();
+                return;
+            }
+
+            const payload = {
+                fullName,
+                email,
+                department: inputs.department.value.trim(),
+                title: inputs.title.value.trim(),
+                researchArea: inputs.researchArea.value.trim(),
+                office: inputs.office.value.trim()
+            };
+
+            const originalText = saveBtn.textContent;
+            saveBtn.disabled = true;
+            saveBtn.textContent = "保存中...";
+            setStatus("正在保存个人资料...", "");
+
+            try {
+                await ApiClient.teacher.updateProfile(payload);
+                localStorage.setItem("fullName", payload.fullName);
+                setStatus("个人设置已保存。", "success");
+            } catch (error) {
+                console.error(error);
+                setStatus(error.message || "保存失败，请稍后重试。", "error");
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = originalText;
+            }
+        }
+
+        fetchProfile();
+        settingsForm.addEventListener("submit", saveProfile);
+        logoutBtn.addEventListener("click", () => ApiClient.logout());
+
         const layout = document.getElementById("layout");
         const toggle = document.getElementById("toggleSidebar");
         if(layout && toggle) {
@@ -96,94 +190,7 @@
                 layout.classList.toggle("collapsed", isCollapsed);
             });
         }
-
-        const token = localStorage.getItem("token");
-        if (!token) {
-            window.location.href = "../login/login.html";
-            return;
-        }
-
-        const API_BASE = "http://localhost:8080/api/teacher/profile/me";
-
-        // 获取当前信息
-        async function fetchProfile() {
-            try {
-                const res = await fetch(API_BASE, {
-                    method: "GET",
-                    headers: {
-                        "Authorization": `Bearer ${token}`
-                    }
-                });
-                const data = await res.json();
-                if (data.code === 1 && data.data) {
-                    document.getElementById("fullName").value = data.data.fullName || "";
-                    document.getElementById("email").value = data.data.email || "";
-                    document.getElementById("department").value = data.data.department || "";
-                    document.getElementById("title").value = data.data.title || "";
-                    document.getElementById("researchArea").value = data.data.researchArea || "";
-                    document.getElementById("office").value = data.data.office || "";
-                } else if (data.code === 401) {
-                    handleLogout();
-                } else {
-                    alert("获取信息失败: " + (data.message || "未知错误"));
-                }
-            } catch (err) {
-                console.error(err);
-                alert("网络错误");
-            }
-        }
-
-        fetchProfile();
-
-        // 提交修改
-        document.getElementById("settingsForm").addEventListener("submit", async function(e) {
-            e.preventDefault();
-            const btn = document.getElementById("saveBtn");
-            btn.disabled = true;
-            btn.textContent = "保存中...";
-
-            const payload = {
-                fullName: document.getElementById("fullName").value.trim(),
-                email: document.getElementById("email").value.trim(),
-                department: document.getElementById("department").value.trim(),
-                title: document.getElementById("title").value.trim(),
-                researchArea: document.getElementById("researchArea").value.trim(),
-                office: document.getElementById("office").value.trim()
-            };
-
-            try {
-                const res = await fetch(API_BASE, {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${token}`
-                    },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                if (data.code === 1) {
-                    alert("保存成功！");
-                    // Update localStorage dynamically just in case
-                    localStorage.setItem("fullName", payload.fullName);
-                } else if (data.code === 401) {
-                    handleLogout();
-                } else {
-                    alert("保存失败: " + (data.message || "未知错误"));
-                }
-            } catch (err) {
-                console.error(err);
-                alert("网络错误");
-            } finally {
-                btn.disabled = false;
-                btn.textContent = "保存修改";
-            }
-        });
     })();
-
-    function handleLogout() {
-        localStorage.clear();
-        window.location.href = "../login/login.html";
-    }
 </script>
 </body>
 </html>

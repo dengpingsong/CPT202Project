@@ -101,12 +101,68 @@
     }
 
     //turn json
-    function withJsonBody(method, url, body) {
+    function sendJsonRequest(method, url, body, options) {
         return request(url, {
+            ...(options || {}),
             method: method,
             body: JSON.stringify(body)
         });
     }
+
+    const teacherApi = {
+        listProjects(status) {
+            const params = new URLSearchParams();
+            if (status) {
+                params.set("status", status);
+            }
+            const query = params.toString();
+            return request(`/api/teacher/projects${query ? `?${query}` : ""}`, {
+                method: "GET"
+            });
+        },
+        getProject(projectId) {
+            return request(`/api/teacher/projects/${encodeURIComponent(projectId)}`, {
+                method: "GET"
+            });
+        },
+        createProject(payload) {
+            return sendJsonRequest("POST", "/api/teacher/projects", payload);
+        },
+        listRequests(status) {
+            const params = new URLSearchParams();
+            if (status) {
+                params.set("status", status);
+            }
+            const query = params.toString();
+            return request(`/api/teacher/requests${query ? `?${query}` : ""}`, {
+                method: "GET"
+            });
+        },
+        listHistory() {
+            return request("/api/teacher/requests", {
+                method: "GET"
+            });
+        },
+        listNotifications() {
+            return request("/api/teacher/requests", {
+                method: "GET"
+            });
+        },
+        getProfile() {
+            return request("/api/teacher/profile/me", {
+                method: "GET"
+            });
+        },
+        updateProfile(payload) {
+            return sendJsonRequest("PUT", "/api/teacher/profile/me", payload);
+        },
+        reviewRequest(requestId, requestStatus, decisionComment) {
+            return sendJsonRequest("PUT", `/api/teacher/requests/${encodeURIComponent(requestId)}/review`, {
+                requestStatus,
+                decisionComment: decisionComment || ""
+            });
+        }
+    };
 
     window.ApiClient = {
         getToken,
@@ -114,6 +170,7 @@
         clearAuth,
         requireAuth,
         request,
+        teacher: teacherApi,
         // logout function: clear token and redirect to login page
         logout() {
             clearAuth();
@@ -126,10 +183,10 @@
             });
         },
         post(url, body, options) {
-            return withJsonBody("POST", url, body, options);
+            return sendJsonRequest("POST", url, body, options);
         },
         put(url, body, options) {
-            return withJsonBody("PUT", url, body, options);
+            return sendJsonRequest("PUT", url, body, options);
         },
         delete(url, options) {
             return request(url, {
