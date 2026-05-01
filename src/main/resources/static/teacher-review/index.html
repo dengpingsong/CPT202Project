@@ -106,6 +106,7 @@
             });
         }
 
+        //mapping 可读文本
         function statusText(status) {
             const map = {
                 PENDING: "待审批",
@@ -116,7 +117,7 @@
             const normalized = String(status || "UNKNOWN").toUpperCase();
             return map[normalized] || normalized;
         }
-
+        //提示词 （error: 红色）
         function setStatus(message, type) {
             if (!reviewStatus) return;
             reviewStatus.textContent = message;
@@ -124,7 +125,7 @@
         }
 
         function renderRequests(requests) {
-            if (!requestTableBody) return;
+            if (!requestTableBody) return;//老师看到的申请列表表格区域
 
             if (!requests.length) {
                 requestTableBody.innerHTML = `
@@ -167,6 +168,7 @@
             bindReviewButtons();
         }
 
+        //submit
         async function submitReview(requestId, requestStatus, decisionComment) {
             setStatus("正在提交审核结果...", "");
             try {
@@ -179,6 +181,7 @@
             }
         }
 
+        //绑定按钮
         function bindReviewButtons() {
             document.querySelectorAll(".detail-btn").forEach(btn => {
                 btn.addEventListener("click", () => {
@@ -209,6 +212,7 @@
             });
         }
 
+        //加载待审批申请
         async function loadRequests() {
             if (!requestTableBody) return;
             requestTableBody.innerHTML = `
@@ -231,9 +235,9 @@
                 setStatus(error.message || "待审批申请加载失败。", "error");
             }
         }
-
         loadRequests();
 
+        //default sidebar
         const layout = document.getElementById("layout");
         const toggle = document.getElementById("toggleSidebar");
         if(layout && toggle) {

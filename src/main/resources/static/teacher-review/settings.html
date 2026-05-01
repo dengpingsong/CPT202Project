@@ -104,12 +104,14 @@
             office: document.getElementById("office")
         };
 
+        //状态显示
         function setStatus(message, type) {
             if (!settingsStatus) return;
             settingsStatus.textContent = message;
             settingsStatus.style.color = type === "error" ? "#c74545" : type === "success" ? "var(--green)" : "var(--muted)";
         }
 
+        //填充表单数据
         function fillProfile(profile) {
             inputs.fullName.value = profile.fullName || "";
             inputs.email.value = profile.email || "";
@@ -119,6 +121,7 @@
             inputs.office.value = profile.office || "";
         }
 
+        //连接后端获取个人资料
         async function fetchProfile() {
             setStatus("正在加载个人资料...", "");
             try {
@@ -134,6 +137,7 @@
             }
         }
 
+        //连接后端修改个人资料（保存）
         async function saveProfile(event) {
             event.preventDefault();
 
@@ -181,6 +185,7 @@
         settingsForm.addEventListener("submit", saveProfile);
         logoutBtn.addEventListener("click", () => ApiClient.logout());
 
+        //default sidebar
         const layout = document.getElementById("layout");
         const toggle = document.getElementById("toggleSidebar");
         if(layout && toggle) {
