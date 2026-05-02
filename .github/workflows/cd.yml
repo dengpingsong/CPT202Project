@@ -149,6 +149,7 @@ jobs:
             chmod 600 /opt/cpt202/.env
 
             cd /opt/cpt202
+            docker rm -f cpt202-nginx cpt202program cpt202-mysql || true
             docker compose up -d --remove-orphans
 
             until curl -fsS http://127.0.0.1/doc.html >/dev/null; do
