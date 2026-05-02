@@ -48,8 +48,8 @@ jobs:
       - name: Show Docker archive file
         run: ls -lh cpt202program-image.tar.gz
 
-      - name: Bundle app image and compose files
-        run: tar -czf docker-images-bundle.tar.gz cpt202program-image.tar.gz docker-compose.yml docker-compose.dev.yml
+      - name: Bundle app image and deployment files
+        run: tar -czf docker-images-bundle.tar.gz cpt202program-image.tar.gz docker-compose.yml docker-compose.dev.yml nginx
 
       - name: Upload bundle to server
         uses: appleboy/scp-action@v0.1.7
@@ -101,14 +101,37 @@ jobs:
             mkdir -p /opt/cpt202-dev
             docker network create cpt202-network || true
             docker volume create cpt202-mysql-data || true
+            NGINX_CONFIG_CHANGED=0
+            NGINX_CERT_CHANGED=0
 
             ls -lh /tmp/docker-images-bundle.tar.gz
             tar -xzf /tmp/docker-images-bundle.tar.gz -C /tmp/
             rm -f /tmp/docker-images-bundle.tar.gz
 
+            mkdir -p /opt/cpt202-dev/nginx /opt/cpt202-dev/nginx/certs
             cp /tmp/docker-compose.yml /opt/cpt202-dev/docker-compose.yml
             cp /tmp/docker-compose.dev.yml /opt/cpt202-dev/docker-compose.dev.yml
+            if [ ! -f /opt/cpt202-dev/nginx/nginx.conf ] || ! cmp -s /tmp/nginx/nginx.conf /opt/cpt202-dev/nginx/nginx.conf; then
+              cp /tmp/nginx/nginx.conf /opt/cpt202-dev/nginx/nginx.conf
+              NGINX_CONFIG_CHANGED=1
+            fi
             rm -f /tmp/docker-compose.yml /tmp/docker-compose.dev.yml
+            rm -rf /tmp/nginx
+
+            if [ ! -f /opt/cpt202-dev/nginx/certs/selfsigned.crt ] || [ ! -f /opt/cpt202-dev/nginx/certs/selfsigned.key ]; then
+              SERVER_HOST='${{ secrets.ALIYUN_HOST }}'
+              SAN_PREFIX="DNS"
+              if echo "$SERVER_HOST" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
+                SAN_PREFIX="IP"
+              fi
+              openssl req -x509 -nodes -newkey rsa:2048 \
+                -keyout /opt/cpt202-dev/nginx/certs/selfsigned.key \
+                -out /opt/cpt202-dev/nginx/certs/selfsigned.crt \
+                -days 3650 \
+                -subj "/CN=$SERVER_HOST" \
+                -addext "subjectAltName=${SAN_PREFIX}:$SERVER_HOST"
+              NGINX_CERT_CHANGED=1
+            fi
 
             docker image inspect mysql:8.4 >/dev/null 2>&1 || docker pull mysql:8.4
 
@@ -129,9 +152,16 @@ jobs:
             cd /opt/cpt202-dev
             docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --remove-orphans
 
-            until curl -fsS http://127.0.0.1:8080/doc.html >/dev/null; do
+            until curl -fsS http://127.0.0.1/doc.html >/dev/null; do
               sleep 5
             done
+            until curl -kfsS https://127.0.0.1/doc.html >/dev/null; do
+              sleep 5
+            done
+
+            if [ "$NGINX_CONFIG_CHANGED" -eq 1 ] || [ "$NGINX_CERT_CHANGED" -eq 1 ]; then
+              docker exec cpt202-nginx nginx -s reload
+            fi
 
             rm -f /opt/cpt202-dev/.env
             docker compose -f docker-compose.yml -f docker-compose.dev.yml ps
