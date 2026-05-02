@@ -42,36 +42,25 @@
         .card-header h2 { font-size:1.65rem; background:linear-gradient(135deg,#1e293b,#2d3a4b); background-clip:text; -webkit-background-clip:text; color:transparent; }
         .info-line { display:flex; padding:16px 0; border-bottom:1px solid #edf2f7; align-items:center; gap:16px; }
         .info-label { width:120px; font-weight:600; color:#334155; }
+        .editable-field input { flex:1; padding:10px 14px; border-radius:20px; border:1px solid #cbd5e1; outline:none; font-size:0.95rem; }
+        .editable-field input:focus { border-color:#8b5cf6; box-shadow:0 0 0 3px rgba(139,92,246,0.2); }
         .password-form { margin-top:32px; background:#f8fafc; border-radius:24px; padding:20px; }
         .form-group { margin-bottom:16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
         .form-group label { width:100px; font-weight:500; color:var(--text); }
-        .form-group input { flex:1; min-width:200px; padding:10px 14px; border-radius:20px; border:1px solid var(--border); outline:none; transition:0.2s; }
+        .form-group input { flex:1; min-width:200px; padding:10px 14px; border-radius:20px; border:1px solid #cbd5e1; outline:none; transition:0.2s; }
         .form-group input:focus { border-color:#8b5cf6; box-shadow:0 0 0 3px rgba(139,92,246,0.2); }
         .btn-primary { background:#7c3aed; border:none; padding:10px 24px; border-radius:40px; color:white; font-weight:600; cursor:pointer; transition:0.2s; }
         .btn-primary:hover { background:#5b21b6; }
         .btn-primary:disabled { background:#c4c4d8; cursor:not-allowed; }
-        /* 退出按钮样式（与学生端一致） */
-        .btn-logout {
-            background: transparent;
-            border: 1.5px solid #dc3545;
-            color: #dc3545;
-            padding: 10px 24px;
-            border-radius: 40px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 0.95rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .btn-logout:hover {
-            background-color: rgba(220, 53, 69, 0.05);
-            border-color: #b02a37;
-            color: #b02a37;
-        }
+        .btn-secondary { background:#e2e8f0; border:none; padding:10px 24px; border-radius:40px; color:#1f2937; font-weight:500; cursor:pointer; transition:0.2s; }
+        .btn-secondary:hover { background:#cbd5e1; }
+        .btn-logout { background:transparent; border:1.5px solid #dc3545; color:#dc3545; padding:10px 24px; border-radius:40px; font-weight:500; cursor:pointer; transition:all 0.2s; font-size:0.95rem; display:inline-flex; align-items:center; gap:6px; }
+        .btn-logout:hover { background-color:rgba(220,53,69,0.05); border-color:#b02a37; color:#b02a37; }
+        .action-buttons { display:flex; gap:16px; margin-top:24px; align-items:center; flex-wrap:wrap; }
+        .status-message { margin-top:16px; font-size:0.85rem; color:var(--muted); }
+        .status-message.success { color:#2c7a4d; }
+        .status-message.error { color:#dc2626; }
         .project-demo-note { background:#f1f5f9; border-radius:20px; padding:14px 20px; font-size:0.8rem; margin-top:18px; color:#475569; }
-        .action-buttons { display: flex; gap: 16px; margin-top: 24px; align-items: center; }
     </style>
 </head>
 <body>
@@ -88,13 +77,40 @@
     <main class="main-content">
         <div class="dashboard-card">
             <div class="card-header"><h2>👤 管理员个人设置</h2></div>
-            <div class="info-line"><div class="info-label">👑 账号</div><div id="displayUsername">加载中...</div></div>
-            <div class="info-line"><div class="info-label">📧 邮箱</div><div id="displayEmail">加载中...</div></div>
-            <div class="info-line"><div class="info-label">🧑‍💼 姓名</div><div id="displayFullName">加载中...</div></div>
-            <div class="info-line"><div class="info-label">🔐 角色</div><div>系统管理员（全局类别/标签管理）</div></div>
+            <!-- 基本信息（可编辑） -->
+            <div class="info-line">
+                <div class="info-label">👑 账号</div>
+                <div><span id="displayUsername">加载中...</span></div>
+            </div>
+            <div class="info-line editable-field">
+                <div class="info-label">📧 邮箱</div>
+                <input type="email" id="editEmail" style="flex:1; max-width:300px;">
+            </div>
+            <div class="info-line editable-field">
+                <div class="info-label">🧑‍💼 姓名</div>
+                <input type="text" id="editFullName" style="flex:1; max-width:300px;">
+            </div>
+            <div class="info-line">
+                <div class="info-label">🔐 角色</div>
+                <div>系统管理员（全局类别/标签管理）</div>
+            </div>
 
+            <!-- 保存个人资料按钮 -->
+            <div class="action-buttons">
+                <button type="button" class="btn-primary" id="saveProfileBtn">💾 保存个人资料</button>
+                <button type="button" class="btn-logout" id="logoutBtn">
+                    <i class="bi bi-box-arrow-right"></i> 退出登录
+                </button>
+            </div>
+            <div id="profileStatus" class="status-message"></div>
+
+            <!-- 修改密码区域 -->
             <div class="password-form">
                 <h3 style="margin-bottom:16px;">修改密码</h3>
+                <div class="form-group">
+                    <label>旧密码</label>
+                    <input type="password" id="oldPassword" placeholder="请输入当前密码">
+                </div>
                 <div class="form-group">
                     <label>新密码</label>
                     <input type="password" id="newPassword" placeholder="请输入新密码">
@@ -103,18 +119,12 @@
                     <label>确认密码</label>
                     <input type="password" id="confirmPassword" placeholder="请再次输入新密码">
                 </div>
-                <button class="btn-primary" id="changePasswordBtn" disabled>修改密码（功能开发中）</button>
-            </div>
-
-            <!-- 退出登录按钮区域 -->
-            <div class="action-buttons">
-                <button type="button" class="btn-logout" id="logoutBtn">
-                    <i class="bi bi-box-arrow-right"></i> 退出登录
-                </button>
+                <button class="btn-primary" id="changePasswordBtn">🔒 修改密码</button>
+                <div id="passwordStatus" class="status-message"></div>
             </div>
 
             <div class="project-demo-note">
-                ⚠️ 修改密码功能待后端接口支持。当前仅展示从登录信息中获取的个人资料。
+                ⚠️ 个人资料及密码修改均对接后端接口，修改后请重新登录生效（token 未刷新）。
             </div>
         </div>
     </main>
@@ -123,52 +133,202 @@
 <script>
     // ==================== 配置 ====================
     const TOKEN_KEY = 'token';
-    const LOGIN_PAGE = '../login/login.html';   // 返回登录页的相对路径
+    const LOGIN_PAGE = '../login/login.html';
+    const API_BASE = '/api/admin/profile';
 
-    // 检查登录状态
-    const token = localStorage.getItem(TOKEN_KEY);
-    if (!token) {
-        alert('请先登录');
-        window.location.href = LOGIN_PAGE;
+    // 辅助函数：获取 token
+    function getToken() {
+        return localStorage.getItem(TOKEN_KEY);
     }
 
-    // 从 localStorage 中读取登录时保存的用户信息
-    const username = localStorage.getItem('username') || '未知';
-    const email = localStorage.getItem('email') || '未提供';
-    const fullName = localStorage.getItem('fullName') || '管理员';
+    // 通用 fetch (自动处理 401)
+    async function fetchApi(url, options = {}) {
+        const token = getToken();
+        if (!token) {
+            alert('请先登录');
+            window.location.href = LOGIN_PAGE;
+            throw new Error('No token');
+        }
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            ...options.headers
+        };
+        const response = await fetch(url, { ...options, headers });
+        if (response.status === 401) {
+            localStorage.clear();
+            alert('登录已过期，请重新登录');
+            window.location.href = LOGIN_PAGE;
+            throw new Error('Unauthorized');
+        }
+        const json = await response.json();
+        if (json.code !== 1) {
+            throw new Error(json.msg || '请求失败');
+        }
+        return json.data;
+    }
 
-    // 更新页面显示
-    document.getElementById('displayUsername').innerText = username;
-    document.getElementById('displayEmail').innerText = email;
-    document.getElementById('displayFullName').innerText = fullName;
+    // 获取当前管理员资料
+    async function fetchProfile() {
+        const data = await fetchApi(`${API_BASE}/me`, { method: 'GET' });
+        return data;
+    }
 
-    // 修改密码（后端目前无接口，仅演示）
-    const changeBtn = document.getElementById('changePasswordBtn');
-    if (changeBtn) {
-        changeBtn.addEventListener('click', async () => {
-            const newPwd = document.getElementById('newPassword').value;
-            const confirmPwd = document.getElementById('confirmPassword').value;
-            if (!newPwd || !confirmPwd) {
-                alert('请填写新密码和确认密码');
-                return;
-            }
-            if (newPwd !== confirmPwd) {
-                alert('两次输入的密码不一致');
-                return;
-            }
-            alert('修改密码接口暂未开放，请联系后端开发人员。');
+    // 更新个人资料
+    async function updateProfile(payload) {
+        await fetchApi(`${API_BASE}/me`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
         });
     }
 
-    // ==================== 退出登录 ====================
-    function handleLogout() {
-        localStorage.clear();          // 清除所有本地存储
-        window.location.href = LOGIN_PAGE;  // 跳转到登录页
+    // 修改密码
+    async function changePassword(oldPassword, newPassword) {
+        await fetchApi(`${API_BASE}/me/password`, {
+            method: 'PUT',
+            body: JSON.stringify({ oldPassword, newPassword })
+        });
     }
 
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', handleLogout);
+    // 显示状态信息
+    function setStatus(element, message, isError = false) {
+        element.textContent = message;
+        element.className = 'status-message ' + (isError ? 'error' : 'success');
+        setTimeout(() => {
+            if (element.textContent === message) {
+                element.textContent = '';
+                element.className = 'status-message';
+            }
+        }, 3000);
+    }
+
+    // 加载并填充表单
+    async function loadAndFill() {
+        try {
+            const profile = await fetchProfile();
+            document.getElementById('displayUsername').innerText = profile.username || '未知';
+            document.getElementById('editEmail').value = profile.email || '';
+            document.getElementById('editFullName').value = profile.fullName || '';
+            // 同步更新 localStorage 中的基本信息
+            localStorage.setItem('username', profile.username || '');
+            localStorage.setItem('email', profile.email || '');
+            localStorage.setItem('fullName', profile.fullName || '');
+        } catch (err) {
+            console.error(err);
+            setStatus(document.getElementById('profileStatus'), `加载失败：${err.message}`, true);
+        }
+    }
+
+    // 保存个人资料
+    async function handleSaveProfile() {
+        const email = document.getElementById('editEmail').value.trim();
+        const fullName = document.getElementById('editFullName').value.trim();
+
+        if (!email) {
+            setStatus(document.getElementById('profileStatus'), '邮箱不能为空', true);
+            return;
+        }
+        if (!fullName) {
+            setStatus(document.getElementById('profileStatus'), '姓名不能为空', true);
+            return;
+        }
+        // 简单邮箱格式校验
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailPattern.test(email)) {
+            setStatus(document.getElementById('profileStatus'), '邮箱格式不正确', true);
+            return;
+        }
+
+        const saveBtn = document.getElementById('saveProfileBtn');
+        const originalText = saveBtn.textContent;
+        saveBtn.disabled = true;
+        saveBtn.textContent = '保存中...';
+
+        try {
+            await updateProfile({ fullName, email });
+            // 更新 localStorage 中的信息
+            localStorage.setItem('fullName', fullName);
+            localStorage.setItem('email', email);
+            setStatus(document.getElementById('profileStatus'), '个人资料已更新', false);
+            // 刷新显示的用户名（可能没变，但确保一致性）
+            const profile = await fetchProfile(); // 重新获取确认
+            document.getElementById('displayUsername').innerText = profile.username || '';
+        } catch (err) {
+            setStatus(document.getElementById('profileStatus'), `保存失败：${err.message}`, true);
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = originalText;
+        }
+    }
+
+    // 修改密码
+    async function handleChangePassword() {
+        const oldPwd = document.getElementById('oldPassword').value;
+        const newPwd = document.getElementById('newPassword').value;
+        const confirmPwd = document.getElementById('confirmPassword').value;
+
+        if (!oldPwd) {
+            setStatus(document.getElementById('passwordStatus'), '请输入旧密码', true);
+            return;
+        }
+        if (!newPwd) {
+            setStatus(document.getElementById('passwordStatus'), '请输入新密码', true);
+            return;
+        }
+        if (newPwd !== confirmPwd) {
+            setStatus(document.getElementById('passwordStatus'), '两次输入的新密码不一致', true);
+            return;
+        }
+        if (oldPwd === newPwd) {
+            setStatus(document.getElementById('passwordStatus'), '新密码不能与旧密码相同', true);
+            return;
+        }
+
+        const btn = document.getElementById('changePasswordBtn');
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '修改中...';
+
+        try {
+            await changePassword(oldPwd, newPwd);
+            setStatus(document.getElementById('passwordStatus'), '密码修改成功，请重新登录', false);
+            // 清空密码框
+            document.getElementById('oldPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            // 可选：3秒后自动退出登录（让用户重新登录）
+            setTimeout(() => {
+                alert('密码已更改，请重新登录');
+                handleLogout();
+            }, 1500);
+        } catch (err) {
+            setStatus(document.getElementById('passwordStatus'), `修改失败：${err.message}`, true);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    }
+
+    // 退出登录
+    function handleLogout() {
+        localStorage.clear();
+        window.location.href = LOGIN_PAGE;
+    }
+
+    // 初始化页面
+    function init() {
+        // 检查 token
+        if (!getToken()) {
+            alert('请先登录');
+            window.location.href = LOGIN_PAGE;
+            return;
+        }
+        loadAndFill();
+
+        // 绑定事件
+        document.getElementById('saveProfileBtn').addEventListener('click', handleSaveProfile);
+        document.getElementById('changePasswordBtn').addEventListener('click', handleChangePassword);
+        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
     }
 
     // 侧边栏折叠逻辑
@@ -179,6 +339,8 @@
         collapsed = !collapsed;
         layout.classList.toggle('collapsed', collapsed);
     });
+
+    init();
 </script>
 </body>
 </html>
