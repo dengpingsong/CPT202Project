@@ -16,7 +16,12 @@ public final class MessageConstants {
     public static final String EMAIL_EXISTS = "邮箱已被注册，请更换后重试。";
     public static final String EMAIL_FORMAT_INVALID = "邮箱格式不正确。";
     public static final String INVALID_CREDENTIALS = "用户名或密码错误。";
-    public static final String RESET_PASSWORD_IDENTITY_MISMATCH = "用户名与邮箱不匹配，无法重置密码。";
+    public static final String PASSWORD_RESET_EMAIL_SENT = "如果该邮箱已绑定账号，重置链接已发送，请注意查收。";
+    public static final String PASSWORD_RESET_LINK_INVALID = "重置链接无效，请重新申请。";
+    public static final String PASSWORD_RESET_LINK_EXPIRED = "重置链接已过期，请重新申请。";
+    public static final String PASSWORD_RESET_LINK_ALREADY_USED = "重置链接已失效，请重新申请。";
+    public static final String PASSWORD_RESET_TOKEN_REQUIRED = "缺少重置令牌。";
+    public static final String PASSWORD_RESET_MAIL_NOT_CONFIGURED = "系统尚未配置发信邮箱，暂时无法通过邮件找回密码。";
     public static final String ACCOUNT_UNAVAILABLE_CONTACT_ADMIN = "账户当前不可用，请联系管理员。";
     public static final String REGISTER_ROLE_REQUIRED = "注册角色不能为空。";
     public static final String STUDENT_NO_REQUIRED = "学生学号不能为空。";

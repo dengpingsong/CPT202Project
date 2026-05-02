@@ -1,8 +1,10 @@
 package com.cpt202.controller.common;
 
 import com.cpt202.dto.LoginDTO;
+import com.cpt202.dto.PasswordResetConfirmDTO;
+import com.cpt202.dto.PasswordResetRequestDTO;
 import com.cpt202.dto.RegisterUserDTO;
-import com.cpt202.dto.ResetPasswordDTO;
+import com.cpt202.constant.MessageConstants;
 import com.cpt202.result.Result;
 import com.cpt202.service.AuthService;
 import com.cpt202.vo.LoginVO;
@@ -56,15 +58,28 @@ public class CommonAuthController {
     }
 
     /**
-     * 通过用户名和邮箱重置密码。
+     * 发送密码重置链接邮件。
      *
-     * @param resetPasswordDTO 重置密码参数
+     * @param requestDTO 邮箱参数
+     * @return 统一成功响应
+     */
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Send password reset email")
+    public Result<String> requestPasswordReset(@Valid @RequestBody PasswordResetRequestDTO requestDTO) {
+        authService.requestPasswordReset(requestDTO);
+        return Result.success(MessageConstants.PASSWORD_RESET_EMAIL_SENT);
+    }
+
+    /**
+     * 通过重置令牌更新密码。
+     *
+     * @param confirmDTO 重置确认参数
      * @return 统一成功响应
      */
     @PostMapping("/reset-password")
-    @Operation(summary = "Reset password by username and email")
-    public Result<Void> resetPassword(@Valid @RequestBody ResetPasswordDTO resetPasswordDTO) {
-        authService.resetPassword(resetPasswordDTO);
+    @Operation(summary = "Reset password by email token")
+    public Result<Void> resetPassword(@Valid @RequestBody PasswordResetConfirmDTO confirmDTO) {
+        authService.resetPassword(confirmDTO);
         return Result.success();
     }
 
