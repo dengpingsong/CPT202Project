@@ -196,6 +196,15 @@
             ${!buttonState.disabled ? `
             <div class="detail-block">
                 <h3>申请备注</h3>
+                <label for="preferenceRank" style="display:block; font-weight:600; margin-bottom:8px;">志愿顺位</label>
+                <select id="preferenceRank" style="width:100%; max-width:220px; padding:10px 12px; border:1.5px solid rgba(90,43,152,0.18); border-radius:12px; font-family:inherit; margin-bottom:16px; background:#fff;">
+                    <option value="1">第 1 志愿</option>
+                    <option value="2">第 2 志愿</option>
+                    <option value="3">第 3 志愿</option>
+                    <option value="4">第 4 志愿</option>
+                    <option value="5">第 5 志愿</option>
+                </select>
+                <label for="applyNotes" style="display:block; font-weight:600; margin-bottom:8px;">补充说明</label>
                 <textarea id="applyNotes" rows="4" style="width:100%; max-width:720px; padding:12px 14px; border:1.5px solid rgba(90,43,152,0.18); border-radius:16px; font-family:inherit; resize:vertical;" placeholder="可以补充你的兴趣、经验或申请理由"></textarea>
             </div>
             ` : ""}
@@ -214,7 +223,9 @@
                 applyBtn.addEventListener("click", async () => {
                     if (buttonState.disabled) return;
                     const notesEl = document.getElementById("applyNotes");//读取申请备注？？？？？？？
+                    const preferenceRankEl = document.getElementById("preferenceRank");
                     const notes = notesEl ? notesEl.value.trim() : "";
+                    const preferenceRank = Number(preferenceRankEl?.value || "1");
                     applyBtn.disabled = true;
                     const originalText = applyBtn.textContent;
                     applyBtn.textContent = "提交中...";
@@ -223,7 +234,7 @@
                     try {
                         await ApiClient.post("/api/student/requests", {
                             projectId: p.projectId,
-                            preferenceRank: 1,
+                            preferenceRank,
                             notes
                         });
                         applyStatus.textContent = "申请已提交。";
