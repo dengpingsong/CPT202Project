@@ -429,7 +429,7 @@ body {
     .hero { flex-direction: column; align-items: flex-start; }
     .layout.collapsed { grid-template-columns: 1fr; }
 }
-/* ��Ϣ֪ͨ��ʽ */
+
 .notification-list {
     display: flex;
     flex-direction: column;
@@ -493,7 +493,6 @@ body {
     background: #ff6b6b;
     display: inline-block;
 }
-/* ��ƽ���߿�Ƭ���ʺϷ��� panel �ڲ� */
 .outline-card {
     background: #fff;
     border: 1px solid rgba(90,43,152,0.12);
@@ -515,7 +514,6 @@ body {
     margin-top: auto;
     width: 100%;
 }
-/* ��Ƭ�ײ��Ĵ�Ҫ��ť */
 .outline-card .btn-secondary {
     background: #e8e8f8;
     border: none;
