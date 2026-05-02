@@ -76,28 +76,28 @@
     </aside>
     <main class="main-content">
         <div class="dashboard-card">
-            <div class="card-header"><h2>👤 管理员个人设置</h2></div>
+            <div class="card-header"><h2>管理员个人设置</h2></div>
             <!-- 基本信息（可编辑） -->
             <div class="info-line">
-                <div class="info-label">👑 账号</div>
+                <div class="info-label">账号</div>
                 <div><span id="displayUsername">加载中...</span></div>
             </div>
             <div class="info-line editable-field">
-                <div class="info-label">📧 邮箱</div>
+                <div class="info-label">邮箱</div>
                 <input type="email" id="editEmail" style="flex:1; max-width:300px;">
             </div>
             <div class="info-line editable-field">
-                <div class="info-label">🧑‍💼 姓名</div>
+                <div class="info-label">姓名</div>
                 <input type="text" id="editFullName" style="flex:1; max-width:300px;">
             </div>
             <div class="info-line">
-                <div class="info-label">🔐 角色</div>
+                <div class="info-label">角色</div>
                 <div>系统管理员（全局类别/标签管理）</div>
             </div>
 
             <!-- 保存个人资料按钮 -->
             <div class="action-buttons">
-                <button type="button" class="btn-primary" id="saveProfileBtn">💾 保存个人资料</button>
+                <button type="button" class="btn-primary" id="saveProfileBtn">保存个人资料</button>
                 <button type="button" class="btn-logout" id="logoutBtn">
                     <i class="bi bi-box-arrow-right"></i> 退出登录
                 </button>
@@ -119,17 +119,18 @@
                     <label>确认密码</label>
                     <input type="password" id="confirmPassword" placeholder="请再次输入新密码">
                 </div>
-                <button class="btn-primary" id="changePasswordBtn">🔒 修改密码</button>
+                <button class="btn-primary" id="changePasswordBtn">修改密码</button>
                 <div id="passwordStatus" class="status-message"></div>
             </div>
 
             <div class="project-demo-note">
-                ⚠️ 个人资料及密码修改均对接后端接口，修改后请重新登录生效（token 未刷新）。
+                个人资料及密码修改均对接后端接口，修改后请重新登录生效（token 未刷新）。
             </div>
         </div>
     </main>
 </div>
 
+<script src="../js/ui-feedback.js"></script>
 <script>
     // ==================== 配置 ====================
     const TOKEN_KEY = 'token';
@@ -145,8 +146,9 @@
     async function fetchApi(url, options = {}) {
         const token = getToken();
         if (!token) {
-            alert('请先登录');
-            window.location.href = LOGIN_PAGE;
+            UiFeedback.alert('请先登录').then(() => {
+                window.location.href = LOGIN_PAGE;
+            });
             throw new Error('No token');
         }
         const headers = {
@@ -157,8 +159,9 @@
         const response = await fetch(url, { ...options, headers });
         if (response.status === 401) {
             localStorage.clear();
-            alert('登录已过期，请重新登录');
-            window.location.href = LOGIN_PAGE;
+            UiFeedback.alert('登录已过期，请重新登录').then(() => {
+                window.location.href = LOGIN_PAGE;
+            });
             throw new Error('Unauthorized');
         }
         const json = await response.json();
@@ -298,8 +301,9 @@
             document.getElementById('confirmPassword').value = '';
             // 可选：3秒后自动退出登录（让用户重新登录）
             setTimeout(() => {
-                alert('密码已更改，请重新登录');
-                handleLogout();
+                UiFeedback.alert('密码已更改，请重新登录').then(() => {
+                    handleLogout();
+                });
             }, 1500);
         } catch (err) {
             setStatus(document.getElementById('passwordStatus'), `修改失败：${err.message}`, true);
@@ -319,8 +323,9 @@
     function init() {
         // 检查 token
         if (!getToken()) {
-            alert('请先登录');
-            window.location.href = LOGIN_PAGE;
+            UiFeedback.alert('请先登录').then(() => {
+                window.location.href = LOGIN_PAGE;
+            });
             return;
         }
         loadAndFill();

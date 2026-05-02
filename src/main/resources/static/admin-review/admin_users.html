@@ -92,6 +92,7 @@
     </main>
 </div>
 
+<script src="../js/ui-feedback.js"></script>
 <script src="../js/api.js"></script>
 <script>
     (function () {
@@ -139,7 +140,7 @@
                             await ApiClient.admin.updateUserStatus(userId, nextStatus);
                             await loadUsers();
                         } catch (error) {
-                            alert(error.message || "状态更新失败，请稍后重试。");
+                            UiFeedback.error(error.message || "状态更新失败，请稍后重试。");
                         }
                     });
                 });

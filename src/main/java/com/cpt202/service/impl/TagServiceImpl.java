@@ -3,6 +3,7 @@ package com.cpt202.service.impl;
 import com.cpt202.constant.MessageConstants;
 import com.cpt202.dto.TagDTO;
 import com.cpt202.exception.NotFoundException;
+import com.cpt202.exception.RuleViolationException;
 import com.cpt202.model.entity.Tag;
 import com.cpt202.repository.TagRepository;
 import com.cpt202.service.TagService;
@@ -60,9 +61,15 @@ public class TagServiceImpl implements TagService {
      */
     @Override
     public void create(TagDTO tagDTO) {
+        String tagName = tagDTO.getTagName().trim();
+        if (tagRepository.existsByTagNameIgnoreCase(tagName)) {
+            throw new RuleViolationException(MessageConstants.TAG_NAME_EXISTS);
+        }
+
         LocalDateTime now = LocalDateTime.now();
         Tag tag = new Tag();
         BeanUtils.copyProperties(tagDTO, tag);
+        tag.setTagName(tagName);
         tag.setCreatedAt(now);
         tag.setUpdatedAt(now);
         tagRepository.save(tag);
@@ -79,7 +86,12 @@ public class TagServiceImpl implements TagService {
         Tag tag = tagRepository.findById(tagId)
                 .orElseThrow(() -> new NotFoundException(MessageConstants.TAG_TO_UPDATE_NOT_FOUND));
 
-        tag.setTagName(tagDTO.getTagName());
+        String tagName = tagDTO.getTagName().trim();
+        if (tagRepository.existsByTagNameIgnoreCaseAndTagIdNot(tagName, tagId)) {
+            throw new RuleViolationException(MessageConstants.TAG_NAME_EXISTS);
+        }
+
+        tag.setTagName(tagName);
         tag.setDescription(tagDTO.getDescription());
         tag.setUpdatedAt(LocalDateTime.now());
 

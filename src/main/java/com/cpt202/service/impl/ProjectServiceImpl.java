@@ -7,11 +7,15 @@ import com.cpt202.dto.StudentProjectQueryDTO;
 import com.cpt202.exception.BusinessException;
 import com.cpt202.exception.NotFoundException;
 import com.cpt202.model.entity.Project;
+import com.cpt202.model.entity.ProjectRequest;
 import com.cpt202.model.entity.ProjectStatusHistory;
+import com.cpt202.model.entity.RequestStatusHistory;
 import com.cpt202.model.entity.TeacherProfile;
 import com.cpt202.repository.CategoryRepository;
 import com.cpt202.repository.ProjectRepository;
+import com.cpt202.repository.ProjectRequestRepository;
 import com.cpt202.repository.ProjectStatusHistoryRepository;
+import com.cpt202.repository.RequestStatusHistoryRepository;
 import com.cpt202.repository.TeacherProfileRepository;
 import com.cpt202.result.PageResult;
 import com.cpt202.service.ProjectService;
@@ -41,6 +45,8 @@ public class ProjectServiceImpl implements ProjectService {
     private final TeacherProfileRepository teacherProfileRepository;
     private final CategoryRepository categoryRepository;
     private final ProjectStatusHistoryRepository projectStatusHistoryRepository;
+    private final ProjectRequestRepository projectRequestRepository;
+    private final RequestStatusHistoryRepository requestStatusHistoryRepository;
 
     /**
      * 查询学生端项目列表。
@@ -138,6 +144,7 @@ public class ProjectServiceImpl implements ProjectService {
     @Transactional
     public void changeStatus(Long projectId, Long teacherId, ProjectStatusUpdateDTO projectStatusUpdateDTO) {
         Project project = getOwnedProjectEntity(projectId, teacherId);
+        validateManualStatusChange(project, projectStatusUpdateDTO.getProjectStatus());
         Project.ProjectStatus oldStatus = project.getProjectStatus();
         LocalDateTime now = LocalDateTime.now();
         project.setProjectStatus(projectStatusUpdateDTO.getProjectStatus());
@@ -145,6 +152,7 @@ public class ProjectServiceImpl implements ProjectService {
         if (projectStatusUpdateDTO.getProjectStatus() == Project.ProjectStatus.CLOSED
                 || projectStatusUpdateDTO.getProjectStatus() == Project.ProjectStatus.ARCHIVED) {
             project.setCloseDate(now);
+            cancelActiveRequestsForClosedProject(project, now);
         }
         projectRepository.save(project);
 
@@ -156,6 +164,48 @@ public class ProjectServiceImpl implements ProjectService {
         history.setRemark(projectStatusUpdateDTO.getRemark());
         history.setChangedAt(now);
         projectStatusHistoryRepository.save(history);
+    }
+
+    private void validateManualStatusChange(Project project, Project.ProjectStatus targetStatus) {
+        if (targetStatus == Project.ProjectStatus.REQUESTED) {
+            throw new BusinessException(MessageConstants.PROJECT_STATUS_REQUESTED_NOT_ALLOWED_MANUALLY);
+        }
+        if (targetStatus == Project.ProjectStatus.ARCHIVED) {
+            throw new BusinessException(MessageConstants.PROJECT_STATUS_ARCHIVED_DISABLED);
+        }
+        if (project.getProjectStatus() == Project.ProjectStatus.CLOSED
+                && targetStatus != Project.ProjectStatus.CLOSED) {
+            throw new BusinessException(MessageConstants.PROJECT_STATUS_TRANSITION_INVALID);
+        }
+    }
+
+    private void cancelActiveRequestsForClosedProject(Project project, LocalDateTime changedAt) {
+        List<ProjectRequest> activeRequests = projectRequestRepository.findByProject_ProjectIdAndRequestStatusIn(
+                project.getProjectId(),
+                List.of(ProjectRequest.RequestStatus.PENDING, ProjectRequest.RequestStatus.ACCEPTED)
+        );
+
+        for (ProjectRequest request : activeRequests) {
+            ProjectRequest.RequestStatus oldStatus = request.getRequestStatus();
+            request.setRequestStatus(ProjectRequest.RequestStatus.REJECTED);
+            request.setDecisionComment(MessageConstants.PROJECT_CLOSED_AND_REQUEST_CANCELLED);
+            request.setReviewedAt(changedAt);
+            request.setUpdatedAt(changedAt);
+
+            RequestStatusHistory history = new RequestStatusHistory();
+            history.setRequest(request);
+            history.setOldStatus(oldStatus == null ? null : oldStatus.name());
+            history.setNewStatus(ProjectRequest.RequestStatus.REJECTED.name());
+            history.setChangedBy(null);
+            history.setRemark("系统自动取消：教师关闭了该项目。");
+            history.setChangedAt(changedAt);
+            requestStatusHistoryRepository.save(history);
+        }
+
+        if (!activeRequests.isEmpty()) {
+            projectRequestRepository.saveAll(activeRequests);
+        }
+        project.setCurrentAgreedCount(0);
     }
 
     private Project getProjectEntity(Long projectId) {

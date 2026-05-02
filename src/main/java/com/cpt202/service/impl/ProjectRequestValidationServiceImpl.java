@@ -23,6 +23,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProjectRequestValidationServiceImpl implements ProjectRequestValidationService {
 
+    private static final List<RequestStatus> ACTIVE_REQUEST_STATUSES = List.of(
+            RequestStatus.PENDING,
+            RequestStatus.ACCEPTED
+    );
     private final ProjectRequestRepository requestRepository;
     private final ProjectRepository projectRepository;
     private final RequestStatusHistoryRepository requestStatusHistoryRepository;
@@ -40,6 +44,14 @@ public class ProjectRequestValidationServiceImpl implements ProjectRequestValida
                 || project.getProjectStatus() == Project.ProjectStatus.CLOSED
                 || project.getProjectStatus() == Project.ProjectStatus.ARCHIVED) {
             throw new RuleViolationException(MessageConstants.PROJECT_NOT_ACCEPTING_REQUESTS);
+        }
+
+        if (requestRepository.existsByStudent_StudentIdAndProject_ProjectIdAndRequestStatusIn(
+                studentId,
+                project.getProjectId(),
+                ACTIVE_REQUEST_STATUSES
+        )) {
+            throw new RuleViolationException(MessageConstants.PROJECT_REQUEST_ALREADY_EXISTS);
         }
 
         // 3. 只限制已经持有 agreed 项目的学生继续申请。
@@ -87,11 +99,15 @@ public class ProjectRequestValidationServiceImpl implements ProjectRequestValida
 
         Project project = projectRepository.findById(projectId).orElseThrow();
         long currentCount = requestRepository.countByProject_ProjectIdAndRequestStatus(projectId, RequestStatus.ACCEPTED);
+        project.setCurrentAgreedCount((int) currentCount);
+        project.setUpdatedAt(LocalDateTime.now());
 
         if (currentCount >= project.getMaxStudents()) {
-            // 这里确保 Project 实体类里有 setProjectStatus 方法和 CLOSED 枚举
             project.setProjectStatus(Project.ProjectStatus.CLOSED);
-            projectRepository.save(project);
+            project.setCloseDate(LocalDateTime.now());
+        } else {
+            project.setProjectStatus(Project.ProjectStatus.AGREED);
         }
+        projectRepository.save(project);
     }
 }

@@ -4,6 +4,7 @@ import com.cpt202.model.entity.User;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PastOrPresent;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -43,6 +44,7 @@ public class RegisterUserDTO {
     /** 专业。 */
     private String programme;
     /** 入学日期。 */
+    @PastOrPresent(message = "入学日期不能晚于今天。")
     private LocalDate enrollmentDate;
     /** 联系电话。 */
     private String phone;

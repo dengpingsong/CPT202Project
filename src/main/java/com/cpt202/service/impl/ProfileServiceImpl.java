@@ -27,6 +27,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
+import java.util.regex.Pattern;
 
 /**
  * 用户资料服务实现类。
@@ -36,6 +37,7 @@ import java.util.HexFormat;
 @RequiredArgsConstructor
 public class ProfileServiceImpl implements ProfileService {
 
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
     private final StudentProfileRepository studentProfileRepository;
     private final TeacherProfileRepository teacherProfileRepository;
     private final UserRepository userRepository;
@@ -81,9 +83,10 @@ public class ProfileServiceImpl implements ProfileService {
             throw new BusinessException(MessageConstants.NON_STUDENT_PROFILE_UPDATE);
         }
 
+        validateEmailForUser(profile.getUser(), studentProfileUpdateDTO.getEmail());
         BeanUtils.copyProperties(studentProfileUpdateDTO, profile, "fullName", "email");
         profile.getUser().setFullName(studentProfileUpdateDTO.getFullName());
-        profile.getUser().setEmail(studentProfileUpdateDTO.getEmail());
+        profile.getUser().setEmail(studentProfileUpdateDTO.getEmail().trim());
         profile.setUpdatedAt(LocalDateTime.now());
 
         studentProfileRepository.save(profile);
@@ -128,9 +131,10 @@ public class ProfileServiceImpl implements ProfileService {
             throw new BusinessException(MessageConstants.NON_TEACHER_PROFILE_UPDATE);
         }
 
+        validateEmailForUser(profile.getUser(), teacherProfileUpdateDTO.getEmail());
         BeanUtils.copyProperties(teacherProfileUpdateDTO, profile, "fullName", "email");
         profile.getUser().setFullName(teacherProfileUpdateDTO.getFullName());
-        profile.getUser().setEmail(teacherProfileUpdateDTO.getEmail());
+        profile.getUser().setEmail(teacherProfileUpdateDTO.getEmail().trim());
         profile.setUpdatedAt(LocalDateTime.now());
 
         teacherProfileRepository.save(profile);
@@ -160,8 +164,9 @@ public class ProfileServiceImpl implements ProfileService {
             throw new BusinessException(MessageConstants.NON_ADMIN_PROFILE_UPDATE);
         }
 
+        validateEmailForUser(user, adminProfileUpdateDTO.getEmail());
         user.setFullName(adminProfileUpdateDTO.getFullName());
-        user.setEmail(adminProfileUpdateDTO.getEmail());
+        user.setEmail(adminProfileUpdateDTO.getEmail().trim());
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
     }
@@ -201,6 +206,16 @@ public class ProfileServiceImpl implements ProfileService {
             return HexFormat.of().formatHex(hashBytes);
         } catch (NoSuchAlgorithmException ex) {
             throw new IllegalStateException("Unable to hash password", ex);
+        }
+    }
+
+    private void validateEmailForUser(User user, String email) {
+        String trimmedEmail = email == null ? "" : email.trim();
+        if (!EMAIL_PATTERN.matcher(trimmedEmail).matches()) {
+            throw new BusinessException(MessageConstants.EMAIL_FORMAT_INVALID);
+        }
+        if (userRepository.existsByEmailIgnoreCaseAndUserIdNot(trimmedEmail, user.getUserId())) {
+            throw new BusinessException(MessageConstants.EMAIL_EXISTS);
         }
     }
 }

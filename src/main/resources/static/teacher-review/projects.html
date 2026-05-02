@@ -63,7 +63,6 @@
                         <option value="REQUESTED">已有申请</option>
                         <option value="AGREED">已确认</option>
                         <option value="CLOSED">已关闭</option>
-                        <option value="ARCHIVED">已归档</option>
                     </select>
                 </label>
             </div>
@@ -109,7 +108,6 @@
                     <label class="form-label">能力要求</label>
                     <textarea class="form-control" id="editRequiredSkills" rows="3"></textarea>
                 </div>
-                <button class="btn-primary" type="submit" id="saveProjectBtn" style="padding:10px 18px;">保存项目信息</button>
             </form>
 
             <hr style="border-color:#eee; margin:24px 0;">
@@ -120,10 +118,8 @@
                         <label class="form-label">项目状态</label>
                         <select class="form-select" id="editProjectStatus">
                             <option value="AVAILABLE">正在招募</option>
-                            <option value="REQUESTED">已有申请</option>
                             <option value="AGREED">已确认</option>
                             <option value="CLOSED">已关闭</option>
-                            <option value="ARCHIVED">已归档</option>
                         </select>
                     </div>
                     <div class="col-md-8">
@@ -131,7 +127,6 @@
                         <input class="form-control" id="editStatusRemark" type="text" placeholder="可选">
                     </div>
                 </div>
-                <button class="btn-secondary" type="submit" id="saveStatusBtn" style="padding:10px 18px;">保存状态</button>
             </form>
 
             <hr style="border-color:#eee; margin:24px 0;">
@@ -139,10 +134,26 @@
             <form id="projectTagsForm">
                 <label class="form-label">项目标签</label>
                 <div id="editTagsContainer" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;"></div>
-                <button class="btn-secondary" type="submit" id="saveTagsBtn" style="padding:10px 18px;">保存标签</button>
             </form>
+            <div style="display:flex; gap:12px; margin-top:20px;">
+                <button class="btn-primary" type="button" id="saveAllBtn" style="padding:10px 18px;">保存全部修改</button>
+            </div>
         </div>
     </main>
+</div>
+
+<div id="statusConfirmModal" aria-hidden="true" style="display:none; position:fixed; inset:0; background:rgba(28,20,43,0.45); z-index:1000; align-items:center; justify-content:center; padding:20px;">
+    <div role="dialog" aria-modal="true" aria-labelledby="statusConfirmTitle" style="width:min(460px, 100%); background:#fff; border-radius:16px; padding:24px; box-shadow:0 24px 60px rgba(28,20,43,0.22);">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+            <h2 id="statusConfirmTitle" style="font-size:1.2rem; margin:0; flex:1;">确认状态修改</h2>
+            <button type="button" id="closeStatusConfirmBtn" style="border:none; background:transparent; font-size:1.2rem; cursor:pointer; color:var(--muted);">×</button>
+        </div>
+        <p id="statusConfirmMessage" style="margin:0 0 18px; color:var(--text); line-height:1.6;"></p>
+        <div style="display:flex; justify-content:flex-end; gap:12px;">
+            <button type="button" class="btn-secondary" id="cancelStatusConfirmBtn" style="padding:10px 18px;">取消</button>
+            <button type="button" class="btn-primary" id="confirmStatusConfirmBtn" style="padding:10px 18px;">确认</button>
+        </div>
+    </div>
 </div>
 
 <script src="../js/api.js"></script>
@@ -163,6 +174,12 @@
         const projectStatusForm = document.getElementById("projectStatusForm");
         const projectTagsForm = document.getElementById("projectTagsForm");
         const editTagsContainer = document.getElementById("editTagsContainer");
+        const saveAllBtn = document.getElementById("saveAllBtn");
+        const statusConfirmModal = document.getElementById("statusConfirmModal");
+        const statusConfirmMessage = document.getElementById("statusConfirmMessage");
+        const closeStatusConfirmBtn = document.getElementById("closeStatusConfirmBtn");
+        const cancelStatusConfirmBtn = document.getElementById("cancelStatusConfirmBtn");
+        const confirmStatusConfirmBtn = document.getElementById("confirmStatusConfirmBtn");
         const fields = {
             projectId: document.getElementById("editProjectId"),
             title: document.getElementById("editTitle"),
@@ -178,8 +195,10 @@
             projects: [],
             categories: [],
             tags: [],
-            currentProject: null
+            currentProject: null,
+            currentProjectTagIds: []
         };
+        let pendingConfirmAction = null;
 
         function esc(value) {
             if (value === null || value === undefined) return "";
@@ -196,11 +215,10 @@
                 AVAILABLE: "正在招募",
                 REQUESTED: "已有申请",
                 AGREED: "已确认",
-                CLOSED: "已关闭",
-                ARCHIVED: "已归档"
+                CLOSED: "已关闭"
             };
             const normalized = String(status || "UNKNOWN").toUpperCase();
-            return map[normalized] || normalized;
+            return normalized === "ARCHIVED" ? "已关闭" : (map[normalized] || normalized);
         }
 
         //mapping css
@@ -210,7 +228,6 @@
             if (normalized === "REQUESTED") return "status-requested";
             if (normalized === "AGREED") return "status-agreed";
             if (normalized === "CLOSED") return "status-unavailable";
-            if (normalized === "ARCHIVED") return "status-unavailable";
             return "status-requested";
         }
 
@@ -263,6 +280,7 @@
         function fillProjectForm(project, projectTags) {
             state.currentProject = project;
             const selectedTagIds = (projectTags || []).map(tag => tag.tagId);
+            state.currentProjectTagIds = selectedTagIds.slice();
             //把后台的项目数据，自动填到编辑表单里，让老师 / 学生直接修改，不用重新输入。
             fields.projectId.value = project.projectId || "";
             fields.title.value = project.title || "";
@@ -270,7 +288,8 @@
             fields.topicArea.value = project.topicArea || "";
             fields.description.value = project.description || "";
             fields.requiredSkills.value = project.requiredSkills || "";
-            fields.projectStatus.value = project.projectStatus || "AVAILABLE";
+            const normalizedStatus = project.projectStatus === "ARCHIVED" ? "CLOSED" : (project.projectStatus || "AVAILABLE");
+            fields.projectStatus.value = normalizedStatus === "REQUESTED" ? "AVAILABLE" : normalizedStatus;
             fields.statusRemark.value = "";
             renderCategoryOptions(project.categoryId);
             renderTagOptions(selectedTagIds);
@@ -288,6 +307,32 @@
                 topicArea: fields.topicArea.value.trim(),
                 maxStudents: Number(fields.maxStudents.value)
             };
+        }
+
+        function getSelectedTagIds() {
+            return Array.from(editTagsContainer.querySelectorAll('input[name="projectTag"]:checked'))
+                .map(input => Number(input.value))
+                .filter(Number.isFinite);
+        }
+
+        function areTagSelectionsEqual(left, right) {
+            const normalizedLeft = [...left].map(Number).sort((a, b) => a - b);
+            const normalizedRight = [...right].map(Number).sort((a, b) => a - b);
+            return JSON.stringify(normalizedLeft) === JSON.stringify(normalizedRight);
+        }
+
+        function openStatusConfirm(message, onConfirm) {
+            pendingConfirmAction = onConfirm;
+            statusConfirmMessage.textContent = message;
+            statusConfirmModal.style.display = "flex";
+            statusConfirmModal.setAttribute("aria-hidden", "false");
+            confirmStatusConfirmBtn.focus();
+        }
+
+        function closeStatusConfirm() {
+            pendingConfirmAction = null;
+            statusConfirmModal.style.display = "none";
+            statusConfirmModal.setAttribute("aria-hidden", "true");
         }
 
         //等你填完 这个才开始验证 所以按顺序写
@@ -415,67 +460,83 @@
             setEditStatus("", "");
         });
 
-        projectEditForm.addEventListener("submit", async event => {
-            event.preventDefault();
+        async function saveAllChanges() {
             const projectId = fields.projectId.value;
+            if (!projectId) return;
+
             const payload = buildProjectPayload();
             const validationError = validateProjectPayload(payload);
             if (validationError) {
                 setEditStatus(validationError, "error");
                 return;
             }
+            const tagIds = getSelectedTagIds();
+            const nextStatus = fields.projectStatus.value;
+            const currentStatus = state.currentProject?.projectStatus === "ARCHIVED"
+                ? "CLOSED"
+                : (state.currentProject?.projectStatus || "AVAILABLE");
+            const editableCurrentStatus = currentStatus === "REQUESTED" ? "AVAILABLE" : currentStatus;
 
-            setEditStatus("正在保存项目信息...", "");
-            try {
-                await ApiClient.teacher.updateProject(projectId, payload);
-                setEditStatus("项目信息已保存。", "success");
-                await loadProjects();
-            } catch (error) {
-                console.error(error);
-                setEditStatus(error.message || "项目信息保存失败。", "error");
-            }
-        });
+            const executeSave = async () => {
+                const originalText = saveAllBtn.textContent;
+                saveAllBtn.disabled = true;
+                saveAllBtn.textContent = "保存中...";
+                setEditStatus("正在保存全部修改...", "");
+                try {
+                    await ApiClient.teacher.updateProject(projectId, payload);
 
-        projectStatusForm.addEventListener("submit", async event => {
-            event.preventDefault();
-            const projectId = fields.projectId.value;
-            if (!projectId) return;
+                    if (editableCurrentStatus !== nextStatus || fields.statusRemark.value.trim()) {
+                        await ApiClient.teacher.changeProjectStatus(
+                            projectId,
+                            nextStatus,
+                            fields.statusRemark.value.trim()
+                        );
+                    }
 
-            setEditStatus("正在保存项目状态...", "");
-            try {
-                await ApiClient.teacher.changeProjectStatus(
-                    projectId,
-                    fields.projectStatus.value,
-                    fields.statusRemark.value.trim()
-                );
-                setEditStatus("项目状态已保存。", "success");
-                await loadProjects();
-            } catch (error) {
-                console.error(error);
-                setEditStatus(error.message || "项目状态保存失败。", "error");
-            }
-        });
+                    if (!areTagSelectionsEqual(tagIds, state.currentProjectTagIds)) {
+                        await ApiClient.teacher.bindProjectTags(projectId, tagIds);
+                    }
 
-        projectTagsForm.addEventListener("submit", async event => {
-            event.preventDefault();
-            const projectId = fields.projectId.value;
-            if (!projectId) return;
+                    setEditStatus("项目修改已保存。", "success");
+                    await loadProjects();
+                    await openProjectEditor(projectId);
+                } catch (error) {
+                    console.error(error);
+                    setEditStatus(error.message || "项目保存失败。", "error");
+                } finally {
+                    saveAllBtn.disabled = false;
+                    saveAllBtn.textContent = originalText;
+                }
+            };
 
-            const tagIds = Array.from(editTagsContainer.querySelectorAll('input[name="projectTag"]:checked'))
-                .map(input => Number(input.value))
-                .filter(Number.isFinite);
-            if (tagIds.length === 0) {
-                setEditStatus("请至少选择一个项目标签。", "error");
+            if (editableCurrentStatus !== nextStatus && ["AGREED", "CLOSED"].includes(nextStatus)) {
+                const statusTextMap = {
+                    AGREED: "已确认",
+                    CLOSED: "已关闭"
+                };
+                openStatusConfirm(`确定要将项目状态修改为“${statusTextMap[nextStatus]}”吗？修改后会立即生效。`, executeSave);
                 return;
             }
 
-            setEditStatus("正在保存项目标签...", "");
-            try {
-                await ApiClient.teacher.bindProjectTags(projectId, tagIds);
-                setEditStatus("项目标签已保存。", "success");
-            } catch (error) {
-                console.error(error);
-                setEditStatus(error.message || "项目标签保存失败。", "error");
+            await executeSave();
+        }
+
+        projectEditForm.addEventListener("submit", event => event.preventDefault());
+        projectStatusForm.addEventListener("submit", event => event.preventDefault());
+        projectTagsForm.addEventListener("submit", event => event.preventDefault());
+        saveAllBtn.addEventListener("click", saveAllChanges);
+        closeStatusConfirmBtn.addEventListener("click", closeStatusConfirm);
+        cancelStatusConfirmBtn.addEventListener("click", closeStatusConfirm);
+        statusConfirmModal.addEventListener("click", event => {
+            if (event.target === statusConfirmModal) {
+                closeStatusConfirm();
+            }
+        });
+        confirmStatusConfirmBtn.addEventListener("click", async () => {
+            const action = pendingConfirmAction;
+            closeStatusConfirm();
+            if (action) {
+                await action();
             }
         });
 

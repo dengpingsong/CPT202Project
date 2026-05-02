@@ -42,10 +42,10 @@
 
     <main class="main">
         <div class="page-header">
-            <a href="student-dashboard.html" class="back-link">← 返回工作台</a>
             <h1>开放项目列表</h1>
         </div>
         <div class="panel-card">
+            <div id="pageNotice" class="footnote" style="display:none; margin:0 auto 14px; max-width:520px; padding:12px 16px; border-radius:12px; background:rgba(47,197,168,0.12); color:#157a63; text-align:center; font-weight:600;"></div>
             <p style="color: var(--muted); margin-bottom: 10px;">点击 View 可在新页面查看项目详情</p>
             <div style="display:grid; grid-template-columns: minmax(180px, 1.5fr) minmax(150px, 1fr) minmax(150px, 1fr) auto; gap:10px; align-items:end; margin-bottom:14px;">
                 <label style="display:flex; flex-direction:column; gap:6px; font-size:0.9rem; color:var(--muted);">
@@ -66,7 +66,6 @@
                         <option value="REQUESTED">已有申请</option>
                         <option value="AGREED">已确认</option>
                         <option value="CLOSED">已关闭</option>
-                        <option value="ARCHIVED">已归档</option>
                     </select>
                 </label>
                 <button class="pagination-btn" id="clearProjectFiltersBtn" type="button" style="padding:10px 14px; border-radius:12px;">清除筛选</button>
@@ -132,6 +131,7 @@
         const categoryFilter = document.getElementById("categoryFilter");
         const statusFilter = document.getElementById("statusFilter");
         const clearProjectFiltersBtn = document.getElementById("clearProjectFiltersBtn");
+        const pageNotice = document.getElementById("pageNotice");
         const DEFAULT_PAGE_SIZE = 8;
         const state = {
             currentPage: 1,
@@ -152,6 +152,18 @@
                 .replace(/>/g, "&gt;")
                 .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#39;");
+        }
+
+        function showPageNotice() {
+            const notice = sessionStorage.getItem("studentProjectListNotice");
+            if (!notice || !pageNotice) return;
+            pageNotice.textContent = notice;
+            pageNotice.style.display = "block";
+            sessionStorage.removeItem("studentProjectListNotice");
+            window.setTimeout(() => {
+                pageNotice.style.display = "none";
+                pageNotice.textContent = "";
+            }, 2600);
         }
         // 根据状态返回对应的标签css
         function statusPill(status) {
@@ -444,6 +456,7 @@
             loadProjects(1);
         });
 
+        showPageNotice();
         initPage();
     })();
     //default sidebar toggle behavior

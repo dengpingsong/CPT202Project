@@ -102,6 +102,7 @@
     </main>
 </div>
 
+<script src="../js/ui-feedback.js"></script>
 <script src="../js/api.js"></script>
 <script>
     (function () {
@@ -165,13 +166,15 @@
 
         async function withdrawRequest(requestId) {
             if (!requestId) return;
-            if (!window.confirm("确认撤回这条申请吗？")) return;
+            const confirmed = await UiFeedback.confirm("确认撤回这条申请吗？", "撤回申请");
+            if (!confirmed) return;
 
             try {
                 await ApiClient.student.withdrawRequest(requestId);
+                UiFeedback.success("申请已撤回");
                 await initDashboard();
             } catch (error) {
-                window.alert(error.message || "撤回失败，请稍后重试。");
+                UiFeedback.error(error.message || "撤回失败，请稍后重试。");
             }
         }
         //main context update
@@ -180,6 +183,8 @@
             const displayName = user.fullName || user.username || "同学";
             const pending = requests.filter(item => normalizeStatus(item.requestStatus) === "PENDING").length;
             const accepted = requests.filter(item => normalizeStatus(item.requestStatus) === "ACCEPTED").length;
+            const rejected = requests.filter(item => normalizeStatus(item.requestStatus) === "REJECTED").length;
+            const withdrawn = requests.filter(item => normalizeStatus(item.requestStatus) === "WITHDRAWN").length;
             const active = pending + accepted;
 
             welcomeTitle.textContent = `欢迎，${displayName}`;
@@ -187,21 +192,25 @@
             acceptedCount.textContent = String(accepted);
             requestCount.textContent = String(requests.length);
 
+            const statusParts = [];
+            if (pending > 0) statusParts.push(`${pending}·pending`);
+            if (accepted > 0) statusParts.push(`${accepted}·accepted`);
+            if (rejected > 0) statusParts.push(`${rejected}·rejected`);
+            if (withdrawn > 0) statusParts.push(`${withdrawn}·withdrawn`);
+            currentStatus.textContent = statusParts.length ? statusParts.join("  ") : "0·request";
+
             if (accepted > 0) {
-                currentStatus.textContent = "Accepted";
-                currentStatusRule.textContent = `已有 ${accepted} 个通过申请，新的申请可能会受到限制`;
-                requestCountRule.textContent = "你已经有通过的项目，请优先确认后续安排";
+                currentStatusRule.textContent = `当前有 ${accepted} 个已通过项目，新的申请会受到限制`;
+                requestCountRule.textContent = "如项目被关闭或取消，状态会自动更新";
                 return;
             }
 
-            if (pending > 0) {
-                currentStatus.textContent = "Pending";
-                currentStatusRule.textContent = `已有 ${pending} 个待审批项目`;
-                requestCountRule.textContent = "可继续查看项目详情，避免重复申请同一项目";
+            if (pending > 0 || rejected > 0) {
+                currentStatusRule.textContent = `当前待处理 ${pending} 个，未通过 ${rejected} 个`;
+                requestCountRule.textContent = "可以继续查看项目详情，重新安排志愿顺序";
                 return;
             }
 
-            currentStatus.textContent = "No Active Request";
             currentStatusRule.textContent = "当前没有待审批或已通过的申请";
             requestCountRule.textContent = "可以从推荐项目或搜索项目开始申请";
         }
@@ -218,7 +227,7 @@
                     .map(item => String(item.projectId))
             );
             const projects = (Array.isArray(projectPage?.records) ? projectPage.records : [])
-                .filter(project => normalizeStatus(project.projectStatus) !== "ARCHIVED")
+                .filter(project => ["AVAILABLE", "REQUESTED"].includes(normalizeStatus(project.projectStatus)))
                 .filter(project => !withdrawnProjectIds.has(String(project.projectId)))
                 .slice(0, 3);
 
@@ -240,14 +249,12 @@
                 const requestStatus = (() => {
                     const matched = requests.find(item =>
                         String(item.projectId) === String(projectId)
-                        && ["PENDING", "ACCEPTED", "REJECTED"].includes(normalizeStatus(item.requestStatus))
+                        && ["PENDING", "REQUESTED"].includes(normalizeStatus(item.requestStatus))
                     );
                     return matched ? normalizeStatus(matched.requestStatus) : null;
                 })();
                 const hasRequested = Boolean(requestStatus);
-                const status = requestStatus === "PENDING"
-                    ? "REQUESTED"
-                    : (requestStatus || project.projectStatus);
+                const status = requestStatus === "PENDING" ? "REQUESTED" : (requestStatus || project.projectStatus);
                 const buttonText = hasRequested ? "查看申请" : "查看详情";
                 const buttonClass = hasRequested ? "" : "secondary";
 
@@ -264,7 +271,13 @@
         }
 
         function renderRecentRequests(requests) {
-            const latest = requests.slice(0, 3);
+            const latest = [...requests]
+                .sort((a, b) => {
+                    const rankDiff = Number(a.preferenceRank || 999) - Number(b.preferenceRank || 999);
+                    if (rankDiff !== 0) return rankDiff;
+                    return new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0);
+                })
+                .slice(0, 3);
 
             if (latest.length === 0) {
                 recentRequests.innerHTML = `
@@ -291,7 +304,7 @@
                         ${item.decisionComment ? `<p class="meta" style="margin-top: 4px;">反馈：${esc(item.decisionComment)}</p>` : ""}
                         ${normalizeStatus(item.requestStatus) === "PENDING" ? `
                             <div style="margin-top: 10px;">
-                                <button type="button" class="secondary withdraw-btn" data-request-id="${esc(item.requestId)}">撤回申请</button>
+                                <button type="button" class="btn-secondary withdraw-btn" data-request-id="${esc(item.requestId)}" style="padding:8px 14px; border-radius:999px; border-color:#f56c6c; color:#f56c6c;">撤回申请</button>
                             </div>
                         ` : ""}
                     </div>

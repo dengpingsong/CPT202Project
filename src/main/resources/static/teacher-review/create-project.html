@@ -63,13 +63,7 @@
                 <div class="row mb-4">
                     <div class="col-md-6">
                         <label class="form-label">招募人数 (Quota) <span class="text-danger">*</span></label>
-                        <select class="form-select" id="projectQuota" required>
-                            <option value="1">1 人</option>
-                            <option value="2">2 人</option>
-                            <option value="3" selected>3 人</option>
-                            <option value="4">4 人</option>
-                            <option value="5">5 人</option>
-                        </select>
+                        <input class="form-control" id="projectQuota" type="number" min="1" step="1" value="3" required>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">项目分类 (Category) <span class="text-danger">*</span></label>

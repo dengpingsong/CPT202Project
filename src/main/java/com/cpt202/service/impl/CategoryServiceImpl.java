@@ -3,6 +3,7 @@ package com.cpt202.service.impl;
 import com.cpt202.constant.MessageConstants;
 import com.cpt202.dto.CategoryDTO;
 import com.cpt202.exception.NotFoundException;
+import com.cpt202.exception.RuleViolationException;
 import com.cpt202.model.entity.Category;
 import com.cpt202.repository.CategoryRepository;
 import com.cpt202.service.CategoryService;
@@ -57,10 +58,16 @@ public class CategoryServiceImpl implements CategoryService {
      */
     @Override
     public void create(CategoryDTO categoryDTO) {
+        String categoryName = categoryDTO.getCategoryName().trim();
+        if (categoryRepository.existsByCategoryNameIgnoreCase(categoryName)) {
+            throw new RuleViolationException(MessageConstants.CATEGORY_NAME_EXISTS);
+        }
+
         LocalDateTime now = LocalDateTime.now();
 
         Category category = new Category();
         BeanUtils.copyProperties(categoryDTO, category);
+        category.setCategoryName(categoryName);
         category.setCreatedAt(now);
         category.setUpdatedAt(now);
 
@@ -78,7 +85,12 @@ public class CategoryServiceImpl implements CategoryService {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new NotFoundException(MessageConstants.CATEGORY_TO_UPDATE_NOT_FOUND));
 
-        category.setCategoryName(categoryDTO.getCategoryName());
+        String categoryName = categoryDTO.getCategoryName().trim();
+        if (categoryRepository.existsByCategoryNameIgnoreCaseAndCategoryIdNot(categoryName, categoryId)) {
+            throw new RuleViolationException(MessageConstants.CATEGORY_NAME_EXISTS);
+        }
+
+        category.setCategoryName(categoryName);
         category.setDescription(categoryDTO.getDescription());
         category.setUpdatedAt(LocalDateTime.now());
 
