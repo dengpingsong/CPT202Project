@@ -56,7 +56,8 @@ public final class MessageConstants {
     public static final String NON_ADMIN_PROFILE_UPDATE = "该用户不是管理员角色。无法修改管理员资料。";
 
     public static final String REQUEST_DEADLINE_PASSED = "The deadline has passed.";
-    public static final String ACTIVE_REQUEST_EXISTS = "Operation failed: You already have an active or accepted request.";
+    public static final String ACTIVE_REQUEST_EXISTS = "Operation failed: You already have an agreed project.";
+    public static final String PROJECT_NOT_ACCEPTING_REQUESTS = "This project is closed or archived and cannot accept new requests.";
     public static final String REQUEST_RECORD_NOT_FOUND = "Request record not found.";
     public static final String STUDENT_RECORD_NOT_FOUND = "Student record not found.";
     public static final String PROJECT_RECORD_NOT_FOUND = "Project record not found.";
