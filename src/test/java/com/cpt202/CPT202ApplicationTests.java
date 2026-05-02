@@ -30,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.h2.console.enabled=false",
         "jwt.secret=12345678901234567890123456789012",
+        "spring.mail.username=noreply@example.com",
         "knife4j.enable=true"
 })
 @AutoConfigureMockMvc
@@ -48,7 +49,8 @@ class CPT202ApplicationTests {
             "/,/login/login.html",
             "/auth/login,/login/login.html",
             "/auth/register,/login/login.html#register",
-            "/auth/forgot-password,/login/login.html#reset"
+            "/auth/forgot-password,/login/login.html#reset",
+            "/auth/reset-password?token=test-token,/login/login.html?token=test-token#reset"
     })
     void friendlyRoutesRedirectToExpectedPages(String requestPath, String redirectTarget) throws Exception {
         mockMvc.perform(get(requestPath))
