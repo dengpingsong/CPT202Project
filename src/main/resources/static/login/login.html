@@ -171,6 +171,25 @@
     const teacherFields = document.getElementById("registerTeacherFields");
     const resetForm = document.getElementById("resetForm");
     const resetMessage = document.getElementById("resetMessage");
+    const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    function clearSensitiveFields() {
+        document.getElementById("loginPassword").value = "";
+        document.getElementById("resetPassword").value = "";
+        document.getElementById("resetConfirmPassword").value = "";
+    }
+
+    function validateEmail(email) {
+        return EMAIL_PATTERN.test(String(email || "").trim());
+    }
+
+    function isFutureDate(value) {
+        if (!value) return false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const target = new Date(`${value}T00:00:00`);
+        return target.getTime() > today.getTime();
+    }
 
     function showPanel(panelId) {
         authPanels.forEach(panel => {
@@ -181,6 +200,9 @@
         });
         authCard.classList.toggle("register-mode", panelId === "registerPanel");
         authOrbit.classList.toggle("hidden", panelId !== "loginPanel");
+        if (panelId === "loginPanel") {
+            clearSensitiveFields();
+        }
     }
 
     function showInitialPanel() {
@@ -300,6 +322,17 @@
             payload.title = document.getElementById("title").value.trim();
         }
 
+        if (!validateEmail(payload.email)) {
+            registerError.textContent = "邮箱格式不正确。";
+            registerBtn.disabled = false;
+            return;
+        }
+        if (payload.role === "STUDENT" && isFutureDate(payload.enrollmentDate)) {
+            registerError.textContent = "入学日期不能晚于今天。";
+            registerBtn.disabled = false;
+            return;
+        }
+
         try {
             const res = await fetch(`${BASE_URL}/register`, {
                 method: "POST",
@@ -333,6 +366,10 @@
         const newPassword = document.getElementById("resetPassword").value;
         const confirmPassword = document.getElementById("resetConfirmPassword").value;
 
+        if (!validateEmail(email)) {
+            resetMessage.textContent = "邮箱格式不正确。";
+            return;
+        }
         if (newPassword !== confirmPassword) {
             resetMessage.textContent = "The two passwords do not match.";
             return;

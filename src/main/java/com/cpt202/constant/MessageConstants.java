@@ -14,6 +14,7 @@ public final class MessageConstants {
 
     public static final String USERNAME_EXISTS = "用户名已存在，请更换后重试。";
     public static final String EMAIL_EXISTS = "邮箱已被注册，请更换后重试。";
+    public static final String EMAIL_FORMAT_INVALID = "邮箱格式不正确。";
     public static final String INVALID_CREDENTIALS = "用户名或密码错误。";
     public static final String RESET_PASSWORD_IDENTITY_MISMATCH = "用户名与邮箱不匹配，无法重置密码。";
     public static final String ACCOUNT_UNAVAILABLE_CONTACT_ADMIN = "账户当前不可用，请联系管理员。";
@@ -24,6 +25,16 @@ public final class MessageConstants {
     public static final String TEACHER_STAFF_NO_REQUIRED = "教师工号不能为空。";
     public static final String TEACHER_DEPARTMENT_REQUIRED = "教师院系不能为空。";
     public static final String TEACHER_TITLE_REQUIRED = "教师职称不能为空。";
+    public static final String ENROLLMENT_DATE_CANNOT_BE_FUTURE = "入学日期不能晚于今天。";
+    public static final String PROJECT_STATUS_REQUESTED_NOT_ALLOWED_MANUALLY = "教师不能手动将项目状态改为 REQUESTED。";
+    public static final String PROJECT_STATUS_ARCHIVED_DISABLED = "当前系统仅保留 CLOSED 状态，请不要再设置 ARCHIVED。";
+    public static final String PROJECT_STATUS_TRANSITION_INVALID = "当前项目状态不允许这样修改。";
+    public static final String PROJECT_CAPACITY_EXCEEDED = "项目人数已满，无法继续同意申请。";
+    public static final String PROJECT_REQUEST_ALREADY_EXISTS = "你已经申请过该项目，不能重复申请。";
+    public static final String PROJECT_PREFERENCE_RANK_DUPLICATED = "志愿顺位不能重复，请选择其他顺位。";
+    public static final String PROJECT_CLOSED_AND_REQUEST_CANCELLED = "项目已关闭，原申请结果已取消，请重新选择其他项目。";
+    public static final String CATEGORY_NAME_EXISTS = "分类名称已存在，请勿重复创建。";
+    public static final String TAG_NAME_EXISTS = "标签名称已存在，请勿重复创建。";
 
     public static final String CATEGORY_NOT_FOUND = "分类不存在。";
     public static final String CATEGORY_TO_UPDATE_NOT_FOUND = "要修改的分类不存在。";

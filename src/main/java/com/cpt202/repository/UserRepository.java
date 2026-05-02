@@ -19,6 +19,8 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
     boolean existsByEmail(String email);
 
+    boolean existsByEmailIgnoreCaseAndUserIdNot(String email, Long userId);
+
     default List<User> findUsers(User.UserRole role, String accountStatus) {
         return findAll(UserSpecifications.byRoleAndStatus(role, accountStatus));
     }

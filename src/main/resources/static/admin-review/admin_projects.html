@@ -49,6 +49,20 @@
         .project-demo-note { background:#f1f5f9; border-radius:20px; padding:14px 20px; font-size:0.8rem; color:#475569; margin-top:18px; }
         .loading-text { color:#6b6b82; font-size:0.75rem; }
         .error-message { color:#dc2626; background:#fee2e2; border-radius:20px; padding:12px 16px; margin:10px 0; display:inline-block; }
+        .btn-action { background:#eff6ff; color:#1d4ed8; border:none; padding:8px 14px; border-radius:999px; cursor:pointer; font-weight:600; }
+        .btn-action:hover { background:#dbeafe; }
+        .modal-overlay { display:none; position:fixed; inset:0; background:rgba(15,23,42,0.35); align-items:center; justify-content:center; padding:20px; z-index:1000; }
+        .modal-overlay.open { display:flex; }
+        .modal-card { width:min(720px, 100%); background:#fff; border-radius:24px; padding:24px; box-shadow:0 24px 60px rgba(15,23,42,0.18); }
+        .modal-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+        .modal-header h3 { margin:0; flex:1; font-size:1.3rem; }
+        .icon-btn { border:none; background:transparent; font-size:1.4rem; color:#64748b; cursor:pointer; }
+        .detail-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:14px; margin-bottom:18px; }
+        .detail-item { background:#f8fafc; border:1px solid #e2e8f0; border-radius:16px; padding:14px 16px; }
+        .detail-label { display:block; font-size:0.76rem; color:#64748b; text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px; }
+        .detail-value { color:#0f172a; font-weight:600; }
+        .detail-block { background:#f8fafc; border:1px solid #e2e8f0; border-radius:18px; padding:18px; }
+        .detail-block h4 { margin:0 0 10px; font-size:1rem; }
     </style>
 </head>
 <body>
@@ -65,7 +79,7 @@
     <main class="main-content">
         <div class="dashboard-card">
             <div class="card-header">
-                <h2>📌 所有项目概览</h2>
+                <h2>所有项目概览</h2>
                 <div class="badge-sub" id="projectCountBadge">加载中...</div>
             </div>
             <div style="overflow-x: auto;">
@@ -74,34 +88,56 @@
                     <tr>
                         <th>项目ID</th>
                         <th>项目名称</th>
+                        <th>发布教师</th>
                         <th>所属类别</th>
                         <th>标签列表</th>
+                        <th>操作</th>
                     </tr>
                     </thead>
                     <tbody id="projectTableBody">
-                    <tr><td colspan="4">正在加载数据...</td></tr>
+                    <tr><td colspan="6">正在加载数据...</td></tr>
                     </tbody>
                 </table>
             </div>
             <div class="project-demo-note">
-                💡 项目数据来源于后端 <code>/api/admin/records/projects</code>。<br>
-                🏷️ 标签接口暂未提供（<code>/api/admin/projects/{id}/tags</code>），当前显示“暂未提供”占位。
+                项目数据来源于后端 <code>/api/admin/records/projects</code> 与 <code>/api/admin/projects/{id}/tags</code>。
             </div>
         </div>
     </main>
 </div>
 
+<div class="modal-overlay" id="projectDetailModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="projectDetailTitle">
+        <div class="modal-header">
+            <h3 id="projectDetailTitle">项目详情</h3>
+            <button class="icon-btn" id="closeProjectDetailBtn" type="button">×</button>
+        </div>
+        <div class="detail-grid" id="projectDetailGrid"></div>
+        <div class="detail-block">
+            <h4>Description</h4>
+            <div id="projectDetailDescription" style="white-space:pre-wrap; color:#334155; line-height:1.7;"></div>
+        </div>
+    </div>
+</div>
+
+<script src="../js/ui-feedback.js"></script>
 <script>
     // ==================== 配置 ====================
     const BASE_URL = '';      // 后端地址，根据实际情况修改
     const TOKEN_KEY = 'token';
-    const LOGIN_PAGE = '../login.html';
+    const LOGIN_PAGE = '/login/login.html';
+    const projectDetailModal = document.getElementById('projectDetailModal');
+    const projectDetailGrid = document.getElementById('projectDetailGrid');
+    const projectDetailDescription = document.getElementById('projectDetailDescription');
+    const projectDetailTitle = document.getElementById('projectDetailTitle');
+    const closeProjectDetailBtn = document.getElementById('closeProjectDetailBtn');
 
     // 检查登录状态
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) {
-        alert('请先登录');
-        window.location.href = LOGIN_PAGE;
+        UiFeedback.alert('请先登录').then(() => {
+            window.location.href = LOGIN_PAGE;
+        });
     }
 
     // ==================== 通用请求方法 ====================
@@ -113,8 +149,9 @@
         const response = await fetch(fullUrl, options);
         if (response.status === 401) {
             localStorage.removeItem(TOKEN_KEY);
-            alert('登录已过期，请重新登录');
-            window.location.href = LOGIN_PAGE;
+            UiFeedback.alert('登录已过期，请重新登录').then(() => {
+                window.location.href = LOGIN_PAGE;
+            });
             throw new Error('Unauthorized');
         }
         const json = await response.json();
@@ -151,7 +188,7 @@
         const countBadge = document.getElementById('projectCountBadge');
         if (!tbody) return;
 
-        tbody.innerHTML = '<tr><td colspan="4">⏳ 加载项目数据...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6">加载项目数据...</td></tr>';
         countBadge.innerText = '加载中...';
 
         try {
@@ -162,7 +199,7 @@
             const categoryMap = new Map(categories.map(c => [c.categoryId, c.categoryName]));
 
             if (!projects.length) {
-                tbody.innerHTML = '<tr><td colspan="4">暂无项目数据</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6">暂无项目数据</td></tr>';
                 countBadge.innerText = '0 个项目';
                 return;
             }
@@ -187,18 +224,55 @@
                     <tr>
                         <td>${escapeHtml(projectId)}</td>
                         <td><strong>${escapeHtml(title)}</strong></td>
+                        <td>${escapeHtml(proj.teacherName || '-')}</td>
                         <td><span class="tag-pill">${escapeHtml(categoryName)}</span></td>
                         <td><div class="tag-group">${tagsHtml}</div></td>
+                        <td><button class="btn-action view-project-btn" type="button" data-project-id="${escapeHtml(projectId)}">查看详情</button></td>
                     </tr>
                 `;
             }
             tbody.innerHTML = html;
             countBadge.innerText = `${projects.length} 个项目`;
+            bindDetailButtons(projects);
         } catch (err) {
             console.error('渲染失败:', err);
-            tbody.innerHTML = `<tr><td colspan="4"><div class="error-message">❌ 加载失败：${escapeHtml(err.message)}</div></td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6"><div class="error-message">加载失败：${escapeHtml(err.message)}</div></td></tr>`;
             countBadge.innerText = '加载失败';
         }
+    }
+
+    function openProjectDetail(project) {
+        projectDetailTitle.textContent = project.title || '项目详情';
+        projectDetailGrid.innerHTML = `
+            <div class="detail-item"><span class="detail-label">Project ID</span><span class="detail-value">${escapeHtml(project.projectId)}</span></div>
+            <div class="detail-item"><span class="detail-label">Teacher</span><span class="detail-value">${escapeHtml(project.teacherName || '-')}</span></div>
+            <div class="detail-item"><span class="detail-label">Category</span><span class="detail-value">${escapeHtml(project.categoryName || '-')}</span></div>
+            <div class="detail-item"><span class="detail-label">Topic Area</span><span class="detail-value">${escapeHtml(project.topicArea || '-')}</span></div>
+            <div class="detail-item"><span class="detail-label">Required Skills</span><span class="detail-value">${escapeHtml(project.requiredSkills || '-')}</span></div>
+            <div class="detail-item"><span class="detail-label">Quota</span><span class="detail-value">${escapeHtml(project.currentAgreedCount || 0)}/${escapeHtml(project.maxStudents || 0)}</span></div>
+            <div class="detail-item"><span class="detail-label">Status</span><span class="detail-value">${escapeHtml(project.projectStatus || '-')}</span></div>
+            <div class="detail-item"><span class="detail-label">Publish Date</span><span class="detail-value">${escapeHtml(project.publishDate || '-')}</span></div>
+        `;
+        projectDetailDescription.textContent = project.description || '-';
+        projectDetailModal.classList.add('open');
+        projectDetailModal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeProjectDetail() {
+        projectDetailModal.classList.remove('open');
+        projectDetailModal.setAttribute('aria-hidden', 'true');
+    }
+
+    function bindDetailButtons(projects) {
+        document.querySelectorAll('.view-project-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const projectId = btn.getAttribute('data-project-id');
+                const project = projects.find(item => String(item.projectId) === String(projectId));
+                if (project) {
+                    openProjectDetail(project);
+                }
+            });
+        });
     }
 
     // 简单的防XSS
@@ -209,6 +283,12 @@
 
     // 启动渲染
     renderProjects();
+    closeProjectDetailBtn.addEventListener('click', closeProjectDetail);
+    projectDetailModal.addEventListener('click', event => {
+        if (event.target === projectDetailModal) {
+            closeProjectDetail();
+        }
+    });
 
     // 侧边栏折叠逻辑
     const layout = document.getElementById('layout');

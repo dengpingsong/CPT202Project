@@ -528,10 +528,7 @@
 
     <main class="main">
         <div class="page-header">
-            <a href="student-dashboard.html" class="back-link">
-                <i class="bi bi-arrow-left"></i> 返回工作台
-            </a>
-            <h1>⚙️ 个人设置</h1>
+            <h1>个人设置</h1>
         </div>
 
         <div class="content-panel">
@@ -573,9 +570,6 @@
                 <div class="form-actions">
                     <button type="submit" class="btn-primary">
                         <i class="bi bi-check-lg"></i> 保存更改
-                    </button>
-                    <button type="button" class="btn-secondary" id="clearBtn">
-                        <i class="bi bi-eraser"></i> 清空信息
                     </button>
                     <button type="button" class="btn-secondary" id="changePasswordBtn">
                         <i class="bi bi-key"></i> 修改密码
@@ -638,7 +632,6 @@
         const API_BASE = "/api/student/profile/me";
 
         const profileForm = document.getElementById('profileForm');
-        const clearBtn = document.getElementById('clearBtn');
         const changePasswordBtn = document.getElementById('changePasswordBtn');
         const logoutBtn = document.getElementById('logoutBtn');
         const profileStatus = document.getElementById('profileStatus');
@@ -660,6 +653,7 @@
             phone: document.getElementById('phone'),
             interests: document.getElementById('interests')
         };
+        const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
         function setStatus(message, type) {
             profileStatus.textContent = message || "";
@@ -720,17 +714,6 @@
         }
         fetchProfile();
 
-        //清空信息按钮
-        clearBtn.addEventListener('click', () => {
-            inputs.fullName.value = '';
-            inputs.email.value = '';
-            inputs.programme.value = '';
-            inputs.enrollmentDate.value = '';
-            inputs.phone.value = '';
-            inputs.interests.value = '';
-            setStatus("已清空可编辑字段，保存后才会提交到后端。", "");
-            //注意这里没有清空 studentNo，因为学号一般是不可编辑字段
-        });
         //绑定按钮
         changePasswordBtn.addEventListener('click', openPasswordModal);
         closePasswordModalBtn.addEventListener('click', closePasswordModal);
@@ -816,11 +799,20 @@
             }
 
             //邮箱格式校验
-            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailPattern.test(emailVal)) {
+            if (!EMAIL_PATTERN.test(emailVal)) {
                 setStatus("邮箱格式不正确，请检查后重新输入。", "error");
                 inputs.email.focus();
                 return;
+            }
+            if (inputs.enrollmentDate.value) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const targetDate = new Date(`${inputs.enrollmentDate.value}T00:00:00`);
+                if (targetDate.getTime() > today.getTime()) {
+                    setStatus("入学日期不能晚于今天。", "error");
+                    inputs.enrollmentDate.focus();
+                    return;
+                }
             }
 
             const saveBtn = profileForm.querySelector('button[type="submit"]');

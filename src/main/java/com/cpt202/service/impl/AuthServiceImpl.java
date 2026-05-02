@@ -23,8 +23,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
+import java.util.regex.Pattern;
 
 /**
  * 认证服务实现类。
@@ -36,6 +38,7 @@ import java.util.HexFormat;
 public class AuthServiceImpl implements AuthService {
 
     private static final String DEFAULT_ACCOUNT_STATUS = "ACTIVE";
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
     private final UserRepository userRepository;
     private final StudentProfileRepository studentProfileRepository;
     private final TeacherProfileRepository teacherProfileRepository;
@@ -55,13 +58,14 @@ public class AuthServiceImpl implements AuthService {
         if (userRepository.existsByUsername(registerUserDTO.getUsername())) {
             throw new RuleViolationException(MessageConstants.USERNAME_EXISTS);
         }
-        if (userRepository.existsByEmail(registerUserDTO.getEmail())) {
+        if (userRepository.existsByEmail(registerUserDTO.getEmail().trim())) {
             throw new RuleViolationException(MessageConstants.EMAIL_EXISTS);
         }
 
         LocalDateTime now = LocalDateTime.now();
         User user = new User();
         BeanUtils.copyProperties(registerUserDTO, user, "password");
+        user.setEmail(registerUserDTO.getEmail().trim());
         user.setPasswordHash(hashPassword(registerUserDTO.getPassword()));
         user.setAccountStatus(DEFAULT_ACCOUNT_STATUS);
         user.setCreatedAt(now);
@@ -129,6 +133,9 @@ public class AuthServiceImpl implements AuthService {
         if (dto.getRole() == null) {
             throw new RuleViolationException(MessageConstants.REGISTER_ROLE_REQUIRED);
         }
+        if (!EMAIL_PATTERN.matcher(dto.getEmail().trim()).matches()) {
+            throw new RuleViolationException(MessageConstants.EMAIL_FORMAT_INVALID);
+        }
 
         if (dto.getRole() == User.UserRole.STUDENT) {
             if (dto.getStudentNo() == null || dto.getStudentNo().isBlank()) {
@@ -139,6 +146,9 @@ public class AuthServiceImpl implements AuthService {
             }
             if (dto.getEnrollmentDate() == null) {
                 throw new RuleViolationException(MessageConstants.STUDENT_ENROLLMENT_DATE_REQUIRED);
+            }
+            if (dto.getEnrollmentDate().isAfter(LocalDate.now())) {
+                throw new RuleViolationException(MessageConstants.ENROLLMENT_DATE_CANNOT_BE_FUTURE);
             }
         }
 

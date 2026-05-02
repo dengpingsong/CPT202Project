@@ -15,6 +15,12 @@ public interface ProjectRequestRepository extends JpaRepository<ProjectRequest, 
     // 注意这里：通过 student 对象的 studentId 属性查询
     boolean existsByStudent_StudentIdAndRequestStatusIn(Long studentId, List<ProjectRequest.RequestStatus> statuses);
 
+    boolean existsByStudent_StudentIdAndProject_ProjectIdAndRequestStatusIn(
+            Long studentId, Long projectId, List<ProjectRequest.RequestStatus> statuses);
+
+    boolean existsByStudent_StudentIdAndPreferenceRankAndRequestStatusIn(
+            Long studentId, Integer preferenceRank, List<ProjectRequest.RequestStatus> statuses);
+
     List<ProjectRequest> findByStudent_StudentIdAndRequestStatus(Long studentId, RequestStatus status);
 
     long countByProject_ProjectIdAndRequestStatus(Long projectId, RequestStatus status);
@@ -25,6 +31,8 @@ public interface ProjectRequestRepository extends JpaRepository<ProjectRequest, 
 
     List<ProjectRequest> findByProject_Teacher_TeacherIdAndRequestStatusOrderBySubmittedAtDesc(
             Long teacherId, RequestStatus status);
+
+    List<ProjectRequest> findByProject_ProjectIdAndRequestStatusIn(Long projectId, List<RequestStatus> statuses);
 
     List<ProjectRequest> findByRequestStatusOrderBySubmittedAtDesc(RequestStatus status);
 
