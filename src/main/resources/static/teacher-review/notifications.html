@@ -77,7 +77,7 @@
         const notificationList = document.getElementById("notificationList");
         const notificationStatus = document.getElementById("notificationStatus");
         const markAllReadBtn = document.getElementById("markAllReadBtn");
-        const readStorageKey = `teacherNotificationRead:${user.userId || user.username || "current"}`;
+        const readStorageKey = `teacherNotificationRead:${user.userId || user.username || "current"}`;//key
         let notifications = [];
 
         function esc(value) {
@@ -90,10 +90,12 @@
                 .replace(/'/g, "&#39;");
         }
 
+        //大写好识别
         function normalizeStatus(status) {
             return String(status || "UNKNOWN").toUpperCase();
         }
 
+        //格式化日期
         function formatDate(value) {
             if (!value) return "-";
             const date = new Date(value);
@@ -107,6 +109,7 @@
             });
         }
 
+        //本地存储已读状态
         function readMap() {
             try {
                 return JSON.parse(localStorage.getItem(readStorageKey) || "{}");
@@ -115,17 +118,19 @@
                 return {};
             }
         }
-
+        //保存已读状态
         function saveRead(id) {
             const map = readMap();
             map[id] = true;
             localStorage.setItem(readStorageKey, JSON.stringify(map));
         }
 
+        //通知时间优先级
         function notificationTime(request) {
             return request.reviewedAt || request.withdrawnAt || request.submittedAt;
         }
 
+        //css类名mapping
         function notificationType(status) {
             if (status === "PENDING") return "new";
             if (status === "WITHDRAWN") return "withdrawn";
@@ -134,6 +139,7 @@
             return "system";
         }
 
+        //mapping
         function notificationTitle(status) {
             if (status === "PENDING") return "新的项目申请提醒";
             if (status === "WITHDRAWN") return "申请撤回通知";
@@ -142,6 +148,7 @@
             return "申请状态更新";
         }
 
+        //消息内容mapping
         function notificationMessage(request, status) {
             const studentName = request.studentName || "该学生";
             const projectTitle = request.projectTitle || "未命名项目";
@@ -159,7 +166,7 @@
             }
             return `学生 ${studentName} 对 “${projectTitle}” 项目的申请状态已更新。`;
         }
-
+        //图标mapping
         function iconClass(type) {
             const map = {
                 new: "bi-envelope-paper",
@@ -171,12 +178,15 @@
             return map[type] || "bi-bell";
         }
 
+        //图标样式mapping
         function iconStyle(type) {
             if (type === "withdrawn" || type === "rejected") return "background: rgba(246,166,61,0.1); color: var(--orange);";
             if (type === "accepted") return "background: rgba(47,197,168,0.12); color: var(--green);";
             return "";
         }
 
+
+        //结构化
         function buildNotifications(requests) {
             const map = readMap();
             return requests.map(request => {
@@ -200,12 +210,14 @@
             });
         }
 
+        //状态显示display
         function setStatus(message, type) {
             if (!notificationStatus) return;
             notificationStatus.textContent = message;
             notificationStatus.style.color = type === "error" ? "#c74545" : "var(--muted)";
         }
 
+        //渲染通知列表（后端数据（requests） -> buildNotifications -> notifications）到页面）
         function renderNotifications() {
             if (!notificationList) return;
 
@@ -255,7 +267,9 @@
             bindNotificationActions();
         }
 
+        //按钮绑定
         function bindNotificationActions() {
+            //已读按钮绑定
             document.querySelectorAll(".mark-read-btn").forEach(btn => {
                 btn.addEventListener("click", event => {
                     event.stopPropagation();
@@ -268,9 +282,10 @@
                 });
             });
 
+            //详情按钮绑定
             document.querySelectorAll(".detail-btn").forEach(btn => {
                 btn.addEventListener("click", event => {
-                    event.stopPropagation();
+                    event.stopPropagation();//我点的是按钮，只执行按钮自己的事，不要顺便触发外层通知卡片的点击事件。
                     const requestId = btn.getAttribute("data-request-id");
                     if (requestId) {
                         window.location.href = `request-detail.html?requestId=${encodeURIComponent(requestId)}`;
@@ -278,6 +293,7 @@
                 });
             });
 
+            //整条通知点击也标记已读
             document.querySelectorAll(".notification-item").forEach(itemEl => {
                 itemEl.addEventListener("click", () => {
                     const id = itemEl.getAttribute("data-id");
@@ -322,6 +338,7 @@
 
         loadNotifications();
 
+        //debug: sidebar
         const layout = document.getElementById("layout");
         const toggle = document.getElementById("toggleSidebar");
         if(layout && toggle) {

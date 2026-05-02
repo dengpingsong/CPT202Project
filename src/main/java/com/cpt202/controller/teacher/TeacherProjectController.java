@@ -58,13 +58,12 @@ public class TeacherProjectController {
      * 新增项目。
      *
      * @param projectDTO 项目新增参数
-     * @return 统一成功响应
+     * @return 新增后的项目展示对象
      */
     @PostMapping
     @Operation(summary = "Create a project")
-    public Result<Void> create(@Valid @RequestBody ProjectDTO projectDTO) {
-        projectService.create(BaseContext.getCurrentUserId(), projectDTO);
-        return Result.success();
+    public Result<ProjectVO> create(@Valid @RequestBody ProjectDTO projectDTO) {
+        return Result.success(projectService.create(BaseContext.getCurrentUserId(), projectDTO));
     }
 
     /**

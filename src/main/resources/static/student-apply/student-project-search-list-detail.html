@@ -34,7 +34,7 @@
     </main>
 </div>
 
-<script src="../js/api.js"></script>
+<script src="../js/api.js?v=20260502"></script>
 <script>
     (function () {
         const user = ApiClient.requireAuth("STUDENT");
@@ -121,11 +121,14 @@
 
         function applyButtonState(project, requests) {
             const existing = activeRequestForProject(requests, project.projectId);
+            const existingStatus = normalizeStatus(existing?.requestStatus);
             if (existing) {
                 return {
                     disabled: true,
-                    text: normalizeStatus(existing.requestStatus) === "ACCEPTED" ? "已通过该项目" : "已申请该项目",
-                    hint: "你已经对该项目有活跃申请记录。"
+                    text: existingStatus === "ACCEPTED" ? "已通过该项目" : "已申请该项目",
+                    hint: "你已经对该项目有活跃申请记录。",
+                    canWithdraw: existingStatus === "PENDING",
+                    requestId: existing.requestId
                 };
             }
 
@@ -133,7 +136,8 @@
                 return {
                     disabled: true,
                     text: "已有通过项目",
-                    hint: "你已有通过申请，暂不能继续申请新项目。"
+                    hint: "你已有通过申请，暂不能继续申请新项目。",
+                    canWithdraw: false
                 };
             }
 
@@ -141,7 +145,8 @@
                 return {
                     disabled: true,
                     text: "项目不可申请",
-                    hint: "当前项目状态不支持申请。"
+                    hint: "当前项目状态不支持申请。",
+                    canWithdraw: false
                 };
             }
 
@@ -151,14 +156,16 @@
                 return {
                     disabled: true,
                     text: "名额已满",
-                    hint: "当前项目名额已满。"
+                    hint: "当前项目名额已满。",
+                    canWithdraw: false
                 };
             }
 
             return {
                 disabled: false,
                 text: "申请该项目",
-                hint: ""
+                hint: "",
+                canWithdraw: false
             };
         }
 
@@ -196,25 +203,38 @@
             ${!buttonState.disabled ? `
             <div class="detail-block">
                 <h3>申请备注</h3>
+                <label for="preferenceRank" style="display:block; font-weight:600; margin-bottom:8px;">志愿顺位</label>
+                <select id="preferenceRank" style="width:100%; max-width:220px; padding:10px 12px; border:1.5px solid rgba(90,43,152,0.18); border-radius:12px; font-family:inherit; margin-bottom:16px; background:#fff;">
+                    <option value="1">第 1 志愿</option>
+                    <option value="2">第 2 志愿</option>
+                    <option value="3">第 3 志愿</option>
+                    <option value="4">第 4 志愿</option>
+                    <option value="5">第 5 志愿</option>
+                </select>
+                <label for="applyNotes" style="display:block; font-weight:600; margin-bottom:8px;">补充说明</label>
                 <textarea id="applyNotes" rows="4" style="width:100%; max-width:720px; padding:12px 14px; border:1.5px solid rgba(90,43,152,0.18); border-radius:16px; font-family:inherit; resize:vertical;" placeholder="可以补充你的兴趣、经验或申请理由"></textarea>
             </div>
             ` : ""}
 
             <div class="action-buttons">
                 <button class="btn-primary" id="applyBtn" ${buttonState.disabled ? "disabled" : ""}>${esc(buttonState.text)}</button>
+                ${buttonState.canWithdraw ? `<button class="btn-secondary" id="withdrawBtn" type="button" style="border-color:#f56c6c; color:#f56c6c;">撤回申请</button>` : ""}
                 <button class="btn-secondary" id="detailBackBtn">返回</button>
             </div>
             <div id="applyStatus" class="footnote" style="text-align:left;">${esc(buttonState.hint)}</div>
         `;
 
             const applyBtn = document.getElementById("applyBtn");
+            const withdrawBtn = document.getElementById("withdrawBtn");
             const detailBackBtn = document.getElementById("detailBackBtn");
             const applyStatus = document.getElementById("applyStatus");
             if (applyBtn) {
                 applyBtn.addEventListener("click", async () => {
                     if (buttonState.disabled) return;
                     const notesEl = document.getElementById("applyNotes");//读取申请备注？？？？？？？
+                    const preferenceRankEl = document.getElementById("preferenceRank");
                     const notes = notesEl ? notesEl.value.trim() : "";
+                    const preferenceRank = Number(preferenceRankEl?.value || "1");
                     applyBtn.disabled = true;
                     const originalText = applyBtn.textContent;
                     applyBtn.textContent = "提交中...";
@@ -223,7 +243,7 @@
                     try {
                         await ApiClient.post("/api/student/requests", {
                             projectId: p.projectId,
-                            preferenceRank: 1,
+                            preferenceRank,
                             notes
                         });
                         applyStatus.textContent = "申请已提交。";
@@ -234,6 +254,28 @@
                         applyStatus.textContent = error.message || "申请提交失败，请稍后重试。";
                         applyBtn.disabled = false;
                         applyBtn.textContent = originalText;
+                    }
+                });
+            }
+            if (withdrawBtn) {
+                withdrawBtn.addEventListener("click", async () => {
+                    if (!buttonState.requestId) return;
+                    const originalText = withdrawBtn.textContent;
+                    withdrawBtn.disabled = true;
+                    withdrawBtn.textContent = "撤回中...";
+                    applyStatus.textContent = "正在撤回申请...";
+
+                    try {
+                        await ApiClient.request(`/api/student/requests/${encodeURIComponent(buttonState.requestId)}/withdraw`, {
+                            method: "PUT"
+                        });
+                        applyStatus.textContent = "申请已撤回。";
+                        await init();
+                    } catch (error) {
+                        console.error(error);
+                        applyStatus.textContent = error.message || "撤回失败，请稍后重试。";
+                        withdrawBtn.disabled = false;
+                        withdrawBtn.textContent = originalText;
                     }
                 });
             }

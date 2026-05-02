@@ -72,15 +72,10 @@
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">分类 ID (Category ID) <span class="text-danger">*</span></label>
-                        <input
-                                type="number"
-                                class="form-control"
-                                id="projectCategoryId"
-                                min="1"
-                                placeholder="例如：1"
-                                required
-                        >
+                        <label class="form-label">项目分类 (Category) <span class="text-danger">*</span></label>
+                        <select class="form-select" id="projectCategoryId" required>
+                            <option value="">正在加载分类...</option>
+                        </select>
                     </div>
                 </div>
 
@@ -118,35 +113,8 @@
 
                 <div class="mb-4">
                     <label class="form-label">技能标签 (Tags)</label>
-                    <div class="tag-input-group" id="tagsContainer">
-                        <!-- 示例标签 -->
-                        <span class="badge me-2 mb-2 p-2 tag-wrapper" data-tag="Java"
-                              style="background-color:#5f3391; font-size:14px; font-weight:normal;">
-                            Java
-                            <i class="bi bi-x-circle ms-1" style="cursor:pointer;"></i>
-                        </span>
-                        <span class="badge me-2 mb-2 p-2 tag-wrapper" data-tag="Web开发"
-                              style="background-color:#5f3391; font-size:14px; font-weight:normal;">
-                            Web开发
-                            <i class="bi bi-x-circle ms-1" style="cursor:pointer;"></i>
-                        </span>
-
-                        <!-- 添加框 -->
-                        <div class="input-group" id="tagInputGroup" style="width: 220px; margin-bottom: 8px;">
-                            <input type="text" class="form-control form-control-sm" id="tagInput" placeholder="输入自定义标签...">
-                            <button
-                                    class="btn btn-outline-secondary btn-sm"
-                                    type="button"
-                                    id="addTagBtn"
-                                    style="background: white; border-color: #ddd;"
-                            >
-                                添加
-                            </button>
-                        </div>
-                    </div>
-                    <div class="form-text mt-2">
-                        <i class="bi bi-info-circle"></i>
-                        标签将自动合并到 requiredSkills 提交给后端（简单方案先跑通）。
+                    <div id="tagsContainer" style="display:flex; flex-wrap:wrap; gap:8px;">
+                        <span style="color:var(--muted); font-size:0.9rem;">正在加载标签...</span>
                     </div>
                 </div>
 
@@ -171,7 +139,7 @@
     </main>
 </div>
 
-<script src="../js/api.js"></script>
+<script src="../js/api.js?v=20260502"></script>
 <script>
     (function () {
         "use strict";
@@ -181,11 +149,12 @@
         const form = document.getElementById("createProjectForm");
         const publishBtn = document.getElementById("publishBtn");
         const formError = document.getElementById("formError");
-        const tagInput = document.getElementById("tagInput");
-        const addTagBtn = document.getElementById("addTagBtn");
+        const categorySelect = document.getElementById("projectCategoryId");
         const cancelBtn = document.getElementById("cancelBtn");
         const tagsContainer = document.getElementById("tagsContainer");
-        const tagInputGroup = document.getElementById("tagInputGroup");
+        const state = {
+            tags: []
+        };
 
         function setError(message, type) {
             if (!formError) return;
@@ -193,61 +162,91 @@
             formError.style.color = type === "success" ? "var(--green)" : "#c74545";
         }
 
-        function getTagList() {
-            const wrappers = document.querySelectorAll("#tagsContainer .tag-wrapper");
-            const tags = [];
-
-            wrappers.forEach(tagEl => {
-                const value = (tagEl.dataset.tag || "").trim();
-                if (value) tags.push(value);
-            });
-
-            return tags;
+        function esc(value) {
+            if (value === null || value === undefined) return "";
+            return String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
         }
 
-        function addTag() {
-            if (!tagInput || !tagsContainer || !tagInputGroup) return;
-
-            const value = tagInput.value.trim();
-            if (!value) return;
-
-            const exists = Array.from(tagsContainer.querySelectorAll(".tag-wrapper"))
-                .some(el => (el.dataset.tag || "").toLowerCase() === value.toLowerCase());
-            if (exists) {
-                tagInput.value = "";
+        function renderCategories(categories) {
+            if (!categorySelect) return;
+            if (!Array.isArray(categories) || categories.length === 0) {
+                categorySelect.innerHTML = '<option value="">暂无可用分类</option>';
                 return;
             }
 
-            const tag = document.createElement("span");
-            tag.className = "badge me-2 mb-2 p-2 tag-wrapper";
-            tag.dataset.tag = value;
-            tag.style.backgroundColor = "#5f3391";
-            tag.style.fontSize = "14px";
-            tag.style.fontWeight = "normal";
-            tag.innerHTML = `${value} <i class="bi bi-x-circle ms-1" style="cursor:pointer;"></i>`;
+            categorySelect.innerHTML = '<option value="">请选择项目分类</option>' + categories.map(category => `
+                <option value="${esc(category.categoryId)}">${esc(category.categoryName)}</option>
+            `).join("");
+        }
 
-            tag.querySelector("i").addEventListener("click", () => tag.remove());
-            tagsContainer.insertBefore(tag, tagInputGroup);
-            tagInput.value = "";
+        async function loadCategories() {
+            if (!categorySelect) return;
+            categorySelect.disabled = true;
+            try {
+                const categories = await ApiClient.teacher.listCategories();
+                renderCategories(categories);
+            } catch (error) {
+                console.error(error);
+                categorySelect.innerHTML = '<option value="">分类加载失败</option>';
+                setError(error.message || "分类加载失败，请稍后重试。", "error");
+            } finally {
+                categorySelect.disabled = false;
+            }
+        }
+
+        function renderTags(tags) {
+            if (!tagsContainer) return;
+            if (!Array.isArray(tags) || tags.length === 0) {
+                tagsContainer.innerHTML = `<span style="color:var(--muted); font-size:0.9rem;">暂无可用标签</span>`;
+                return;
+            }
+
+            tagsContainer.innerHTML = tags.map(tag => `
+                <label style="display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border:1px solid rgba(90,43,152,0.18); border-radius:999px; cursor:pointer;">
+                    <input type="checkbox" name="projectTag" value="${esc(tag.tagId)}">
+                    <span>${esc(tag.tagName)}</span>
+                </label>
+            `).join("");
+        }
+
+        async function loadTags() {
+            if (!tagsContainer) return;
+            try {
+                const tags = await ApiClient.teacher.listTags();
+                state.tags = Array.isArray(tags) ? tags : [];
+                renderTags(state.tags);
+            } catch (error) {
+                console.error(error);
+                tagsContainer.innerHTML = `<span style="color:#c74545; font-size:0.9rem;">标签加载失败：${esc(error.message || "请稍后重试")}</span>`;
+            }
+        }
+
+        function getSelectedTagIds() {
+            return Array.from(tagsContainer.querySelectorAll('input[name="projectTag"]:checked'))
+                .map(input => Number(input.value))
+                .filter(Number.isFinite);
         }
 
         function buildPayload() {
             const requirements = document.getElementById("projectRequirements").value.trim();
-            const tags = getTagList();
-            const requiredSkills = [requirements, ...tags].filter(Boolean).join(" / ");
 
             return {
-                categoryId: Number(document.getElementById("projectCategoryId").value),
+                categoryId: Number(categorySelect.value),
                 title: document.getElementById("projectTitle").value.trim(),
                 description: document.getElementById("projectDescription").value.trim(),
-                requiredSkills,
+                requiredSkills: requirements,
                 topicArea: document.getElementById("projectTopicArea").value.trim(),
                 maxStudents: Number(document.getElementById("projectQuota").value)
             };
         }
 
         function validatePayload(payload) {
-            if (!payload.categoryId) return "Category ID 不能为空。";
+            if (!payload.categoryId) return "请选择项目分类。";
             if (!payload.title) return "项目名称不能为空。";
             if (!payload.description) return "项目描述不能为空。";
             if (!payload.maxStudents || payload.maxStudents < 1) return "招募人数必须大于等于 1。";
@@ -269,7 +268,11 @@
             setError("正在发布项目...", "success");
 
             try {
-                await ApiClient.teacher.createProject(payload);
+                const project = await ApiClient.teacher.createProject(payload);
+                const tagIds = getSelectedTagIds();
+                if (project?.projectId && tagIds.length > 0) {
+                    await ApiClient.teacher.bindProjectTags(project.projectId, tagIds);
+                }
                 setError("发布成功，正在返回项目列表...", "success");
                 window.location.href = "projects.html";
             } catch (error) {
@@ -281,21 +284,14 @@
             }
         }
 
-        addTagBtn.addEventListener("click", addTag);
         cancelBtn.addEventListener("click", () => {
             window.location.href = "projects.html";
         });
-        tagInput.addEventListener("keydown", event => {
-            if (event.key === "Enter") {
-                event.preventDefault();
-                addTag();
-            }
-        });
-        document.querySelectorAll("#tagsContainer .tag-wrapper i").forEach(icon => {
-            icon.addEventListener("click", () => icon.parentElement.remove());
-        });
         form.addEventListener("submit", submitProject);
+        loadCategories();
+        loadTags();
 
+        //default sidebar
         const layout = document.getElementById("layout");
         const toggle = document.getElementById("toggleSidebar");
         if (layout && toggle) {

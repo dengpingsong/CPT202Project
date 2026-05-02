@@ -1,8 +1,10 @@
 package com.cpt202.service;
 
+import com.cpt202.dto.AdminProfileUpdateDTO;
 import com.cpt202.dto.ChangePasswordDTO;
 import com.cpt202.dto.StudentProfileUpdateDTO;
 import com.cpt202.dto.TeacherProfileUpdateDTO;
+import com.cpt202.vo.AdminProfileVO;
 import com.cpt202.vo.StudentProfileVO;
 import com.cpt202.vo.TeacherProfileVO;
 
@@ -44,6 +46,22 @@ public interface ProfileService {
      * @param teacherProfileUpdateDTO 教师资料更新参数
      */
     void updateTeacherProfile(Long teacherId, TeacherProfileUpdateDTO teacherProfileUpdateDTO);
+
+    /**
+     * 查询管理员资料。
+     *
+     * @param userId 管理员用户主键
+     * @return 管理员资料
+     */
+    AdminProfileVO getAdminProfile(Long userId);
+
+    /**
+     * 修改管理员资料。
+     *
+     * @param userId 管理员用户主键
+     * @param adminProfileUpdateDTO 管理员资料更新参数
+     */
+    void updateAdminProfile(Long userId, AdminProfileUpdateDTO adminProfileUpdateDTO);
 
     /**
      * 修改当前用户密码。

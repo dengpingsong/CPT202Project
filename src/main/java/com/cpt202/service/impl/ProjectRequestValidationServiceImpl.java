@@ -28,17 +28,24 @@ public class ProjectRequestValidationServiceImpl implements ProjectRequestValida
     private final RequestStatusHistoryRepository requestStatusHistoryRepository;
 
     @Override
-    public void validateRequest(Long studentId) {
+    public void validateRequest(Long studentId, Project project) {
         // 1. 截止日期校验
         LocalDateTime deadline = LocalDateTime.of(2026, 5, 29, 23, 59);
         if (LocalDateTime.now().isAfter(deadline)) {
             throw new RuleViolationException(MessageConstants.REQUEST_DEADLINE_PASSED);
         }
 
-        // 2. 校验：只要有“待处理”或者“已通过”的申请，就直接弹开！
+        // 2. 已关闭或已归档的项目不能接收新申请。
+        if (project == null
+                || project.getProjectStatus() == Project.ProjectStatus.CLOSED
+                || project.getProjectStatus() == Project.ProjectStatus.ARCHIVED) {
+            throw new RuleViolationException(MessageConstants.PROJECT_NOT_ACCEPTING_REQUESTS);
+        }
+
+        // 3. 只限制已经持有 agreed 项目的学生继续申请。
         boolean alreadyHasRequest = requestRepository.existsByStudent_StudentIdAndRequestStatusIn(
                 studentId,
-                List.of(RequestStatus.PENDING, RequestStatus.ACCEPTED)
+                List.of(RequestStatus.ACCEPTED)
         );
 
         if (alreadyHasRequest) {
