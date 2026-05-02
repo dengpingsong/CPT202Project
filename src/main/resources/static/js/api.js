@@ -128,6 +128,11 @@
         createProject(payload) {
             return sendJsonRequest("POST", "/api/teacher/projects", payload);
         },
+        listCategories() {
+            return request("/api/teacher/categories", {
+                method: "GET"
+            });
+        },
         listRequests(status) {
             const params = new URLSearchParams();
             if (status) {
