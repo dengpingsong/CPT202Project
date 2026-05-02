@@ -149,6 +149,7 @@
             if (normalized === "AVAILABLE") return "status-available";
             if (normalized === "PENDING" || normalized === "REQUESTED") return "status-requested";
             if (normalized === "ACCEPTED" || normalized === "AGREED") return "status-agreed";
+            if (normalized === "REJECTED") return "status-rejected";
             return "status-unavailable";
         }
         //日期格式化
@@ -236,8 +237,17 @@
                 const projectId = project.projectId;
                 const current = Number(project.currentAgreedCount || 0);
                 const max = Number(project.maxStudents || 0);
-                const hasRequested = requestedProjectIds.has(String(projectId));
-                const status = hasRequested ? "REQUESTED" : project.projectStatus;
+                const requestStatus = (() => {
+                    const matched = requests.find(item =>
+                        String(item.projectId) === String(projectId)
+                        && ["PENDING", "ACCEPTED", "REJECTED"].includes(normalizeStatus(item.requestStatus))
+                    );
+                    return matched ? normalizeStatus(matched.requestStatus) : null;
+                })();
+                const hasRequested = Boolean(requestStatus);
+                const status = requestStatus === "PENDING"
+                    ? "REQUESTED"
+                    : (requestStatus || project.projectStatus);
                 const buttonText = hasRequested ? "查看申请" : "查看详情";
                 const buttonClass = hasRequested ? "" : "secondary";
 

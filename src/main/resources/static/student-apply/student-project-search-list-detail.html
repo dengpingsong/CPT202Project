@@ -34,7 +34,7 @@
     </main>
 </div>
 
-<script src="../js/api.js?v=20260502"></script>
+<script src="../js/api.js"></script>
 <script>
     (function () {
         const user = ApiClient.requireAuth("STUDENT");
@@ -79,6 +79,8 @@
             const map = {
                 AVAILABLE: "Available",
                 REQUESTED: "Requested",
+                ACCEPTED: "ACCEPTED",
+                REJECTED: "REJECTED",
                 AGREED: "Agreed",
                 CLOSED: "Closed",
                 ARCHIVED: "Archived"
@@ -105,16 +107,25 @@
             if (normalized === "AVAILABLE") return "status-available";
             if (normalized === "PENDING" || normalized === "REQUESTED") return "status-requested";
             if (normalized === "ACCEPTED" || normalized === "AGREED") return "status-agreed";
+            if (normalized === "REJECTED") return "status-rejected";
             return "status-unavailable";
         }
         //判断学生是否申请过
         function activeRequestForProject(requests, id) {
             return requests.find(item =>
                 String(item.projectId) === String(id)
-                && ["PENDING", "ACCEPTED"].includes(normalizeStatus(item.requestStatus))
+                && ["PENDING", "ACCEPTED", "REJECTED"].includes(normalizeStatus(item.requestStatus))
             );
         }
         //是否被录取（如果就不能再申请新项目）
+        function displayProjectStatus(project, requests) {
+            const existing = activeRequestForProject(requests, project.projectId);
+            if (!existing) {
+                return normalizeStatus(project.projectStatus);
+            }
+            const requestStatus = normalizeStatus(existing.requestStatus);
+            return requestStatus === "PENDING" ? "REQUESTED" : requestStatus;
+        }
         function hasAcceptedRequest(requests) {
             return requests.some(item => normalizeStatus(item.requestStatus) === "ACCEPTED");
         }
@@ -122,6 +133,14 @@
         function applyButtonState(project, requests) {
             const existing = activeRequestForProject(requests, project.projectId);
             const existingStatus = normalizeStatus(existing?.requestStatus);
+            if (existingStatus === "REJECTED") {
+                return {
+                    disabled: true,
+                    text: "已被拒绝",
+                    hint: "该项目申请已被老师拒绝，当前不能重新申请。",
+                    canWithdraw: false
+                };
+            }
             if (existing) {
                 return {
                     disabled: true,
@@ -175,6 +194,7 @@
             const max = Number(p.maxStudents || 0);
             const surfCode = `SURF-${p.projectId}`;
             const buttonState = applyButtonState(p, requests);
+            const displayStatus = displayProjectStatus(p, requests);
 
             document.title = `${p.title} | 项目详情`;
 
@@ -191,7 +211,7 @@
                 <div class="meta-item"><span class="meta-label">Topic Area</span><span class="meta-value">${esc(p.topicArea || "-")}</span></div>
                 <div class="meta-item"><span class="meta-label">Required Skills</span><span class="meta-value">${esc(p.requiredSkills || "-")}</span></div>
                 <div class="meta-item"><span class="meta-label">Quota</span><span class="meta-value">${current}/${max}</span></div>
-                <div class="meta-item"><span class="meta-label">Status</span><span class="meta-value"><span class="status-pill ${statusClass(p.projectStatus)}">${esc(statusText(p.projectStatus))}</span></span></div>
+                <div class="meta-item"><span class="meta-label">Status</span><span class="meta-value"><span class="status-pill ${statusClass(displayStatus)}">${esc(statusText(displayStatus))}</span></span></div>
                 <div class="meta-item"><span class="meta-label">Publish Date</span><span class="meta-value">${esc(fmtDate(p.publishDate))}</span></div>
             </div>
 
