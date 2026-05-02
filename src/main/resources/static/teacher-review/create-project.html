@@ -72,15 +72,10 @@
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">分类 ID (Category ID) <span class="text-danger">*</span></label>
-                        <input
-                                type="number"
-                                class="form-control"
-                                id="projectCategoryId"
-                                min="1"
-                                placeholder="例如：1"
-                                required
-                        >
+                        <label class="form-label">项目分类 (Category) <span class="text-danger">*</span></label>
+                        <select class="form-select" id="projectCategoryId" required>
+                            <option value="">正在加载分类...</option>
+                        </select>
                     </div>
                 </div>
 
@@ -119,19 +114,6 @@
                 <div class="mb-4">
                     <label class="form-label">技能标签 (Tags)</label>
                     <div class="tag-input-group" id="tagsContainer">
-                        <!-- 示例标签 -->
-                        <span class="badge me-2 mb-2 p-2 tag-wrapper" data-tag="Java"
-                              style="background-color:#5f3391; font-size:14px; font-weight:normal;">
-                            Java
-                            <i class="bi bi-x-circle ms-1" style="cursor:pointer;"></i>
-                        </span>
-                        <span class="badge me-2 mb-2 p-2 tag-wrapper" data-tag="Web开发"
-                              style="background-color:#5f3391; font-size:14px; font-weight:normal;">
-                            Web开发
-                            <i class="bi bi-x-circle ms-1" style="cursor:pointer;"></i>
-                        </span>
-
-                        <!-- 添加框 -->
                         <div class="input-group" id="tagInputGroup" style="width: 220px; margin-bottom: 8px;">
                             <input type="text" class="form-control form-control-sm" id="tagInput" placeholder="输入自定义标签...">
                             <button
@@ -181,6 +163,7 @@
         const form = document.getElementById("createProjectForm");
         const publishBtn = document.getElementById("publishBtn");
         const formError = document.getElementById("formError");
+        const categorySelect = document.getElementById("projectCategoryId");
         const tagInput = document.getElementById("tagInput");
         const addTagBtn = document.getElementById("addTagBtn");
         const cancelBtn = document.getElementById("cancelBtn");
@@ -191,6 +174,43 @@
             if (!formError) return;
             formError.textContent = message || "";
             formError.style.color = type === "success" ? "var(--green)" : "#c74545";
+        }
+
+        function esc(value) {
+            if (value === null || value === undefined) return "";
+            return String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function renderCategories(categories) {
+            if (!categorySelect) return;
+            if (!Array.isArray(categories) || categories.length === 0) {
+                categorySelect.innerHTML = '<option value="">暂无可用分类</option>';
+                return;
+            }
+
+            categorySelect.innerHTML = '<option value="">请选择项目分类</option>' + categories.map(category => `
+                <option value="${esc(category.categoryId)}">${esc(category.categoryName)}</option>
+            `).join("");
+        }
+
+        async function loadCategories() {
+            if (!categorySelect) return;
+            categorySelect.disabled = true;
+            try {
+                const categories = await ApiClient.teacher.listCategories();
+                renderCategories(categories);
+            } catch (error) {
+                console.error(error);
+                categorySelect.innerHTML = '<option value="">分类加载失败</option>';
+                setError(error.message || "分类加载失败，请稍后重试。", "error");
+            } finally {
+                categorySelect.disabled = false;
+            }
         }
 
         function getTagList() {
@@ -237,7 +257,7 @@
             const requiredSkills = [requirements, ...tags].filter(Boolean).join(" / ");
 
             return {
-                categoryId: Number(document.getElementById("projectCategoryId").value),
+                categoryId: Number(categorySelect.value),
                 title: document.getElementById("projectTitle").value.trim(),
                 description: document.getElementById("projectDescription").value.trim(),
                 requiredSkills,
@@ -247,7 +267,7 @@
         }
 
         function validatePayload(payload) {
-            if (!payload.categoryId) return "Category ID 不能为空。";
+            if (!payload.categoryId) return "请选择项目分类。";
             if (!payload.title) return "项目名称不能为空。";
             if (!payload.description) return "项目描述不能为空。";
             if (!payload.maxStudents || payload.maxStudents < 1) return "招募人数必须大于等于 1。";
@@ -291,10 +311,8 @@
                 addTag();
             }
         });
-        document.querySelectorAll("#tagsContainer .tag-wrapper i").forEach(icon => {
-            icon.addEventListener("click", () => icon.parentElement.remove());
-        });
         form.addEventListener("submit", submitProject);
+        loadCategories();
 
         //default sidebar
         const layout = document.getElementById("layout");
