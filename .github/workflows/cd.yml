@@ -162,7 +162,7 @@ jobs:
 
             cd /opt/cpt202
             docker rm -f cpt202-nginx cpt202program cpt202-mysql || true
-            docker compose up -d --remove-orphans
+            docker compose --env-file /opt/cpt202/.env up -d --remove-orphans
 
             until curl -fsS http://127.0.0.1/doc.html >/dev/null; do
               sleep 5
@@ -178,4 +178,4 @@ jobs:
             ls -la /opt/cpt202
             ls -la /opt/cpt202/nginx
             rm -f /opt/cpt202/.env
-            docker compose ps
+            docker compose --env-file /opt/cpt202/.env ps
