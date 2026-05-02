@@ -138,12 +138,15 @@
 
             <div id="resetPanel" class="auth-panel">
                 <h2>Reset Password</h2>
-                <h3>Enter your email to receive a reset link</h3>
+                <h3>Verify username and email, then set a new password</h3>
 
                 <form id="resetForm">
+                    <input id="resetUsername" type="text" placeholder="Username" required>
                     <input id="resetEmail" type="email" placeholder="Email" required>
+                    <input id="resetPassword" type="password" placeholder="New Password" required>
+                    <input id="resetConfirmPassword" type="password" placeholder="Confirm New Password" required>
                     <div id="resetMessage" class="helper"></div>
-                    <button type="submit">Send Reset Link</button>
+                    <button type="submit">Reset Password</button>
                 </form>
             </div>
         </div>
@@ -321,9 +324,43 @@
         }
     });
 
-    resetForm.addEventListener("submit", (e) => {
+    resetForm.addEventListener("submit", async (e) => {
         e.preventDefault();
-        resetMessage.textContent = "Password reset is not available yet.";
+        resetMessage.textContent = "";
+
+        const username = document.getElementById("resetUsername").value.trim();
+        const email = document.getElementById("resetEmail").value.trim();
+        const newPassword = document.getElementById("resetPassword").value;
+        const confirmPassword = document.getElementById("resetConfirmPassword").value;
+
+        if (newPassword !== confirmPassword) {
+            resetMessage.textContent = "The two passwords do not match.";
+            return;
+        }
+
+        try {
+            const res = await fetch(`${BASE_URL}/reset-password`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    username,
+                    email,
+                    newPassword
+                })
+            });
+            const data = await res.json();
+
+            if (data.code === 1) {
+                resetForm.reset();
+                resetMessage.textContent = "Password reset successfully. Please log in.";
+                showPanel("loginPanel");
+            } else {
+                resetMessage.textContent = data.msg || "Password reset failed";
+            }
+        } catch (err) {
+            console.error(err);
+            resetMessage.textContent = "Network error, please try again.";
+        }
     });
 </script>
 
