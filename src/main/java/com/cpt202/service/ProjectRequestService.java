@@ -2,7 +2,10 @@ package com.cpt202.service;
 
 import com.cpt202.dto.ProjectRequestCreateDTO;
 import com.cpt202.dto.ProjectRequestReviewDTO;
+import com.cpt202.dto.StudentProjectRequestQueryDTO;
+import com.cpt202.dto.TeacherProjectRequestQueryDTO;
 import com.cpt202.model.entity.ProjectRequest;
+import com.cpt202.result.PageResult;
 import com.cpt202.vo.ProjectRequestVO;
 
 import java.util.List;
@@ -19,7 +22,7 @@ public interface ProjectRequestService {
      *
      * @param projectRequestCreateDTO 申请创建参数
      */
-    void create(ProjectRequestCreateDTO projectRequestCreateDTO);
+    void create(Long studentId, ProjectRequestCreateDTO projectRequestCreateDTO);
 
     /**
      * 查询学生本人申请列表。
@@ -30,6 +33,15 @@ public interface ProjectRequestService {
     List<ProjectRequestVO> listStudentRequests(Long studentId);
 
     /**
+     * 分页查询学生本人申请列表。
+     *
+     * @param studentId 学生主键
+     * @param queryDTO 分页查询参数
+     * @return 申请分页结果
+     */
+    PageResult<ProjectRequestVO> listStudentRequestsPage(Long studentId, StudentProjectRequestQueryDTO queryDTO);
+
+    /**
      * 查询教师待审核或已审核申请列表。
      *
      * @param teacherId 教师主键
@@ -37,6 +49,15 @@ public interface ProjectRequestService {
      * @return 申请展示对象列表
      */
     List<ProjectRequestVO> listTeacherRequests(Long teacherId, ProjectRequest.RequestStatus status);
+
+    /**
+     * 分页查询教师申请列表。
+     *
+     * @param teacherId 教师主键
+     * @param queryDTO 分页查询参数
+     * @return 申请分页结果
+     */
+    PageResult<ProjectRequestVO> listTeacherRequestsPage(Long teacherId, TeacherProjectRequestQueryDTO queryDTO);
 
     /**
      * 学生撤回申请。
@@ -52,5 +73,5 @@ public interface ProjectRequestService {
      * @param requestId 申请主键
      * @param projectRequestReviewDTO 审核参数
      */
-    void review(Long requestId, ProjectRequestReviewDTO projectRequestReviewDTO);
+    void review(Long requestId, Long teacherId, ProjectRequestReviewDTO projectRequestReviewDTO);
 }
