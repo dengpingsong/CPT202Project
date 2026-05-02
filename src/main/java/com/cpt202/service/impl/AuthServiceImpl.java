@@ -3,6 +3,7 @@ package com.cpt202.service.impl;
 import com.cpt202.constant.MessageConstants;
 import com.cpt202.dto.LoginDTO;
 import com.cpt202.dto.RegisterUserDTO;
+import com.cpt202.dto.ResetPasswordDTO;
 import com.cpt202.exception.BusinessException;
 import com.cpt202.exception.RuleViolationException;
 import com.cpt202.model.entity.StudentProfile;
@@ -107,6 +108,21 @@ public class AuthServiceImpl implements AuthService {
         }
 
         return buildLoginVO(user);
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(ResetPasswordDTO resetPasswordDTO) {
+        User user = userRepository.findByUsername(resetPasswordDTO.getUsername())
+                .orElseThrow(() -> new BusinessException(MessageConstants.RESET_PASSWORD_IDENTITY_MISMATCH));
+
+        if (!user.getEmail().equalsIgnoreCase(resetPasswordDTO.getEmail().trim())) {
+            throw new BusinessException(MessageConstants.RESET_PASSWORD_IDENTITY_MISMATCH);
+        }
+
+        user.setPasswordHash(hashPassword(resetPasswordDTO.getNewPassword()));
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
     }
 
     private void validateRegisterPayload(RegisterUserDTO dto) {

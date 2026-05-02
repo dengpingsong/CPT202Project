@@ -128,6 +128,35 @@
         createProject(payload) {
             return sendJsonRequest("POST", "/api/teacher/projects", payload);
         },
+        updateProject(projectId, payload) {
+            return sendJsonRequest("PUT", `/api/teacher/projects/${encodeURIComponent(projectId)}`, payload);
+        },
+        changeProjectStatus(projectId, projectStatus, remark) {
+            return sendJsonRequest("PUT", `/api/teacher/projects/${encodeURIComponent(projectId)}/status`, {
+                projectStatus,
+                remark: remark || ""
+            });
+        },
+        listCategories() {
+            return request("/api/teacher/categories", {
+                method: "GET"
+            });
+        },
+        listTags() {
+            return request("/api/teacher/tags", {
+                method: "GET"
+            });
+        },
+        listProjectTags(projectId) {
+            return request(`/api/teacher/project-tags/${encodeURIComponent(projectId)}`, {
+                method: "GET"
+            });
+        },
+        bindProjectTags(projectId, tagIds) {
+            return sendJsonRequest("PUT", `/api/teacher/project-tags/${encodeURIComponent(projectId)}`, {
+                tagIds
+            });
+        },
         listRequests(status) {
             const params = new URLSearchParams();
             if (status) {
@@ -156,11 +185,67 @@
         updateProfile(payload) {
             return sendJsonRequest("PUT", "/api/teacher/profile/me", payload);
         },
+        changePassword(oldPassword, newPassword) {
+            return sendJsonRequest("PUT", "/api/teacher/profile/me/password", {
+                oldPassword,
+                newPassword
+            });
+        },
         reviewRequest(requestId, requestStatus, decisionComment) {
             return sendJsonRequest("PUT", `/api/teacher/requests/${encodeURIComponent(requestId)}/review`, {
                 requestStatus,
                 decisionComment: decisionComment || ""
             });
+        }
+    };
+
+    const studentApi = {
+        withdrawRequest(requestId) {
+            return request(`/api/student/requests/${encodeURIComponent(requestId)}/withdraw`, {
+                method: "PUT"
+            });
+        }
+    };
+
+    const adminApi = {
+        listUsers(role, accountStatus) {
+            const params = new URLSearchParams();
+            if (role) params.set("role", role);
+            if (accountStatus) params.set("accountStatus", accountStatus);
+            const query = params.toString();
+            return request(`/api/admin/users${query ? `?${query}` : ""}`, {
+                method: "GET"
+            });
+        },
+        updateUserStatus(userId, accountStatus) {
+            const params = new URLSearchParams({ accountStatus });
+            return request(`/api/admin/users/${encodeURIComponent(userId)}/status?${params.toString()}`, {
+                method: "PUT"
+            });
+        },
+        listRequestRecords(status) {
+            const params = new URLSearchParams();
+            if (status) params.set("status", status);
+            const query = params.toString();
+            return request(`/api/admin/records/requests${query ? `?${query}` : ""}`, {
+                method: "GET"
+            });
+        },
+        listRequestHistoryRecords() {
+            return request("/api/admin/records/request-history", {
+                method: "GET"
+            });
+        },
+        getProfile() {
+            return request("/api/admin/profile/me", {
+                method: "GET"
+            });
+        },
+        updateProfile(payload) {
+            return sendJsonRequest("PUT", "/api/admin/profile/me", payload);
+        },
+        changePassword(payload) {
+            return sendJsonRequest("PUT", "/api/admin/profile/me/password", payload);
         }
     };
 
@@ -171,10 +256,20 @@
         requireAuth,
         request,
         teacher: teacherApi,
-        // logout function: clear token and redirect to login page
-        logout() {
-            clearAuth();
-            window.location.href = LOGIN_PAGE;
+        student: studentApi,
+        admin: adminApi,
+        // logout function: notify backend, then clear token and redirect to login page
+        async logout() {
+            try {
+                await request("/api/common/auth/logout", {
+                    method: "POST"
+                });
+            } catch (error) {
+                console.warn("Logout request failed, clearing local session anyway.", error);
+            } finally {
+                clearAuth();
+                window.location.href = LOGIN_PAGE;
+            }
         },
         get(url, options) {
             return request(url, {

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>管理员 · 历史记录</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        :root { --bg:#f4f3f7; --text:#1c1b33; }
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { margin:0; font-family:"Segoe UI", Arial, sans-serif; background:var(--bg); color:var(--text); height:100vh; display:flex; overflow:hidden; }
+        .layout { display:grid; grid-template-columns:260px 1fr; min-height:100vh; transition:.3s ease; width:100%; }
+        .layout.collapsed { grid-template-columns:80px 1fr; }
+        .sidebar { background:linear-gradient(180deg,#3d1566,#631e97); padding:24px 16px; color:white; display:flex; flex-direction:column; gap:20px; position:relative; overflow:hidden; }
+        .sidebar::after { content:""; position:absolute; inset:0; background:radial-gradient(circle at top, rgba(255,255,255,0.2), transparent 60%); pointer-events:none; }
+        .toggle-wrap { width:48px; height:48px; border-radius:16px; margin-bottom:4px; }
+        .toggle { width:100%; height:100%; border-radius:16px; border:none; background:rgba(255,255,255,0.18); display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative; }
+        .toggle span, .toggle span::before, .toggle span::after { display:block; width:22px; height:2px; background:white; transition:all .3s ease; position:absolute; }
+        .toggle span { background:transparent; }
+        .toggle span::before { content:""; top:0; transform:rotate(45deg); }
+        .toggle span::after { content:""; top:0; transform:rotate(-45deg); }
+        .layout.collapsed .toggle span { background:white; }
+        .layout.collapsed .toggle span::before { top:-8px; transform:none; }
+        .layout.collapsed .toggle span::after { top:8px; transform:none; }
+        .nav-group { display:flex; flex-direction:column; gap:12px; margin-top:8px; }
+        .nav-group a { color:white; font-size:0.95rem; padding:10px 14px; border-radius:12px; display:flex; align-items:center; gap:10px; text-decoration:none; }
+        .nav-group a.active, .nav-group a:hover { background:rgba(255,255,255,0.2); }
+        .nav-icon { font-size:1.2rem; width:28px; text-align:center; }
+        .nav-label { transition:opacity .3s ease; white-space:nowrap; }
+        .layout.collapsed .nav-group a { justify-content:center; padding:12px; }
+        .layout.collapsed .nav-label { opacity:0; width:0; overflow:hidden; }
+        .main-content { flex:1; overflow-y:auto; padding:32px 40px; background:#f8fafc; }
+        .dashboard-card { background:white; border-radius:28px; box-shadow:0 12px 30px rgba(0,0,0,0.05); padding:28px 32px; border:1px solid #f0eef2; }
+        .card-header { margin-bottom:24px; border-bottom:2px solid #f1f5f9; padding-bottom:16px; }
+        .data-table { width:100%; border-collapse:collapse; font-size:0.92rem; }
+        .data-table th, .data-table td { padding:14px 8px; text-align:left; border-bottom:1px solid #edf2f7; }
+    </style>
+</head>
+<body>
+<div class="layout" id="layout">
+    <aside class="sidebar">
+        <div class="toggle-wrap"><button class="toggle" id="toggleSidebar"><span></span></button></div>
+        <div class="nav-group">
+            <a href="admin_projects.html"><i class="bi bi-kanban nav-icon"></i><span class="nav-label">项目列表</span></a>
+            <a href="admin_users.html"><i class="bi bi-people nav-icon"></i><span class="nav-label">用户管理</span></a>
+            <a href="admin_requests.html"><i class="bi bi-file-earmark-text nav-icon"></i><span class="nav-label">申请记录</span></a>
+            <a href="admin_request_history.html" class="active"><i class="bi bi-clock-history nav-icon"></i><span class="nav-label">历史记录</span></a>
+            <a href="admin_categories.html"><i class="bi bi-tags nav-icon"></i><span class="nav-label">Category 列表</span></a>
+            <a href="admin_tags.html"><i class="bi bi-bookmark nav-icon"></i><span class="nav-label">Tag 列表</span></a>
+            <a href="admin_settings.html"><i class="bi bi-person-gear nav-icon"></i><span class="nav-label">个人设置</span></a>
+        </div>
+    </aside>
+    <main class="main-content">
+        <div class="dashboard-card">
+            <div class="card-header"><h2>申请历史记录</h2></div>
+            <table class="data-table">
+                <thead>
+                <tr>
+                    <th>历史ID</th>
+                    <th>申请ID</th>
+                    <th>旧状态</th>
+                    <th>新状态</th>
+                    <th>操作学生</th>
+                    <th>备注</th>
+                    <th>变更时间</th>
+                </tr>
+                </thead>
+                <tbody id="historyTableBody"><tr><td colspan="7">加载中...</td></tr></tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<script src="../js/api.js"></script>
+<script>
+    (function () {
+        "use strict";
+        const user = ApiClient.requireAuth("ADMIN");
+        if (!user) return;
+
+        const historyTableBody = document.getElementById("historyTableBody");
+
+        function esc(value) {
+            if (value === null || value === undefined) return "";
+            return String(value).replace(/[&<>"']/g, match => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[match]));
+        }
+
+        async function loadHistory() {
+            historyTableBody.innerHTML = '<tr><td colspan="7">加载中...</td></tr>';
+            try {
+                const histories = await ApiClient.admin.listRequestHistoryRecords();
+                if (!Array.isArray(histories) || histories.length === 0) {
+                    historyTableBody.innerHTML = '<tr><td colspan="7">暂无历史记录</td></tr>';
+                    return;
+                }
+
+                historyTableBody.innerHTML = histories.map(item => `
+                    <tr>
+                        <td>${esc(item.historyId)}</td>
+                        <td>${esc(item.requestId)}</td>
+                        <td>${esc(item.oldStatus || "-")}</td>
+                        <td>${esc(item.newStatus || "-")}</td>
+                        <td>${esc(item.changedByStudentName || "-")}</td>
+                        <td>${esc(item.remark || "-")}</td>
+                        <td>${esc(item.changedAt || "-")}</td>
+                    </tr>
+                `).join("");
+            } catch (error) {
+                console.error(error);
+                historyTableBody.innerHTML = `<tr><td colspan="7">加载失败：${esc(error.message || "请稍后重试")}</td></tr>`;
+            }
+        }
+
+        loadHistory();
+    })();
+
+    const layout = document.getElementById("layout");
+    const toggle = document.getElementById("toggleSidebar");
+    let collapsed = false;
+    toggle.addEventListener("click", () => {
+        collapsed = !collapsed;
+        layout.classList.toggle("collapsed", collapsed);
+    });
+</script>
+</body>
+</html>

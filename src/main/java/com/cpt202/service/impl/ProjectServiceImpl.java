@@ -98,7 +98,7 @@ public class ProjectServiceImpl implements ProjectService {
      */
     @Override
     @Transactional
-    public void create(Long teacherId, ProjectDTO projectDTO) {
+    public ProjectVO create(Long teacherId, ProjectDTO projectDTO) {
         TeacherProfile teacher = teacherProfileRepository.findById(teacherId)
                 .orElseThrow(() -> new NotFoundException(MessageConstants.TEACHER_NOT_FOUND));
 
@@ -113,7 +113,8 @@ public class ProjectServiceImpl implements ProjectService {
         project.setPublishDate(now);
         project.setCreatedAt(now);
         project.setUpdatedAt(now);
-        projectRepository.save(project);
+        Project savedProject = projectRepository.save(project);
+        return toProjectVO(savedProject);
     }
 
     /**
