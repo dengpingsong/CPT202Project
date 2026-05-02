@@ -71,7 +71,7 @@
     <main class="main-content">
         <div class="dashboard-card">
             <div class="card-header">
-                <h2>📂 类别管理</h2>
+                <h2>类别管理</h2>
                 <div class="badge-sub">唯一名称 · 删除前检查占用</div>
             </div>
             <div style="overflow-x: auto;">
@@ -92,22 +92,28 @@
                     <input type="text" id="newCatName" placeholder="类别名称 *" autocomplete="off">
                     <input type="text" id="newCatDesc" placeholder="项目介绍（可选）" autocomplete="off">
                 </div>
-                <button class="btn-primary" id="addCategoryBtn">➕ 添加类别</button>
+                <div style="display:flex; gap:12px; align-items:center;">
+                    <button class="btn-primary" id="saveCategoryBtn">添加类别</button>
+                    <button class="btn-primary" id="cancelEditBtn" type="button" style="display:none; background:#64748b;">取消编辑</button>
+                    <span id="categoryFormStatus" style="font-size:0.9rem; color:#475569;"></span>
+                </div>
             </div>
-            <div class="project-demo-note">📌 修改类别时可同时修改名称和介绍。<br>🚫 删除仅当没有任何项目使用此类别时才可删除（后端校验）。</div>
+            <div class="project-demo-note">修改类别时可同时修改名称和介绍。<br>删除仅当没有任何项目使用此类别时才可删除（后端校验）。</div>
         </div>
     </main>
 </div>
 
+<script src="../js/ui-feedback.js"></script>
 <script>
     const BASE_URL = '';      // 后端地址，根据实际情况修改
     const TOKEN_KEY = 'token';
-    const LOGIN_PAGE = '../login.html';
+    const LOGIN_PAGE = '/login/login.html';
 
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) {
-        alert('请先登录');
-        window.location.href = LOGIN_PAGE;
+        UiFeedback.alert('请先登录').then(() => {
+            window.location.href = LOGIN_PAGE;
+        });
     }
 
     async function api(method, url, body = null) {
@@ -118,8 +124,9 @@
         const response = await fetch(fullUrl, options);
         if (response.status === 401) {
             localStorage.removeItem(TOKEN_KEY);
-            alert('登录已过期，请重新登录');
-            window.location.href = LOGIN_PAGE;
+            UiFeedback.alert('登录已过期，请重新登录').then(() => {
+                window.location.href = LOGIN_PAGE;
+            });
             throw new Error('Unauthorized');
         }
         const json = await response.json();
@@ -131,11 +138,42 @@
     async function createCategory(name, description) { return api('POST', '/api/admin/categories', { categoryName: name, description: description || '' }); }
     async function updateCategory(id, name, description) { return api('PUT', `/api/admin/categories/${id}`, { categoryName: name, description: description || '' }); }
     async function deleteCategory(id) { return api('DELETE', `/api/admin/categories/${id}`); }
+    const nameInput = document.getElementById('newCatName');
+    const descInput = document.getElementById('newCatDesc');
+    const saveBtn = document.getElementById('saveCategoryBtn');
+    const cancelEditBtn = document.getElementById('cancelEditBtn');
+    const formStatus = document.getElementById('categoryFormStatus');
+    let editingCategoryId = null;
+
+    function setFormStatus(message, isError = false) {
+        if (!formStatus) return;
+        formStatus.textContent = message || '';
+        formStatus.style.color = isError ? '#dc2626' : '#475569';
+    }
+
+    function resetForm() {
+        editingCategoryId = null;
+        nameInput.value = '';
+        descInput.value = '';
+        saveBtn.textContent = '添加类别';
+        cancelEditBtn.style.display = 'none';
+        setFormStatus('');
+    }
+
+    function startEdit(category) {
+        editingCategoryId = category.categoryId;
+        nameInput.value = category.categoryName || '';
+        descInput.value = category.description || '';
+        saveBtn.textContent = '保存修改';
+        cancelEditBtn.style.display = 'inline-flex';
+        setFormStatus(`正在编辑 ID ${category.categoryId} 的类别`);
+        nameInput.focus();
+    }
 
     async function render() {
         const tbody = document.getElementById('categoryTableBody');
         if (!tbody) return;
-        tbody.innerHTML = '<tr><td colspan="4">⏳ 加载中...</td></td>';
+        tbody.innerHTML = '<tr><td colspan="4">加载中...</td></td>';
         try {
             const categories = await loadCategories();
             if (!categories.length) {
@@ -150,66 +188,70 @@
                             <td><strong>${escapeHtml(cat.categoryName)}</strong></td>
                             <td>${escapeHtml(desc)}</td>
                             <td>
-                                <button class="btn-icon btn-edit" data-id="${cat.categoryId}" data-name="${escapeHtml(cat.categoryName)}" data-desc="${escapeHtml(cat.description || '')}">✏️ 编辑</button>
-                                <button class="btn-icon btn-delete" data-id="${cat.categoryId}">🗑️ 删除</button>
+                                <button class="btn-icon btn-edit" data-id="${cat.categoryId}" data-name="${escapeHtml(cat.categoryName)}" data-desc="${escapeHtml(cat.description || '')}">编辑</button>
+                                <button class="btn-icon btn-delete" data-id="${cat.categoryId}">删除</button>
                             </td>
                           </tr>`;
             }
             tbody.innerHTML = html;
 
             document.querySelectorAll('.btn-edit').forEach(btn => {
-                btn.addEventListener('click', async () => {
-                    const id = btn.getAttribute('data-id');
-                    const oldName = btn.getAttribute('data-name');
-                    const oldDesc = btn.getAttribute('data-desc');
-                    const newName = prompt('请输入新的类别名称', oldName);
-                    if (newName === null) return;
-                    const newDesc = prompt('请输入新的项目介绍（可选）', oldDesc);
-                    if (newDesc === null) return;
-                    try {
-                        await updateCategory(id, newName.trim(), newDesc.trim());
-                        render();
-                    } catch (e) {
-                        alert(`修改失败：${e.message}`);
-                    }
+                btn.addEventListener('click', () => {
+                    startEdit({
+                        categoryId: btn.getAttribute('data-id'),
+                        categoryName: btn.getAttribute('data-name'),
+                        description: btn.getAttribute('data-desc')
+                    });
                 });
             });
 
             document.querySelectorAll('.btn-delete').forEach(btn => {
                 btn.addEventListener('click', async () => {
-                    if (!confirm('确认删除该类别？如果该类别被任何项目使用，删除将失败。')) return;
+                    const confirmed = await UiFeedback.confirm('确认删除该类别？如果该类别被任何项目使用，删除将失败。', '删除类别');
+                    if (!confirmed) return;
                     const id = btn.getAttribute('data-id');
                     try {
                         await deleteCategory(id);
+                        setFormStatus('类别已删除');
+                        UiFeedback.success('类别已删除');
+                        if (String(editingCategoryId) === String(id)) {
+                            resetForm();
+                        }
                         render();
                     } catch (e) {
-                        alert(`删除失败：${e.message}`);
+                        setFormStatus(`删除失败：${e.message}`, true);
                     }
                 });
             });
         } catch (err) {
-            tbody.innerHTML = `<tr><td colspan="4"><div class="error-message">❌ 加载失败：${escapeHtml(err.message)}</div></td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="4"><div class="error-message">加载失败：${escapeHtml(err.message)}</div></td></tr>`;
         }
     }
 
-    document.getElementById('addCategoryBtn')?.addEventListener('click', async () => {
-        const nameInput = document.getElementById('newCatName');
-        const descInput = document.getElementById('newCatDesc');
+    saveBtn?.addEventListener('click', async () => {
         const name = nameInput.value.trim();
         const desc = descInput.value.trim();
         if (!name) {
-            alert('请输入类别名称');
+            setFormStatus('请输入类别名称', true);
+            nameInput.focus();
             return;
         }
         try {
-            await createCategory(name, desc);
-            nameInput.value = '';
-            descInput.value = '';
+            const isEditing = Boolean(editingCategoryId);
+            if (editingCategoryId) {
+                await updateCategory(editingCategoryId, name, desc);
+            } else {
+                await createCategory(name, desc);
+            }
+            resetForm();
+            setFormStatus(isEditing ? '类别修改已保存' : '类别添加成功');
             render();
         } catch (e) {
-            alert(`添加失败：${e.message}`);
+            setFormStatus(`保存失败：${e.message}`, true);
         }
     });
+
+    cancelEditBtn?.addEventListener('click', resetForm);
 
     function escapeHtml(str) {
         if (str === undefined || str === null) return '';

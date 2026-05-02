@@ -2,12 +2,19 @@
     const BASE_URL = '';      // 后端地址，请根据实际情况修改
     const TOKEN_KEY = 'token';
     const LOGIN_PAGE = '../login.html';
+    const notify = window.UiFeedback || {
+        alert(message) {
+            window.alert(message);
+            return Promise.resolve();
+        }
+    };
 
     // 获取存储的 token
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) {
-    alert('请先登录');
+    notify.alert('请先登录').then(() => {
     window.location.href = LOGIN_PAGE;
+});
 }
 
     // 通用请求函数（自动携带 token）
@@ -24,8 +31,9 @@
     if (response.status === 401) {
     // token 无效或过期，清除本地存储并跳转登录页
     localStorage.removeItem(TOKEN_KEY);
-    alert('登录已过期，请重新登录');
+    notify.alert('登录已过期，请重新登录').then(() => {
     window.location.href = LOGIN_PAGE;
+});
     throw new Error('Unauthorized');
 }
     const json = await response.json();
@@ -57,7 +65,7 @@
     if (!tbody) return;
 
     // 显示加载中
-    tbody.innerHTML = '<td><td colspan="4">⏳ 加载项目列表中...</td></tr>';
+    tbody.innerHTML = '<td><td colspan="4">加载项目列表中...</td></tr>';
     countSpan.innerText = '加载中...';
 
     try {
@@ -69,7 +77,7 @@
     // 如果接口抛出异常（如 UnsupportedOperationException），后端可能返回 500 或 json 中的 code!=1
     // 此时显示友好提示
     const errorMsg = e.message || '后端接口未实现或异常';
-    tbody.innerHTML = `<tr><td colspan="4"><div class="error-message">⚠️ 无法加载项目列表：${errorMsg}<br>请确认后端实现了 /api/admin/records/projects 接口。</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4"><div class="error-message">无法加载项目列表：${errorMsg}<br>请确认后端实现了 /api/admin/records/projects 接口。</div></td></tr>`;
     countSpan.innerText = '加载失败';
     return;
 }
@@ -114,7 +122,7 @@
     countSpan.innerText = `${projects.length} 个项目`;
 } catch (err) {
     console.error(err);
-    tbody.innerHTML = `<tr><td colspan="4"><div class="error-message">❌ 加载失败：${err.message || '网络错误'}</div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4"><div class="error-message">加载失败：${err.message || '网络错误'}</div></td></tr>`;
     countSpan.innerText = '加载失败';
 }
 }
