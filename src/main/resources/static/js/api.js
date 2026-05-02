@@ -185,6 +185,12 @@
         updateProfile(payload) {
             return sendJsonRequest("PUT", "/api/teacher/profile/me", payload);
         },
+        changePassword(oldPassword, newPassword) {
+            return sendJsonRequest("PUT", "/api/teacher/profile/me/password", {
+                oldPassword,
+                newPassword
+            });
+        },
         reviewRequest(requestId, requestStatus, decisionComment) {
             return sendJsonRequest("PUT", `/api/teacher/requests/${encodeURIComponent(requestId)}/review`, {
                 requestStatus,

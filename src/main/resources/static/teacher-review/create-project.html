@@ -113,18 +113,8 @@
 
                 <div class="mb-4">
                     <label class="form-label">技能标签 (Tags)</label>
-                    <div class="tag-input-group" id="tagsContainer">
-                        <div class="input-group" id="tagInputGroup" style="width: 220px; margin-bottom: 8px;">
-                            <input type="text" class="form-control form-control-sm" id="tagInput" placeholder="输入自定义标签...">
-                            <button
-                                    class="btn btn-outline-secondary btn-sm"
-                                    type="button"
-                                    id="addTagBtn"
-                                    style="background: white; border-color: #ddd;"
-                            >
-                                添加
-                            </button>
-                        </div>
+                    <div id="tagsContainer" style="display:flex; flex-wrap:wrap; gap:8px;">
+                        <span style="color:var(--muted); font-size:0.9rem;">正在加载标签...</span>
                     </div>
                 </div>
 
@@ -160,11 +150,11 @@
         const publishBtn = document.getElementById("publishBtn");
         const formError = document.getElementById("formError");
         const categorySelect = document.getElementById("projectCategoryId");
-        const tagInput = document.getElementById("tagInput");
-        const addTagBtn = document.getElementById("addTagBtn");
         const cancelBtn = document.getElementById("cancelBtn");
         const tagsContainer = document.getElementById("tagsContainer");
-        const tagInputGroup = document.getElementById("tagInputGroup");
+        const state = {
+            tags: []
+        };
 
         function setError(message, type) {
             if (!formError) return;
@@ -209,54 +199,47 @@
             }
         }
 
-        function getTagList() {
-            const wrappers = document.querySelectorAll("#tagsContainer .tag-wrapper");
-            const tags = [];
-
-            wrappers.forEach(tagEl => {
-                const value = (tagEl.dataset.tag || "").trim();
-                if (value) tags.push(value);
-            });
-
-            return tags;
-        }
-
-        function addTag() {
-            if (!tagInput || !tagsContainer || !tagInputGroup) return;
-
-            const value = tagInput.value.trim();
-            if (!value) return;
-
-            const exists = Array.from(tagsContainer.querySelectorAll(".tag-wrapper"))
-                .some(el => (el.dataset.tag || "").toLowerCase() === value.toLowerCase());
-            if (exists) {
-                tagInput.value = "";
+        function renderTags(tags) {
+            if (!tagsContainer) return;
+            if (!Array.isArray(tags) || tags.length === 0) {
+                tagsContainer.innerHTML = `<span style="color:var(--muted); font-size:0.9rem;">暂无可用标签</span>`;
                 return;
             }
 
-            const tag = document.createElement("span");
-            tag.className = "badge me-2 mb-2 p-2 tag-wrapper";
-            tag.dataset.tag = value;
-            tag.style.backgroundColor = "#5f3391";
-            tag.style.fontSize = "14px";
-            tag.style.fontWeight = "normal";
-            tag.innerHTML = `${value} <i class="bi bi-x-circle ms-1" style="cursor:pointer;"></i>`;
+            tagsContainer.innerHTML = tags.map(tag => `
+                <label style="display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border:1px solid rgba(90,43,152,0.18); border-radius:999px; cursor:pointer;">
+                    <input type="checkbox" name="projectTag" value="${esc(tag.tagId)}">
+                    <span>${esc(tag.tagName)}</span>
+                </label>
+            `).join("");
+        }
 
-            tag.querySelector("i").addEventListener("click", () => tag.remove());
-            tagsContainer.insertBefore(tag, tagInputGroup);
-            tagInput.value = "";
+        async function loadTags() {
+            if (!tagsContainer) return;
+            try {
+                const tags = await ApiClient.teacher.listTags();
+                state.tags = Array.isArray(tags) ? tags : [];
+                renderTags(state.tags);
+            } catch (error) {
+                console.error(error);
+                tagsContainer.innerHTML = `<span style="color:#c74545; font-size:0.9rem;">标签加载失败：${esc(error.message || "请稍后重试")}</span>`;
+            }
+        }
+
+        function getSelectedTagIds() {
+            return Array.from(tagsContainer.querySelectorAll('input[name="projectTag"]:checked'))
+                .map(input => Number(input.value))
+                .filter(Number.isFinite);
         }
 
         function buildPayload() {
             const requirements = document.getElementById("projectRequirements").value.trim();
-            const tags = getTagList();
-            const requiredSkills = [requirements, ...tags].filter(Boolean).join(" / ");
 
             return {
                 categoryId: Number(categorySelect.value),
                 title: document.getElementById("projectTitle").value.trim(),
                 description: document.getElementById("projectDescription").value.trim(),
-                requiredSkills,
+                requiredSkills: requirements,
                 topicArea: document.getElementById("projectTopicArea").value.trim(),
                 maxStudents: Number(document.getElementById("projectQuota").value)
             };
@@ -285,7 +268,11 @@
             setError("正在发布项目...", "success");
 
             try {
-                await ApiClient.teacher.createProject(payload);
+                const project = await ApiClient.teacher.createProject(payload);
+                const tagIds = getSelectedTagIds();
+                if (project?.projectId && tagIds.length > 0) {
+                    await ApiClient.teacher.bindProjectTags(project.projectId, tagIds);
+                }
                 setError("发布成功，正在返回项目列表...", "success");
                 window.location.href = "projects.html";
             } catch (error) {
@@ -297,18 +284,12 @@
             }
         }
 
-        addTagBtn.addEventListener("click", addTag);
         cancelBtn.addEventListener("click", () => {
             window.location.href = "projects.html";
         });
-        tagInput.addEventListener("keydown", event => {
-            if (event.key === "Enter") {
-                event.preventDefault();
-                addTag();
-            }
-        });
         form.addEventListener("submit", submitProject);
         loadCategories();
+        loadTags();
 
         //default sidebar
         const layout = document.getElementById("layout");
