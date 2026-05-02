@@ -15,6 +15,7 @@ public final class MessageConstants {
     public static final String USERNAME_EXISTS = "用户名已存在，请更换后重试。";
     public static final String EMAIL_EXISTS = "邮箱已被注册，请更换后重试。";
     public static final String INVALID_CREDENTIALS = "用户名或密码错误。";
+    public static final String RESET_PASSWORD_IDENTITY_MISMATCH = "用户名与邮箱不匹配，无法重置密码。";
     public static final String ACCOUNT_UNAVAILABLE_CONTACT_ADMIN = "账户当前不可用，请联系管理员。";
     public static final String REGISTER_ROLE_REQUIRED = "注册角色不能为空。";
     public static final String STUDENT_NO_REQUIRED = "学生学号不能为空。";
@@ -51,6 +52,8 @@ public final class MessageConstants {
     public static final String NON_STUDENT_PROFILE_UPDATE = "该用户不是学生角色。无法修改学生资料。";
     public static final String NON_TEACHER_PROFILE_ACCESS = "该用户不是教师角色。无法查询教师资料。";
     public static final String NON_TEACHER_PROFILE_UPDATE = "该用户不是教师角色。无法修改教师资料。";
+    public static final String NON_ADMIN_PROFILE_ACCESS = "该用户不是管理员角色。无法查询管理员资料。";
+    public static final String NON_ADMIN_PROFILE_UPDATE = "该用户不是管理员角色。无法修改管理员资料。";
 
     public static final String REQUEST_DEADLINE_PASSED = "The deadline has passed.";
     public static final String ACTIVE_REQUEST_EXISTS = "Operation failed: You already have an active or accepted request.";

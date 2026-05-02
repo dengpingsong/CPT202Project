@@ -161,6 +161,18 @@
                 day: "2-digit"
             });
         }
+
+        async function withdrawRequest(requestId) {
+            if (!requestId) return;
+            if (!window.confirm("确认撤回这条申请吗？")) return;
+
+            try {
+                await ApiClient.student.withdrawRequest(requestId);
+                await initDashboard();
+            } catch (error) {
+                window.alert(error.message || "撤回失败，请稍后重试。");
+            }
+        }
         //main context update
         function renderStats(requests) {
             const user = ApiClient.getCurrentUser();
@@ -259,10 +271,21 @@
                         </div>
                         <p class="meta" style="margin-top: 8px;">备注：${esc(item.notes || "-")}</p>
                         ${item.decisionComment ? `<p class="meta" style="margin-top: 4px;">反馈：${esc(item.decisionComment)}</p>` : ""}
+                        ${normalizeStatus(item.requestStatus) === "PENDING" ? `
+                            <div style="margin-top: 10px;">
+                                <button type="button" class="secondary withdraw-btn" data-request-id="${esc(item.requestId)}">撤回申请</button>
+                            </div>
+                        ` : ""}
                     </div>
                     <span class="status ${statusClass(item.requestStatus)}" style="align-self: center;">${esc(normalizeStatus(item.requestStatus))}</span>
                 </div>
             `).join("");
+
+            document.querySelectorAll(".withdraw-btn").forEach(button => {
+                button.addEventListener("click", () => {
+                    withdrawRequest(button.getAttribute("data-request-id"));
+                });
+            });
         }
 
         async function initDashboard() {
