@@ -128,9 +128,33 @@
         createProject(payload) {
             return sendJsonRequest("POST", "/api/teacher/projects", payload);
         },
+        updateProject(projectId, payload) {
+            return sendJsonRequest("PUT", `/api/teacher/projects/${encodeURIComponent(projectId)}`, payload);
+        },
+        changeProjectStatus(projectId, projectStatus, remark) {
+            return sendJsonRequest("PUT", `/api/teacher/projects/${encodeURIComponent(projectId)}/status`, {
+                projectStatus,
+                remark: remark || ""
+            });
+        },
         listCategories() {
             return request("/api/teacher/categories", {
                 method: "GET"
+            });
+        },
+        listTags() {
+            return request("/api/teacher/tags", {
+                method: "GET"
+            });
+        },
+        listProjectTags(projectId) {
+            return request(`/api/teacher/project-tags/${encodeURIComponent(projectId)}`, {
+                method: "GET"
+            });
+        },
+        bindProjectTags(projectId, tagIds) {
+            return sendJsonRequest("PUT", `/api/teacher/project-tags/${encodeURIComponent(projectId)}`, {
+                tagIds
             });
         },
         listRequests(status) {
@@ -176,10 +200,18 @@
         requireAuth,
         request,
         teacher: teacherApi,
-        // logout function: clear token and redirect to login page
-        logout() {
-            clearAuth();
-            window.location.href = LOGIN_PAGE;
+        // logout function: notify backend, then clear token and redirect to login page
+        async logout() {
+            try {
+                await request("/api/common/auth/logout", {
+                    method: "POST"
+                });
+            } catch (error) {
+                console.warn("Logout request failed, clearing local session anyway.", error);
+            } finally {
+                clearAuth();
+                window.location.href = LOGIN_PAGE;
+            }
         },
         get(url, options) {
             return request(url, {
