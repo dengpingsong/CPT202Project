@@ -76,12 +76,41 @@
                 </div>
                 <div class="d-flex gap-3">
                     <button type="submit" class="btn btn-primary px-4" style="border-radius:20px; background-color:#35b8e0; border:none;" id="saveBtn">保存修改</button>
+                    <button type="button" class="btn btn-secondary px-4" style="border-radius:20px;" id="changePasswordBtn">修改密码</button>
                     <button type="button" class="btn btn-outline-danger px-4" style="border-radius:20px;" id="logoutBtn">退出登录</button>
                 </div>
                 <div id="settingsStatus" class="footnote" style="text-align:left; margin-top:16px;">正在加载个人资料...</div>
             </form>
         </div>
     </main>
+</div>
+
+<div id="passwordModal" aria-hidden="true" style="display:none; position:fixed; inset:0; background:rgba(28,20,43,0.45); z-index:1000; align-items:center; justify-content:center; padding:20px;">
+    <div role="dialog" aria-modal="true" aria-labelledby="passwordModalTitle" style="width:min(460px, 100%); background:#fff; border-radius:16px; padding:24px; box-shadow:0 24px 60px rgba(28,20,43,0.22);">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
+            <h2 id="passwordModalTitle" style="font-size:1.25rem; margin:0; flex:1;">修改密码</h2>
+            <button type="button" class="btn-secondary" id="closePasswordModalBtn" style="padding:6px 12px;">关闭</button>
+        </div>
+        <form id="passwordForm">
+            <div class="mb-3">
+                <label class="form-label">当前密码</label>
+                <input type="password" class="form-control" id="oldPassword" autocomplete="current-password" placeholder="请输入当前密码">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">新密码</label>
+                <input type="password" class="form-control" id="newPassword" autocomplete="new-password" placeholder="请输入新密码">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">确认新密码</label>
+                <input type="password" class="form-control" id="confirmPassword" autocomplete="new-password" placeholder="请再次输入新密码">
+            </div>
+            <div id="passwordStatus" class="footnote" style="text-align:left; margin-bottom:14px;"></div>
+            <div class="d-flex gap-3">
+                <button type="submit" class="btn btn-primary px-4" style="border-radius:20px; background-color:#35b8e0; border:none;">确认修改</button>
+                <button type="button" class="btn btn-light px-4" style="border-radius:20px;" id="cancelPasswordBtn">取消</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <script src="../js/api.js?v=20260502"></script>
@@ -93,8 +122,17 @@
 
         const settingsForm = document.getElementById("settingsForm");
         const saveBtn = document.getElementById("saveBtn");
+        const changePasswordBtn = document.getElementById("changePasswordBtn");
         const logoutBtn = document.getElementById("logoutBtn");
         const settingsStatus = document.getElementById("settingsStatus");
+        const passwordModal = document.getElementById("passwordModal");
+        const passwordForm = document.getElementById("passwordForm");
+        const oldPassword = document.getElementById("oldPassword");
+        const newPassword = document.getElementById("newPassword");
+        const confirmPassword = document.getElementById("confirmPassword");
+        const passwordStatus = document.getElementById("passwordStatus");
+        const closePasswordModalBtn = document.getElementById("closePasswordModalBtn");
+        const cancelPasswordBtn = document.getElementById("cancelPasswordBtn");
         const inputs = {
             fullName: document.getElementById("fullName"),
             email: document.getElementById("email"),
@@ -109,6 +147,27 @@
             if (!settingsStatus) return;
             settingsStatus.textContent = message;
             settingsStatus.style.color = type === "error" ? "#c74545" : type === "success" ? "var(--green)" : "var(--muted)";
+        }
+
+        function setPasswordStatus(message, type) {
+            if (!passwordStatus) return;
+            passwordStatus.textContent = message || "";
+            passwordStatus.style.color = type === "error" ? "#c74545" : type === "success" ? "var(--green)" : "var(--muted)";
+        }
+
+        function openPasswordModal() {
+            passwordModal.style.display = "flex";
+            passwordModal.setAttribute("aria-hidden", "false");
+            passwordForm.reset();
+            setPasswordStatus("", "");
+            oldPassword.focus();
+        }
+
+        function closePasswordModal() {
+            passwordModal.style.display = "none";
+            passwordModal.setAttribute("aria-hidden", "true");
+            passwordForm.reset();
+            setPasswordStatus("", "");
         }
 
         //填充表单数据
@@ -183,6 +242,60 @@
 
         fetchProfile();
         settingsForm.addEventListener("submit", saveProfile);
+        changePasswordBtn.addEventListener("click", openPasswordModal);
+        closePasswordModalBtn.addEventListener("click", closePasswordModal);
+        cancelPasswordBtn.addEventListener("click", closePasswordModal);
+        passwordModal.addEventListener("click", event => {
+            if (event.target === passwordModal) {
+                closePasswordModal();
+            }
+        });
+        document.addEventListener("keydown", event => {
+            if (event.key === "Escape" && passwordModal.style.display === "flex") {
+                closePasswordModal();
+            }
+        });
+        passwordForm.addEventListener("submit", async event => {
+            event.preventDefault();
+            const oldPasswordValue = oldPassword.value.trim();
+            const newPasswordValue = newPassword.value.trim();
+            const confirmPasswordValue = confirmPassword.value.trim();
+
+            if (!oldPasswordValue) {
+                setPasswordStatus("请输入当前密码。", "error");
+                oldPassword.focus();
+                return;
+            }
+            if (!newPasswordValue) {
+                setPasswordStatus("请输入新密码。", "error");
+                newPassword.focus();
+                return;
+            }
+            if (newPasswordValue !== confirmPasswordValue) {
+                setPasswordStatus("两次输入的新密码不一致。", "error");
+                confirmPassword.focus();
+                return;
+            }
+
+            const submitBtn = passwordForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = "修改中...";
+            setPasswordStatus("正在提交密码修改...", "");
+
+            try {
+                await ApiClient.teacher.changePassword(oldPasswordValue, newPasswordValue);
+                setPasswordStatus("密码修改成功。", "success");
+                setStatus("密码修改成功。", "success");
+                setTimeout(closePasswordModal, 700);
+            } catch (error) {
+                console.error(error);
+                setPasswordStatus(error.message || "密码修改失败，请稍后重试。", "error");
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
+        });
         logoutBtn.addEventListener("click", () => ApiClient.logout());
 
         //default sidebar

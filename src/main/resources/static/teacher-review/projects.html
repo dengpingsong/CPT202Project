@@ -54,6 +54,19 @@
         
         <div class="panel">
             <div id="projectStatus" class="footnote" style="text-align:left;">正在加载我的项目...</div>
+            <div style="display:flex; align-items:end; gap:10px; flex-wrap:wrap; margin:12px 0 18px;">
+                <label style="display:flex; flex-direction:column; gap:6px; font-size:0.9rem; color:var(--muted);">
+                    项目状态
+                    <select class="form-select" id="projectStatusFilter" style="min-width:180px;">
+                        <option value="">全部状态</option>
+                        <option value="AVAILABLE">正在招募</option>
+                        <option value="REQUESTED">已有申请</option>
+                        <option value="AGREED">已确认</option>
+                        <option value="CLOSED">已关闭</option>
+                        <option value="ARCHIVED">已归档</option>
+                    </select>
+                </label>
+            </div>
             <div class="grid" id="projectsContainer">
                 <p style="color: var(--muted);">正在加载...</p>
             </div>
@@ -141,6 +154,7 @@
 
         const projectsContainer = document.getElementById("projectsContainer");
         const projectStatus = document.getElementById("projectStatus");
+        const projectStatusFilter = document.getElementById("projectStatusFilter");
         const projectEditPanel = document.getElementById("projectEditPanel");
         const editPanelTitle = document.getElementById("editPanelTitle");
         const editPanelStatus = document.getElementById("editPanelStatus");
@@ -364,7 +378,7 @@
             setStatus("正在加载我的项目...", "");
 
             try {
-                const projects = await ApiClient.teacher.listProjects();
+                const projects = await ApiClient.teacher.listProjects(projectStatusFilter.value);
                 state.projects = Array.isArray(projects) ? projects : [];
                 renderProjects(state.projects);
             } catch (error) {
@@ -388,6 +402,8 @@
 
             openProjectEditor(projectId, action);
         });
+
+        projectStatusFilter.addEventListener("change", () => loadProjects());
 
         closeEditPanelBtn.addEventListener("click", () => {
             projectEditPanel.hidden = true;
