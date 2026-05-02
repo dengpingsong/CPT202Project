@@ -206,6 +206,7 @@ body {
 .status-available { background: rgba(47,197,168,0.12); color: var(--green); }
 .status-requested { background: rgba(246,166,61,0.12); color: var(--orange); }
 .status-agreed { background: rgba(36,179,255,0.15); color: var(--accent); }
+.status-rejected { background: rgba(199,69,69,0.12); color: #c74545; }
 .status-unavailable { background: rgba(156,156,178,0.2); color: rgba(28,27,51,0.65); }
 .card button, .btn-primary {
     margin-top: auto;

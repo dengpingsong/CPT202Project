@@ -207,6 +207,7 @@ body {
 .status-available { background: rgba(47,197,168,0.12); color: var(--green); }
 .status-requested { background: rgba(246,166,61,0.12); color: var(--orange); }
 .status-agreed { background: rgba(36,179,255,0.15); color: var(--accent); }
+.status-rejected { background: rgba(199,69,69,0.12); color: #c74545; }
 .status-unavailable { background: rgba(156,156,178,0.2); color: rgba(28,27,51,0.65); }
 .card button, .btn-primary {
     margin-top: auto;
@@ -428,7 +429,7 @@ body {
     .hero { flex-direction: column; align-items: flex-start; }
     .layout.collapsed { grid-template-columns: 1fr; }
 }
-/* ÏûÏ¢Í¨ÖªÑùÊ½ */
+/* ï¿½ï¿½Ï¢Í¨Öªï¿½ï¿½Ê½ */
 .notification-list {
     display: flex;
     flex-direction: column;
@@ -492,7 +493,7 @@ body {
     background: #ff6b6b;
     display: inline-block;
 }
-/* ±âÆ½»¯±ß¿ò¿¨Æ¬£¬ÊÊºÏ·ÅÔÚ panel ÄÚ²¿ */
+/* ï¿½ï¿½Æ½ï¿½ï¿½ï¿½ß¿ï¿½Æ¬ï¿½ï¿½ï¿½ÊºÏ·ï¿½ï¿½ï¿½ panel ï¿½Ú²ï¿½ */
 .outline-card {
     background: #fff;
     border: 1px solid rgba(90,43,152,0.12);
@@ -514,7 +515,7 @@ body {
     margin-top: auto;
     width: 100%;
 }
-/* ¿¨Æ¬µ×²¿µÄ´ÎÒª°´Å¥ */
+/* ï¿½ï¿½Æ¬ï¿½×²ï¿½ï¿½Ä´ï¿½Òªï¿½ï¿½Å¥ */
 .outline-card .btn-secondary {
     background: #e8e8f8;
     border: none;
