@@ -207,7 +207,20 @@
         }
         //推荐项目
         function renderProjects(projectPage, requests) {//后端返回的项目列表数据
-            const projects = Array.isArray(projectPage?.records) ? projectPage.records.slice(0, 3) : [];
+            const requestedProjectIds = new Set(
+                requests
+                    .filter(item => ["PENDING", "ACCEPTED"].includes(normalizeStatus(item.requestStatus)))
+                    .map(item => String(item.projectId))
+            );
+            const withdrawnProjectIds = new Set(
+                requests
+                    .filter(item => normalizeStatus(item.requestStatus) === "WITHDRAWN")
+                    .map(item => String(item.projectId))
+            );
+            const projects = (Array.isArray(projectPage?.records) ? projectPage.records : [])
+                .filter(project => normalizeStatus(project.projectStatus) !== "ARCHIVED")
+                .filter(project => !withdrawnProjectIds.has(String(project.projectId)))
+                .slice(0, 3);
 
             if (projects.length === 0) {
                 recommendedProjects.innerHTML = `
@@ -300,7 +313,7 @@
 
                 const [requests, projectPage] = await Promise.all([
                     ApiClient.get("/api/student/requests"),//获取当前学生的申请记录
-                    ApiClient.get("/api/student/projects?pageNum=1&pageSize=3")//获取推荐项目列表
+                    ApiClient.get("/api/student/projects?pageNum=1&pageSize=12")//获取推荐项目列表
                 ]);
 
                 const safeRequests = Array.isArray(requests) ? requests : [];

@@ -145,7 +145,7 @@
     </main>
 </div>
 
-<script src="../js/api.js?v=20260502"></script>
+<script src="../js/api.js"></script>
 <script>
     (function() {
         "use strict";
@@ -259,10 +259,11 @@
             }).join("");
         }
 
+        //填充编辑表单
         function fillProjectForm(project, projectTags) {
             state.currentProject = project;
             const selectedTagIds = (projectTags || []).map(tag => tag.tagId);
-
+            //把后台的项目数据，自动填到编辑表单里，让老师 / 学生直接修改，不用重新输入。
             fields.projectId.value = project.projectId || "";
             fields.title.value = project.title || "";
             fields.maxStudents.value = project.maxStudents || 1;
@@ -277,6 +278,7 @@
             editPanelTitle.textContent = `编辑项目：${project.title || "未命名项目"}`;
         }
 
+        //复杂的build
         function buildProjectPayload() {
             return {
                 categoryId: Number(fields.categoryId.value),
@@ -288,6 +290,7 @@
             };
         }
 
+        //等你填完 这个才开始验证 所以按顺序写
         function validateProjectPayload(payload) {
             if (!payload.categoryId) return "请选择项目分类。";
             if (!payload.title) return "项目名称不能为空。";
@@ -305,6 +308,7 @@
             state.tags = Array.isArray(tags) ? tags : [];
         }
 
+        //打开项目编辑面板（直接在主页面的下面）
         async function openProjectEditor(projectId, focusArea) {
             projectEditPanel.hidden = false;
             setEditStatus("正在加载项目详情...", "");
