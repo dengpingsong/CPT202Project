@@ -199,6 +199,56 @@
         }
     };
 
+    const studentApi = {
+        withdrawRequest(requestId) {
+            return request(`/api/student/requests/${encodeURIComponent(requestId)}/withdraw`, {
+                method: "PUT"
+            });
+        }
+    };
+
+    const adminApi = {
+        listUsers(role, accountStatus) {
+            const params = new URLSearchParams();
+            if (role) params.set("role", role);
+            if (accountStatus) params.set("accountStatus", accountStatus);
+            const query = params.toString();
+            return request(`/api/admin/users${query ? `?${query}` : ""}`, {
+                method: "GET"
+            });
+        },
+        updateUserStatus(userId, accountStatus) {
+            const params = new URLSearchParams({ accountStatus });
+            return request(`/api/admin/users/${encodeURIComponent(userId)}/status?${params.toString()}`, {
+                method: "PUT"
+            });
+        },
+        listRequestRecords(status) {
+            const params = new URLSearchParams();
+            if (status) params.set("status", status);
+            const query = params.toString();
+            return request(`/api/admin/records/requests${query ? `?${query}` : ""}`, {
+                method: "GET"
+            });
+        },
+        listRequestHistoryRecords() {
+            return request("/api/admin/records/request-history", {
+                method: "GET"
+            });
+        },
+        getProfile() {
+            return request("/api/admin/profile/me", {
+                method: "GET"
+            });
+        },
+        updateProfile(payload) {
+            return sendJsonRequest("PUT", "/api/admin/profile/me", payload);
+        },
+        changePassword(payload) {
+            return sendJsonRequest("PUT", "/api/admin/profile/me/password", payload);
+        }
+    };
+
     window.ApiClient = {
         getToken,
         getCurrentUser,
@@ -206,6 +256,8 @@
         requireAuth,
         request,
         teacher: teacherApi,
+        student: studentApi,
+        admin: adminApi,
         // logout function: notify backend, then clear token and redirect to login page
         async logout() {
             try {

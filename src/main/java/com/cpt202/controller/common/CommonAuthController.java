@@ -2,6 +2,7 @@ package com.cpt202.controller.common;
 
 import com.cpt202.dto.LoginDTO;
 import com.cpt202.dto.RegisterUserDTO;
+import com.cpt202.dto.ResetPasswordDTO;
 import com.cpt202.result.Result;
 import com.cpt202.service.AuthService;
 import com.cpt202.vo.LoginVO;
@@ -52,6 +53,19 @@ public class CommonAuthController {
     @Operation(summary = "Log in a common user")
     public Result<LoginVO> login(@Valid @RequestBody LoginDTO loginDTO) {
         return Result.success(authService.login(loginDTO));
+    }
+
+    /**
+     * 通过用户名和邮箱重置密码。
+     *
+     * @param resetPasswordDTO 重置密码参数
+     * @return 统一成功响应
+     */
+    @PostMapping("/reset-password")
+    @Operation(summary = "Reset password by username and email")
+    public Result<Void> resetPassword(@Valid @RequestBody ResetPasswordDTO resetPasswordDTO) {
+        authService.resetPassword(resetPasswordDTO);
+        return Result.success();
     }
 
     /**
