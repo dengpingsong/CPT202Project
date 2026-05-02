@@ -61,7 +61,12 @@ public class ProjectServiceImpl implements ProjectService {
                 queryDTO.getTagIds(),
                 pageable);
         List<ProjectVO> projectVos = toProjectVOList(projectPage.getContent());
-        return new PageResult<>(projectPage.getTotalElements(), projectVos);
+        return new PageResult<>(
+                projectPage.getTotalElements(),
+                projectVos,
+                projectPage.getNumber() + 1,
+                projectPage.getSize(),
+                projectPage.getTotalPages());
     }
 
     /**
@@ -93,7 +98,7 @@ public class ProjectServiceImpl implements ProjectService {
      */
     @Override
     @Transactional
-    public void create(Long teacherId, ProjectDTO projectDTO) {
+    public ProjectVO create(Long teacherId, ProjectDTO projectDTO) {
         TeacherProfile teacher = teacherProfileRepository.findById(teacherId)
                 .orElseThrow(() -> new NotFoundException(MessageConstants.TEACHER_NOT_FOUND));
 
@@ -108,7 +113,8 @@ public class ProjectServiceImpl implements ProjectService {
         project.setPublishDate(now);
         project.setCreatedAt(now);
         project.setUpdatedAt(now);
-        projectRepository.save(project);
+        Project savedProject = projectRepository.save(project);
+        return toProjectVO(savedProject);
     }
 
     /**

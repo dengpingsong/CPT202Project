@@ -603,6 +603,10 @@
         </div>
         <form class="password-form" id="passwordForm">
             <div class="password-field">
+                <label for="oldPassword">旧密码</label>
+                <input type="password" class="form-control" id="oldPassword" autocomplete="current-password" placeholder="请输入当前密码">
+            </div>
+            <div class="password-field">
                 <label for="newPassword">新密码</label>
                 <input type="password" class="form-control" id="newPassword" autocomplete="new-password" placeholder="请输入新密码">
             </div>
@@ -621,7 +625,7 @@
     </div>
 </div>
 
-<script src="../js/api.js"></script>
+<script src="../js/api.js?v=20260502"></script>
 <script>
     (function() {
         "use strict";
@@ -640,13 +644,13 @@
         const profileStatus = document.getElementById('profileStatus');
         const passwordModal = document.getElementById('passwordModal');
         const passwordForm = document.getElementById('passwordForm');
+        const oldPassword = document.getElementById('oldPassword');
         const newPassword = document.getElementById('newPassword');
         const confirmPassword = document.getElementById('confirmPassword');
         const passwordStatus = document.getElementById('passwordStatus');
         const closePasswordModalBtn = document.getElementById('closePasswordModalBtn');
         const cancelPasswordBtn = document.getElementById('cancelPasswordBtn');
 
-        // 获取输入框引用（与新增字段对应）
         const inputs = {
             fullName: document.getElementById('fullName'),
             studentNo: document.getElementById('studentNo'),
@@ -667,12 +671,13 @@
             passwordStatus.className = type ? `form-status ${type}` : "form-status";
         }
 
+        //打开密码弹窗*******
         function openPasswordModal() {
-            passwordModal.classList.add("open");
+            passwordModal.classList.add("open");//css要求改动
             passwordModal.setAttribute("aria-hidden", "false");
             passwordForm.reset();
             setPasswordStatus("", "");
-            newPassword.focus();
+            oldPassword.focus();
         }
 
         function closePasswordModal() {
@@ -697,11 +702,11 @@
             inputs.interests.value = profile.interests || "";
         }
 
-        // ---------- 从后端加载当前学生信息 ----------
+        //后端加载当前学生信息
         async function fetchProfile() {
-            setStatus("正在加载个人资料...", "");
+            setStatus("正在加载个人资料...", "");//提示
             try {
-                const profile = await ApiClient.get(API_BASE);
+                const profile = await ApiClient.get(API_BASE);//向后端发送 GET 请求，获取当前学生的个人资料。
                 fillProfile(profile || {});
 
                 if (profile?.fullName) {
@@ -713,10 +718,9 @@
                 setStatus(err.message || "个人资料加载失败，请稍后重试。", "error");
             }
         }
-
         fetchProfile();
 
-        // ---------- 清空信息按钮（仅清空可编辑字段） ----------
+        //清空信息按钮
         clearBtn.addEventListener('click', () => {
             inputs.fullName.value = '';
             inputs.email.value = '';
@@ -725,8 +729,9 @@
             inputs.phone.value = '';
             inputs.interests.value = '';
             setStatus("已清空可编辑字段，保存后才会提交到后端。", "");
+            //注意这里没有清空 studentNo，因为学号一般是不可编辑字段
         });
-
+        //绑定按钮
         changePasswordBtn.addEventListener('click', openPasswordModal);
         closePasswordModalBtn.addEventListener('click', closePasswordModal);
         cancelPasswordBtn.addEventListener('click', closePasswordModal);
@@ -742,40 +747,59 @@
             }
         });
 
-        passwordForm.addEventListener('submit', (event) => {
-            event.preventDefault();
-
+        passwordForm.addEventListener('submit', async (event) => {
+            event.preventDefault();//ness
+            const oldPasswordValue = oldPassword.value.trim();
             const passwordValue = newPassword.value.trim();
             const confirmValue = confirmPassword.value.trim();
-
+            if (!oldPasswordValue) {
+                setPasswordStatus("请输入旧密码。", "error");
+                oldPassword.focus();
+                return;
+            }
             if (!passwordValue) {
                 setPasswordStatus("请输入新密码。", "error");
                 newPassword.focus();
                 return;
             }
-
             if (!confirmValue) {
                 setPasswordStatus("请再次输入新密码。", "error");
                 confirmPassword.focus();
                 return;
             }
-
             if (passwordValue !== confirmValue) {
                 setPasswordStatus("两次输入的密码不一致。", "error");
                 confirmPassword.focus();
                 return;
             }
 
-            setPasswordStatus("密码已通过前端校验。", "success");
-            setStatus("密码已通过校验。", "success");
-            setTimeout(closePasswordModal, 700);
+            const submitBtn = passwordForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> 修改中...';
+            setPasswordStatus("正在提交密码修改...", "");
+
+            try {
+                await ApiClient.put(`${API_BASE}/password`, {
+                    oldPassword: oldPasswordValue,
+                    newPassword: passwordValue
+                });
+                setPasswordStatus("密码修改成功。", "success");
+                setStatus("密码修改成功。", "success");
+                setTimeout(closePasswordModal, 700);
+            } catch (err) {
+                console.error(err);
+                setPasswordStatus(err.message || "密码修改失败，请稍后重试。", "error");
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
         });
 
-        // ---------- 表单提交：保存修改到后端 ----------
+        //表单提交
         profileForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            // 1. 姓名非空校验
             const fullNameVal = inputs.fullName.value.trim();
             if (!fullNameVal) {
                 setStatus("姓名不能为空，请填写。", "error");
@@ -783,7 +807,7 @@
                 return;
             }
 
-            // 2. 邮箱非空校验
+            //邮箱非空校验
             const emailVal = inputs.email.value.trim();
             if (!emailVal) {
                 setStatus("邮箱不能为空，请填写。", "error");
@@ -791,7 +815,7 @@
                 return;
             }
 
-            // 3. 邮箱格式校验（简单的正则）
+            //邮箱格式校验
             const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailPattern.test(emailVal)) {
                 setStatus("邮箱格式不正确，请检查后重新输入。", "error");
@@ -805,12 +829,12 @@
             saveBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> 保存中...';
             setStatus("正在保存个人资料...", "");
 
-            // 构建请求体，严格匹配 StudentProfileUpdateDTO 字段
+            // 构建请求体
             const payload = {
                 fullName: fullNameVal,
                 email: emailVal,
                 programme: inputs.programme.value.trim(),
-                enrollmentDate: inputs.enrollmentDate.value || null, // 空字符串后端应处理为 null
+                enrollmentDate: inputs.enrollmentDate.value || null,
                 phone: inputs.phone.value.trim(),
                 interests: inputs.interests.value.trim()
             };
@@ -829,14 +853,13 @@
             }
         });
 
-        // ---------- 退出登录 ----------
+        //退出登录
         function handleLogout() {
-            ApiClient.clearAuth();
-            window.location.href = "../login/login.html";
+            ApiClient.logout();
         }
         logoutBtn.addEventListener('click', handleLogout);
 
-        // ---------- 侧边栏折叠 ----------
+        //侧边栏折叠
         const layout = document.getElementById("layout");
         const toggle = document.getElementById("toggleSidebar");
         let isCollapsed = false;
@@ -845,7 +868,6 @@
             layout.classList.toggle("collapsed", isCollapsed);
         });
 
-        // 输入框 placeholder 颜色
         const style = document.createElement('style');
         style.textContent = `
             .form-control::placeholder {

@@ -1,6 +1,7 @@
 package com.cpt202.service.impl;
 
 import com.cpt202.constant.MessageConstants;
+import com.cpt202.dto.AdminProfileUpdateDTO;
 import com.cpt202.dto.ChangePasswordDTO;
 import com.cpt202.dto.StudentProfileUpdateDTO;
 import com.cpt202.dto.TeacherProfileUpdateDTO;
@@ -13,6 +14,7 @@ import com.cpt202.repository.StudentProfileRepository;
 import com.cpt202.repository.TeacherProfileRepository;
 import com.cpt202.repository.UserRepository;
 import com.cpt202.service.ProfileService;
+import com.cpt202.vo.AdminProfileVO;
 import com.cpt202.vo.StudentProfileVO;
 import com.cpt202.vo.TeacherProfileVO;
 import lombok.RequiredArgsConstructor;
@@ -132,6 +134,36 @@ public class ProfileServiceImpl implements ProfileService {
         profile.setUpdatedAt(LocalDateTime.now());
 
         teacherProfileRepository.save(profile);
+    }
+
+    @Override
+    public AdminProfileVO getAdminProfile(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException(MessageConstants.USER_NOT_FOUND));
+
+        if (user.getRole() != User.UserRole.ADMIN) {
+            throw new BusinessException(MessageConstants.NON_ADMIN_PROFILE_ACCESS);
+        }
+
+        AdminProfileVO profileVO = new AdminProfileVO();
+        BeanUtils.copyProperties(user, profileVO);
+        return profileVO;
+    }
+
+    @Override
+    @Transactional
+    public void updateAdminProfile(Long userId, AdminProfileUpdateDTO adminProfileUpdateDTO) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException(MessageConstants.USER_NOT_FOUND));
+
+        if (user.getRole() != User.UserRole.ADMIN) {
+            throw new BusinessException(MessageConstants.NON_ADMIN_PROFILE_UPDATE);
+        }
+
+        user.setFullName(adminProfileUpdateDTO.getFullName());
+        user.setEmail(adminProfileUpdateDTO.getEmail());
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
     }
 
     /**

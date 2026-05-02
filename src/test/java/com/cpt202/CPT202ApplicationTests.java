@@ -60,6 +60,9 @@ class CPT202ApplicationTests {
     @ValueSource(strings = {
             "/login/login.html",
             "/login/register.html",
+            "/admin-review/admin_users.html",
+            "/admin-review/admin_requests.html",
+            "/admin-review/admin_request_history.html",
             "/doc.html"
     })
     void staticPagesAndDocumentationUiAreReachable(String requestPath) throws Exception {

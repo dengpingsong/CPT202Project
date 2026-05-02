@@ -49,14 +49,14 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
     @Override
     @Transactional
     public void create(Long studentId, ProjectRequestCreateDTO dto) {
-        // 1. 检查截止日期和“一人一选”限制
-        projectRequestValidationService.validateRequest(studentId);
-
-        // 2. 查找关联实体
+        // 1. 查找关联实体
         StudentProfile student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuleViolationException(MessageConstants.STUDENT_RECORD_NOT_FOUND));
         Project project = projectRepository.findById(dto.getProjectId())
                 .orElseThrow(() -> new RuleViolationException(MessageConstants.PROJECT_RECORD_NOT_FOUND));
+
+        // 2. 检查截止日期、项目状态和分配限制
+        projectRequestValidationService.validateRequest(studentId, project);
 
         // 3. 构建并保存申请记录
         LocalDateTime now = LocalDateTime.now();

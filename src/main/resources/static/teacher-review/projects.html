@@ -47,23 +47,452 @@
         <header class="page-header">
             <h1 class="mb-0">我的项目 (My Projects)</h1>
             <div style="flex-grow: 1;"></div>
-            <button class="btn-primary" onclick="window.location.href='create-project.html'">
+            <button class="btn-primary" id="createProjectBtn" type="button">
                 <i class="bi bi-plus-lg"></i> 创建新项目
             </button>
         </header>
         
         <div class="panel">
+            <div id="projectStatus" class="footnote" style="text-align:left;">正在加载我的项目...</div>
+            <div style="display:flex; align-items:end; gap:10px; flex-wrap:wrap; margin:12px 0 18px;">
+                <label style="display:flex; flex-direction:column; gap:6px; font-size:0.9rem; color:var(--muted);">
+                    项目状态
+                    <select class="form-select" id="projectStatusFilter" style="min-width:180px;">
+                        <option value="">全部状态</option>
+                        <option value="AVAILABLE">正在招募</option>
+                        <option value="REQUESTED">已有申请</option>
+                        <option value="AGREED">已确认</option>
+                        <option value="CLOSED">已关闭</option>
+                        <option value="ARCHIVED">已归档</option>
+                    </select>
+                </label>
+            </div>
             <div class="grid" id="projectsContainer">
-                <!-- 通过JS动态加载项目 -->
+                <p style="color: var(--muted);">正在加载...</p>
             </div>
         </div>
+
+        <div class="panel" id="projectEditPanel" hidden style="margin-top:24px;">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
+                <h3 id="editPanelTitle" style="margin:0; flex:1;">编辑项目</h3>
+                <button class="btn-secondary" id="closeEditPanelBtn" type="button" style="padding:8px 14px;">关闭</button>
+            </div>
+            <div id="editPanelStatus" class="footnote" style="text-align:left; margin-bottom:16px;"></div>
+
+            <form id="projectEditForm">
+                <input type="hidden" id="editProjectId">
+                <div class="row mb-3">
+                    <div class="col-md-8">
+                        <label class="form-label">项目名称</label>
+                        <input class="form-control" id="editTitle" type="text" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">招募人数</label>
+                        <input class="form-control" id="editMaxStudents" type="number" min="1" required>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">项目分类</label>
+                        <select class="form-select" id="editCategoryId" required></select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">研究方向</label>
+                        <input class="form-control" id="editTopicArea" type="text">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">项目描述</label>
+                    <textarea class="form-control" id="editDescription" rows="4" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">能力要求</label>
+                    <textarea class="form-control" id="editRequiredSkills" rows="3"></textarea>
+                </div>
+                <button class="btn-primary" type="submit" id="saveProjectBtn" style="padding:10px 18px;">保存项目信息</button>
+            </form>
+
+            <hr style="border-color:#eee; margin:24px 0;">
+
+            <form id="projectStatusForm">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">项目状态</label>
+                        <select class="form-select" id="editProjectStatus">
+                            <option value="AVAILABLE">正在招募</option>
+                            <option value="REQUESTED">已有申请</option>
+                            <option value="AGREED">已确认</option>
+                            <option value="CLOSED">已关闭</option>
+                            <option value="ARCHIVED">已归档</option>
+                        </select>
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label">状态备注</label>
+                        <input class="form-control" id="editStatusRemark" type="text" placeholder="可选">
+                    </div>
+                </div>
+                <button class="btn-secondary" type="submit" id="saveStatusBtn" style="padding:10px 18px;">保存状态</button>
+            </form>
+
+            <hr style="border-color:#eee; margin:24px 0;">
+
+            <form id="projectTagsForm">
+                <label class="form-label">项目标签</label>
+                <div id="editTagsContainer" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;"></div>
+                <button class="btn-secondary" type="submit" id="saveTagsBtn" style="padding:10px 18px;">保存标签</button>
+            </form>
+        </div>
     </main>
-    <script src="script.js"></script>
 </div>
 
+<script src="../js/api.js?v=20260502"></script>
 <script>
     (function() {
         "use strict";
+        const user = ApiClient.requireAuth("TEACHER");
+        if (!user) return;
+
+        const projectsContainer = document.getElementById("projectsContainer");
+        const projectStatus = document.getElementById("projectStatus");
+        const projectStatusFilter = document.getElementById("projectStatusFilter");
+        const projectEditPanel = document.getElementById("projectEditPanel");
+        const editPanelTitle = document.getElementById("editPanelTitle");
+        const editPanelStatus = document.getElementById("editPanelStatus");
+        const closeEditPanelBtn = document.getElementById("closeEditPanelBtn");
+        const projectEditForm = document.getElementById("projectEditForm");
+        const projectStatusForm = document.getElementById("projectStatusForm");
+        const projectTagsForm = document.getElementById("projectTagsForm");
+        const editTagsContainer = document.getElementById("editTagsContainer");
+        const fields = {
+            projectId: document.getElementById("editProjectId"),
+            title: document.getElementById("editTitle"),
+            maxStudents: document.getElementById("editMaxStudents"),
+            categoryId: document.getElementById("editCategoryId"),
+            topicArea: document.getElementById("editTopicArea"),
+            description: document.getElementById("editDescription"),
+            requiredSkills: document.getElementById("editRequiredSkills"),
+            projectStatus: document.getElementById("editProjectStatus"),
+            statusRemark: document.getElementById("editStatusRemark")
+        };
+        const state = {
+            projects: [],
+            categories: [],
+            tags: [],
+            currentProject: null
+        };
+
+        function esc(value) {
+            if (value === null || value === undefined) return "";
+            return String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function statusText(status) {
+            const map = {
+                AVAILABLE: "正在招募",
+                REQUESTED: "已有申请",
+                AGREED: "已确认",
+                CLOSED: "已关闭",
+                ARCHIVED: "已归档"
+            };
+            const normalized = String(status || "UNKNOWN").toUpperCase();
+            return map[normalized] || normalized;
+        }
+
+        //mapping css
+        function statusClass(status) {
+            const normalized = String(status || "").toUpperCase();
+            if (normalized === "AVAILABLE") return "status-available";
+            if (normalized === "REQUESTED") return "status-requested";
+            if (normalized === "AGREED") return "status-agreed";
+            if (normalized === "CLOSED") return "status-unavailable";
+            if (normalized === "ARCHIVED") return "status-unavailable";
+            return "status-requested";
+        }
+
+        //提示词 （error 红色）
+        function setStatus(message, type) {
+            if (!projectStatus) return;
+            projectStatus.textContent = message;
+            projectStatus.style.color = type === "error" ? "#c74545" : type === "success" ? "var(--green)" : "var(--muted)";
+        }
+
+        function setEditStatus(message, type) {
+            if (!editPanelStatus) return;
+            editPanelStatus.textContent = message || "";
+            editPanelStatus.style.color = type === "error" ? "#c74545" : type === "success" ? "var(--green)" : "var(--muted)";
+        }
+
+        function renderCategoryOptions(selectedId) {
+            if (!fields.categoryId) return;
+            if (!state.categories.length) {
+                fields.categoryId.innerHTML = `<option value="">暂无可用分类</option>`;
+                return;
+            }
+
+            fields.categoryId.innerHTML = `<option value="">请选择项目分类</option>` + state.categories.map(category => {
+                const categoryId = String(category.categoryId);
+                return `<option value="${esc(categoryId)}" ${String(selectedId || "") === categoryId ? "selected" : ""}>${esc(category.categoryName)}</option>`;
+            }).join("");
+        }
+
+        function renderTagOptions(selectedTagIds) {
+            if (!editTagsContainer) return;
+            if (!state.tags.length) {
+                editTagsContainer.innerHTML = `<span style="color:var(--muted); font-size:0.9rem;">暂无可用标签</span>`;
+                return;
+            }
+
+            const selected = new Set((selectedTagIds || []).map(id => String(id)));
+            editTagsContainer.innerHTML = state.tags.map(tag => {
+                const tagId = String(tag.tagId);
+                return `
+                    <label style="display:inline-flex; align-items:center; gap:6px; padding:7px 12px; border:1px solid rgba(90,43,152,0.18); border-radius:999px; cursor:pointer;">
+                        <input type="checkbox" name="projectTag" value="${esc(tagId)}" ${selected.has(tagId) ? "checked" : ""}>
+                        <span>${esc(tag.tagName)}</span>
+                    </label>
+                `;
+            }).join("");
+        }
+
+        function fillProjectForm(project, projectTags) {
+            state.currentProject = project;
+            const selectedTagIds = (projectTags || []).map(tag => tag.tagId);
+
+            fields.projectId.value = project.projectId || "";
+            fields.title.value = project.title || "";
+            fields.maxStudents.value = project.maxStudents || 1;
+            fields.topicArea.value = project.topicArea || "";
+            fields.description.value = project.description || "";
+            fields.requiredSkills.value = project.requiredSkills || "";
+            fields.projectStatus.value = project.projectStatus || "AVAILABLE";
+            fields.statusRemark.value = "";
+            renderCategoryOptions(project.categoryId);
+            renderTagOptions(selectedTagIds);
+
+            editPanelTitle.textContent = `编辑项目：${project.title || "未命名项目"}`;
+        }
+
+        function buildProjectPayload() {
+            return {
+                categoryId: Number(fields.categoryId.value),
+                title: fields.title.value.trim(),
+                description: fields.description.value.trim(),
+                requiredSkills: fields.requiredSkills.value.trim(),
+                topicArea: fields.topicArea.value.trim(),
+                maxStudents: Number(fields.maxStudents.value)
+            };
+        }
+
+        function validateProjectPayload(payload) {
+            if (!payload.categoryId) return "请选择项目分类。";
+            if (!payload.title) return "项目名称不能为空。";
+            if (!payload.description) return "项目描述不能为空。";
+            if (!payload.maxStudents || payload.maxStudents < 1) return "招募人数必须大于等于 1。";
+            return "";
+        }
+
+        async function loadReferenceData() {
+            const [categories, tags] = await Promise.all([
+                ApiClient.teacher.listCategories(),
+                ApiClient.teacher.listTags()
+            ]);
+            state.categories = Array.isArray(categories) ? categories : [];
+            state.tags = Array.isArray(tags) ? tags : [];
+        }
+
+        async function openProjectEditor(projectId, focusArea) {
+            projectEditPanel.hidden = false;
+            setEditStatus("正在加载项目详情...", "");
+            projectEditPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+
+            try {
+                const [project, projectTags] = await Promise.all([
+                    ApiClient.teacher.getProject(projectId),
+                    ApiClient.teacher.listProjectTags(projectId)
+                ]);
+                fillProjectForm(project || {}, Array.isArray(projectTags) ? projectTags : []);
+                if (focusArea === "status") {
+                    fields.projectStatus.focus();
+                } else if (focusArea === "tags") {
+                    editTagsContainer.querySelector("input")?.focus();
+                } else {
+                    fields.title.focus();
+                }
+                setEditStatus("项目详情已加载。", "success");
+            } catch (error) {
+                console.error(error);
+                setEditStatus(error.message || "项目详情加载失败。", "error");
+            }
+        }
+
+        //渲染项目列表
+        function renderProjects(projects) {
+            if (!projectsContainer) return;//如果页面上没有这个容器
+
+            if (!projects.length) {
+                projectsContainer.innerHTML = `<p style="color: var(--muted);">当前没有项目，请创建新项目。</p>`;
+                setStatus("当前没有项目。", "");
+                return;
+            }
+
+            projectsContainer.innerHTML = projects.map(project => {
+                const projectId = project.projectId;
+                const maxStudents = Number(project.maxStudents || 0);
+                const currentAgreed = Number(project.currentAgreedCount || 0);
+                const status = project.projectStatus || "UNKNOWN";
+                const tags = [];
+                if (project.categoryName) tags.push(project.categoryName);
+                if (project.topicArea) tags.push(project.topicArea);
+                if (project.requiredSkills) tags.push(project.requiredSkills);
+                const tagsText = tags.length ? tags.join(" / ") : "暂无分类";//tag 拼接
+
+                return `
+                    <div class="outline-card">
+                        <h4>${esc(project.title || "未命名项目")}</h4>
+                        <p class="meta">${esc(tagsText)}</p>
+                        <p class="meta">项目编号：${esc(project.projectId)} | 名额：${currentAgreed}/${maxStudents}</p>
+                        <div style="flex-grow: 1;">
+                            <span class="status-pill ${statusClass(status)}">${esc(statusText(status))}</span>
+                        </div>
+                        <div style="display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:8px;">
+                            <button class="btn-secondary project-action-btn" data-action="requests" data-project-id="${esc(projectId)}" type="button">查看申请</button>
+                            <button class="btn-secondary project-action-btn" data-action="edit" data-project-id="${esc(projectId)}" type="button">编辑</button>
+                            <button class="btn-secondary project-action-btn" data-action="status" data-project-id="${esc(projectId)}" type="button">状态</button>
+                            <button class="btn-secondary project-action-btn" data-action="tags" data-project-id="${esc(projectId)}" type="button">标签</button>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+            setStatus(`共 ${projects.length} 个项目。`, "");
+        }
+
+        //核心：加载项目列表
+        async function loadProjects() {
+            if (!projectsContainer) return;
+            projectsContainer.innerHTML = `<p style="color: var(--muted);">正在加载...</p>`;
+            setStatus("正在加载我的项目...", "");
+
+            try {
+                const projects = await ApiClient.teacher.listProjects(projectStatusFilter.value);
+                state.projects = Array.isArray(projects) ? projects : [];
+                renderProjects(state.projects);
+            } catch (error) {
+                console.error(error);
+                projectsContainer.innerHTML = `<p style="color: #c74545;">加载失败：${esc(error.message || "请稍后重试")}</p>`;
+                setStatus(error.message || "项目列表加载失败。", "error");
+            }
+        }
+
+        projectsContainer.addEventListener("click", event => {
+            const button = event.target.closest(".project-action-btn");
+            if (!button) return;
+            const action = button.getAttribute("data-action");
+            const projectId = button.getAttribute("data-project-id");
+            if (!projectId) return;
+
+            if (action === "requests") {
+                window.location.href = "index.html";
+                return;
+            }
+
+            openProjectEditor(projectId, action);
+        });
+
+        projectStatusFilter.addEventListener("change", () => loadProjects());
+
+        closeEditPanelBtn.addEventListener("click", () => {
+            projectEditPanel.hidden = true;
+            state.currentProject = null;
+            setEditStatus("", "");
+        });
+
+        projectEditForm.addEventListener("submit", async event => {
+            event.preventDefault();
+            const projectId = fields.projectId.value;
+            const payload = buildProjectPayload();
+            const validationError = validateProjectPayload(payload);
+            if (validationError) {
+                setEditStatus(validationError, "error");
+                return;
+            }
+
+            setEditStatus("正在保存项目信息...", "");
+            try {
+                await ApiClient.teacher.updateProject(projectId, payload);
+                setEditStatus("项目信息已保存。", "success");
+                await loadProjects();
+            } catch (error) {
+                console.error(error);
+                setEditStatus(error.message || "项目信息保存失败。", "error");
+            }
+        });
+
+        projectStatusForm.addEventListener("submit", async event => {
+            event.preventDefault();
+            const projectId = fields.projectId.value;
+            if (!projectId) return;
+
+            setEditStatus("正在保存项目状态...", "");
+            try {
+                await ApiClient.teacher.changeProjectStatus(
+                    projectId,
+                    fields.projectStatus.value,
+                    fields.statusRemark.value.trim()
+                );
+                setEditStatus("项目状态已保存。", "success");
+                await loadProjects();
+            } catch (error) {
+                console.error(error);
+                setEditStatus(error.message || "项目状态保存失败。", "error");
+            }
+        });
+
+        projectTagsForm.addEventListener("submit", async event => {
+            event.preventDefault();
+            const projectId = fields.projectId.value;
+            if (!projectId) return;
+
+            const tagIds = Array.from(editTagsContainer.querySelectorAll('input[name="projectTag"]:checked'))
+                .map(input => Number(input.value))
+                .filter(Number.isFinite);
+            if (tagIds.length === 0) {
+                setEditStatus("请至少选择一个项目标签。", "error");
+                return;
+            }
+
+            setEditStatus("正在保存项目标签...", "");
+            try {
+                await ApiClient.teacher.bindProjectTags(projectId, tagIds);
+                setEditStatus("项目标签已保存。", "success");
+            } catch (error) {
+                console.error(error);
+                setEditStatus(error.message || "项目标签保存失败。", "error");
+            }
+        });
+
+        document.getElementById("createProjectBtn").addEventListener("click", () => {
+            window.location.href = "create-project.html";
+        });
+
+        async function initPage() {
+            try {
+                await loadReferenceData();
+                await loadProjects();
+            } catch (error) {
+                console.error(error);
+                projectsContainer.innerHTML = `<p style="color: #c74545;">加载失败：${esc(error.message || "请稍后重试")}</p>`;
+                setStatus(error.message || "项目管理数据加载失败。", "error");
+            }
+        }
+
+        initPage();
+
+        //default sidebar
         const layout = document.getElementById("layout");
         const toggle = document.getElementById("toggleSidebar");
         if(layout && toggle) {
@@ -74,81 +503,6 @@
             });
         }
     })();
-
-    document.addEventListener("DOMContentLoaded", async function () {
-        const token = localStorage.getItem("token") || "";
-        const userId = localStorage.getItem("userId") || "";
-        if (!token || !userId) {
-            alert("请先登录");
-            window.location.href = "../login/login.html";
-            return;
-        }
-
-        try {
-            const response = await fetch(`/api/teacher/projects?teacherId=${userId}`, {
-                method: "GET",
-                headers: {
-                    "Authorization": `Bearer ${token}`
-                }
-            });
-            const res = await response.json();
-            if (res.code === 1) {
-                renderProjects(res.data);
-            } else {
-                alert(res.msg || "获取项目列表失败");
-            }
-        } catch (error) {
-            console.error("Error fetching projects:", error);
-            alert("网络错误");
-        }
-    });
-
-    function renderProjects(projects) {
-        const container = document.getElementById("projectsContainer");
-        container.innerHTML = "";
-        
-        if (!projects || projects.length === 0) {
-            container.innerHTML = "<p>当前没有项目，请创建新项目。</p>";
-            return;
-        }
-
-        projects.forEach(project => {
-            const maxStudents = project.maxStudents || 0;
-            const currentAgreed = project.currentAgreedCount || 0;
-            
-            let isAvailable = false;
-            // projectStatus corresponds to Project.ProjectStatus enum, such as 'AVAILABLE', 'CLOSED', 'DRAFT'
-            if (project.projectStatus === "AVAILABLE" || project.projectStatus === 0) {
-                isAvailable = true;
-            }
-
-            const pillClass = isAvailable ? "status-available" : "status-unavailable";
-            const pillText = isAvailable ? `Available - 正在招募 (${currentAgreed}/${maxStudents})` : `Closed - 已满员 (${currentAgreed}/${maxStudents})`;
-            
-            // Collect tags from topicArea, requiredSkills
-            let tagsArray = [];
-            if (project.topicArea) tagsArray.push(project.topicArea);
-            if (project.requiredSkills) {
-                // If there are multiple skills separated by comma or space, just keep them as part of the string or split
-                tagsArray.push(project.requiredSkills);
-            }
-            const tagsText = tagsArray.length > 0 ? tagsArray.join(" / ") : "暂无分类";
-
-            const btnText = isAvailable ? "查看申请配置" : "查看详情";
-            
-            const card = document.createElement("div");
-            card.className = "outline-card";
-            card.innerHTML = `
-                <h4>${project.title}</h4>
-                <p class="meta">${tagsText}</p>
-                <div style="flex-grow: 1;">
-                    <span class="status-pill ${pillClass}">${pillText}</span>
-                </div>
-                <button class="btn-secondary" style="width: 100%;" onclick="location.href='request-detail.html?projectId=${project.projectId}'">${btnText}</button>
-            `;
-            container.appendChild(card);
-        });
-    }
 </script>
 </body>
 </html>
