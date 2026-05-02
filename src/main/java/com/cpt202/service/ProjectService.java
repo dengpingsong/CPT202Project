@@ -53,8 +53,9 @@ public interface ProjectService {
      * 新增项目。
      *
      * @param projectDTO 项目新增参数
+     * @return 新增后的项目展示对象
      */
-    void create(Long teacherId, ProjectDTO projectDTO);
+    ProjectVO create(Long teacherId, ProjectDTO projectDTO);
 
     /**
      * 修改项目。

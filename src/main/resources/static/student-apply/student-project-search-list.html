@@ -47,6 +47,30 @@
         </div>
         <div class="panel-card">
             <p style="color: var(--muted); margin-bottom: 10px;">点击 View 可在新页面查看项目详情</p>
+            <div style="display:grid; grid-template-columns: minmax(180px, 1.5fr) minmax(150px, 1fr) minmax(150px, 1fr) auto; gap:10px; align-items:end; margin-bottom:14px;">
+                <label style="display:flex; flex-direction:column; gap:6px; font-size:0.9rem; color:var(--muted);">
+                    关键词
+                    <input id="keywordFilter" type="search" placeholder="项目名称、方向或技能" style="padding:10px 12px; border:1px solid rgba(90,43,152,0.18); border-radius:12px; font:inherit;">
+                </label>
+                <label style="display:flex; flex-direction:column; gap:6px; font-size:0.9rem; color:var(--muted);">
+                    分类
+                    <select id="categoryFilter" style="padding:10px 12px; border:1px solid rgba(90,43,152,0.18); border-radius:12px; font:inherit; background:#fff;">
+                        <option value="">全部分类</option>
+                    </select>
+                </label>
+                <label style="display:flex; flex-direction:column; gap:6px; font-size:0.9rem; color:var(--muted);">
+                    状态
+                    <select id="statusFilter" style="padding:10px 12px; border:1px solid rgba(90,43,152,0.18); border-radius:12px; font:inherit; background:#fff;">
+                        <option value="">全部状态</option>
+                        <option value="AVAILABLE">正在招募</option>
+                        <option value="REQUESTED">已有申请</option>
+                        <option value="AGREED">已确认</option>
+                        <option value="CLOSED">已关闭</option>
+                        <option value="ARCHIVED">已归档</option>
+                    </select>
+                </label>
+                <button class="pagination-btn" id="clearProjectFiltersBtn" type="button" style="padding:10px 14px; border-radius:12px;">清除筛选</button>
+            </div>
             <div id="tagFilterBar" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:16px;">
                 <span style="color:var(--muted); font-size:0.9rem;">标签筛选：</span>
                 <span style="color:var(--muted); font-size:0.9rem;">正在加载标签...</span>
@@ -104,6 +128,10 @@
         const prevPageBtn = document.getElementById("prevPageBtn");
         const nextPageBtn = document.getElementById("nextPageBtn");
         const tagFilterBar = document.getElementById("tagFilterBar");
+        const keywordFilter = document.getElementById("keywordFilter");
+        const categoryFilter = document.getElementById("categoryFilter");
+        const statusFilter = document.getElementById("statusFilter");
+        const clearProjectFiltersBtn = document.getElementById("clearProjectFiltersBtn");
         const DEFAULT_PAGE_SIZE = 8;
         const state = {
             currentPage: 1,
@@ -112,6 +140,7 @@
             total: 0,
             requests: [],
             tags: [],
+            categories: [],
             selectedTagIds: new Set()
         };
 
@@ -272,6 +301,24 @@
             }
         }
 
+        function renderCategoryFilters() {
+            if (!categoryFilter) return;
+            categoryFilter.innerHTML = `<option value="">全部分类</option>` + state.categories.map(category => `
+                <option value="${esc(category.categoryId)}">${esc(category.categoryName)}</option>
+            `).join("");
+        }
+
+        async function loadCategories() {
+            try {
+                const categories = await ApiClient.get("/api/student/projects/categories");
+                state.categories = Array.isArray(categories) ? categories : [];
+                renderCategoryFilters();
+            } catch (error) {
+                console.error(error);
+                categoryFilter.innerHTML = `<option value="">分类加载失败</option>`;
+            }
+        }
+
         async function loadProjects(targetPage) {
             try {
                 const pageNum = Math.max(1, Number(targetPage || state.currentPage || 1));
@@ -282,6 +329,16 @@
                 state.selectedTagIds.forEach(tagId => {
                     params.append("tagIds", tagId);
                 });
+                const keyword = keywordFilter.value.trim();
+                if (keyword) {
+                    params.set("keyword", keyword);
+                }
+                if (categoryFilter.value) {
+                    params.set("categoryId", categoryFilter.value);
+                }
+                if (statusFilter.value) {
+                    params.set("status", statusFilter.value);
+                }
 
                 const projectPage = await ApiClient.get(`/api/student/projects?${params.toString()}`);
                 const list = Array.isArray(projectPage?.records) ? projectPage.records : [];
@@ -312,7 +369,8 @@
             try {
                 const [requests] = await Promise.all([
                     ApiClient.get("/api/student/requests"),
-                    loadTags()
+                    loadTags(),
+                    loadCategories()
                 ]);
                 state.requests = Array.isArray(requests) ? requests : [];
                 await loadProjects(1);
@@ -363,6 +421,22 @@
                 renderTagFilters();
                 loadProjects(1);
             }
+        });
+
+        let keywordTimer = null;
+        keywordFilter.addEventListener("input", () => {
+            window.clearTimeout(keywordTimer);
+            keywordTimer = window.setTimeout(() => loadProjects(1), 250);
+        });
+        categoryFilter.addEventListener("change", () => loadProjects(1));
+        statusFilter.addEventListener("change", () => loadProjects(1));
+        clearProjectFiltersBtn.addEventListener("click", () => {
+            keywordFilter.value = "";
+            categoryFilter.value = "";
+            statusFilter.value = "";
+            state.selectedTagIds.clear();
+            renderTagFilters();
+            loadProjects(1);
         });
 
         initPage();
