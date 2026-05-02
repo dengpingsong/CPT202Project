@@ -2,30 +2,38 @@ package com.cpt202.service.impl;
 
 import com.cpt202.constant.MessageConstants;
 import com.cpt202.dto.LoginDTO;
+import com.cpt202.dto.PasswordResetConfirmDTO;
+import com.cpt202.dto.PasswordResetRequestDTO;
 import com.cpt202.dto.RegisterUserDTO;
-import com.cpt202.dto.ResetPasswordDTO;
 import com.cpt202.exception.BusinessException;
 import com.cpt202.exception.RuleViolationException;
+import com.cpt202.model.entity.PasswordResetToken;
 import com.cpt202.model.entity.StudentProfile;
 import com.cpt202.model.entity.TeacherProfile;
 import com.cpt202.model.entity.User;
+import com.cpt202.repository.PasswordResetTokenRepository;
 import com.cpt202.repository.StudentProfileRepository;
 import com.cpt202.repository.TeacherProfileRepository;
 import com.cpt202.repository.UserRepository;
 import com.cpt202.service.AuthService;
 import com.cpt202.service.JwtTokenService;
+import com.cpt202.service.PasswordResetMailService;
 import com.cpt202.vo.LoginVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
+import java.util.Base64;
 import java.util.regex.Pattern;
 
 /**
@@ -39,10 +47,19 @@ public class AuthServiceImpl implements AuthService {
 
     private static final String DEFAULT_ACCOUNT_STATUS = "ACTIVE";
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private final UserRepository userRepository;
     private final StudentProfileRepository studentProfileRepository;
     private final TeacherProfileRepository teacherProfileRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final JwtTokenService jwtTokenService;
+    private final PasswordResetMailService passwordResetMailService;
+
+    @Value("${app.frontend-base-url}")
+    private String frontendBaseUrl;
+
+    @Value("${app.password-reset-token-expiration-minutes:30}")
+    private long passwordResetTokenExpirationMinutes;
 
     /**
      * 注册新用户。
@@ -116,17 +133,59 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public void resetPassword(ResetPasswordDTO resetPasswordDTO) {
-        User user = userRepository.findByUsername(resetPasswordDTO.getUsername())
-                .orElseThrow(() -> new BusinessException(MessageConstants.RESET_PASSWORD_IDENTITY_MISMATCH));
+    public void requestPasswordReset(PasswordResetRequestDTO requestDTO) {
+        passwordResetTokenRepository.deleteByExpiresAtBefore(LocalDateTime.now());
 
-        if (!user.getEmail().equalsIgnoreCase(resetPasswordDTO.getEmail().trim())) {
-            throw new BusinessException(MessageConstants.RESET_PASSWORD_IDENTITY_MISMATCH);
+        String normalizedEmail = requestDTO.getEmail().trim();
+        if (!EMAIL_PATTERN.matcher(normalizedEmail).matches()) {
+            throw new RuleViolationException(MessageConstants.EMAIL_FORMAT_INVALID);
         }
 
-        user.setPasswordHash(hashPassword(resetPasswordDTO.getNewPassword()));
+        User user = userRepository.findByEmailIgnoreCase(normalizedEmail).orElse(null);
+        if (user == null || !DEFAULT_ACCOUNT_STATUS.equalsIgnoreCase(user.getAccountStatus())) {
+            return;
+        }
+
+        invalidateActiveResetTokens(user, LocalDateTime.now());
+
+        String rawToken = generateResetToken();
+        LocalDateTime now = LocalDateTime.now();
+
+        PasswordResetToken passwordResetToken = new PasswordResetToken();
+        passwordResetToken.setUser(user);
+        passwordResetToken.setToken(rawToken);
+        passwordResetToken.setCreatedAt(now);
+        passwordResetToken.setExpiresAt(now.plusMinutes(passwordResetTokenExpirationMinutes));
+        passwordResetTokenRepository.save(passwordResetToken);
+
+        passwordResetMailService.sendPasswordResetMail(user, buildResetLink(rawToken));
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(PasswordResetConfirmDTO confirmDTO) {
+        if (!StringUtils.hasText(confirmDTO.getToken())) {
+            throw new RuleViolationException(MessageConstants.PASSWORD_RESET_TOKEN_REQUIRED);
+        }
+
+        PasswordResetToken passwordResetToken = passwordResetTokenRepository.findByToken(confirmDTO.getToken().trim())
+                .orElseThrow(() -> new BusinessException(MessageConstants.PASSWORD_RESET_LINK_INVALID));
+
+        if (passwordResetToken.getUsedAt() != null) {
+            throw new BusinessException(MessageConstants.PASSWORD_RESET_LINK_ALREADY_USED);
+        }
+
+        if (passwordResetToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new BusinessException(MessageConstants.PASSWORD_RESET_LINK_EXPIRED);
+        }
+
+        User user = passwordResetToken.getUser();
+        user.setPasswordHash(hashPassword(confirmDTO.getNewPassword()));
         user.setUpdatedAt(LocalDateTime.now());
+        passwordResetToken.setUsedAt(LocalDateTime.now());
         userRepository.save(user);
+        passwordResetTokenRepository.save(passwordResetToken);
+        invalidateOtherActiveTokens(user, passwordResetToken.getResetId(), LocalDateTime.now());
     }
 
     private void validateRegisterPayload(RegisterUserDTO dto) {
@@ -170,6 +229,31 @@ public class AuthServiceImpl implements AuthService {
         BeanUtils.copyProperties(user, loginVO);
         loginVO.setToken(jwtTokenService.generateToken(user));
         return loginVO;
+    }
+
+    private void invalidateActiveResetTokens(User user, LocalDateTime usedAt) {
+        for (PasswordResetToken existingToken : passwordResetTokenRepository.findAllByUserAndUsedAtIsNull(user)) {
+            existingToken.setUsedAt(usedAt);
+        }
+    }
+
+    private void invalidateOtherActiveTokens(User user, Long currentResetId, LocalDateTime usedAt) {
+        for (PasswordResetToken existingToken : passwordResetTokenRepository.findAllByUserAndUsedAtIsNull(user)) {
+            if (!existingToken.getResetId().equals(currentResetId)) {
+                existingToken.setUsedAt(usedAt);
+            }
+        }
+    }
+
+    private String buildResetLink(String rawToken) {
+        String baseUrl = frontendBaseUrl.endsWith("/") ? frontendBaseUrl.substring(0, frontendBaseUrl.length() - 1) : frontendBaseUrl;
+        return "%s/auth/reset-password?token=%s".formatted(baseUrl, rawToken);
+    }
+
+    private String generateResetToken() {
+        byte[] tokenBytes = new byte[32];
+        SECURE_RANDOM.nextBytes(tokenBytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes);
     }
 
     private String hashPassword(String password) {

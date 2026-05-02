@@ -138,15 +138,20 @@
 
             <div id="resetPanel" class="auth-panel">
                 <h2>Reset Password</h2>
-                <h3>Verify username and email, then set a new password</h3>
+                <h3 id="resetPanelSubtitle">Enter your email to receive a reset link</h3>
 
-                <form id="resetForm">
-                    <input id="resetUsername" type="text" placeholder="Username" required>
+                <form id="resetRequestForm">
                     <input id="resetEmail" type="email" placeholder="Email" required>
+                    <div id="resetRequestMessage" class="helper"></div>
+                    <button id="resetRequestBtn" type="submit">Send Reset Link</button>
+                </form>
+
+                <form id="resetConfirmForm" hidden>
+                    <input id="resetToken" type="hidden">
                     <input id="resetPassword" type="password" placeholder="New Password" required>
                     <input id="resetConfirmPassword" type="password" placeholder="Confirm New Password" required>
-                    <div id="resetMessage" class="helper"></div>
-                    <button type="submit">Reset Password</button>
+                    <div id="resetConfirmMessage" class="helper"></div>
+                    <button id="resetConfirmBtn" type="submit">Set New Password</button>
                 </form>
             </div>
         </div>
@@ -169,9 +174,16 @@
     const registerError = document.getElementById("registerError");
     const studentFields = document.getElementById("registerStudentFields");
     const teacherFields = document.getElementById("registerTeacherFields");
-    const resetForm = document.getElementById("resetForm");
-    const resetMessage = document.getElementById("resetMessage");
+    const resetPanelSubtitle = document.getElementById("resetPanelSubtitle");
+    const resetRequestForm = document.getElementById("resetRequestForm");
+    const resetRequestMessage = document.getElementById("resetRequestMessage");
+    const resetRequestBtn = document.getElementById("resetRequestBtn");
+    const resetConfirmForm = document.getElementById("resetConfirmForm");
+    const resetConfirmMessage = document.getElementById("resetConfirmMessage");
+    const resetConfirmBtn = document.getElementById("resetConfirmBtn");
+    const resetTokenInput = document.getElementById("resetToken");
     const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const pageToken = new URLSearchParams(window.location.search).get("token") || "";
 
     function clearSensitiveFields() {
         document.getElementById("loginPassword").value = "";
@@ -217,6 +229,18 @@
         }
     }
 
+    function configureResetPanel(token) {
+        const hasToken = Boolean(token);
+        resetRequestForm.hidden = hasToken;
+        resetConfirmForm.hidden = !hasToken;
+        resetTokenInput.value = token;
+        resetRequestMessage.textContent = "";
+        resetConfirmMessage.textContent = "";
+        resetPanelSubtitle.textContent = hasToken
+            ? "Set a new password for your account"
+            : "Enter your email to receive a reset link";
+    }
+
     panelButtons.forEach(button => {
         button.addEventListener("click", () => showPanel(button.dataset.panel));
     });
@@ -236,6 +260,7 @@
 
     registerRole.addEventListener("change", toggleRegisterFields);
     toggleRegisterFields();
+    configureResetPanel(pageToken);
     showInitialPanel();
 
     function redirectByRole(role) {
@@ -357,21 +382,60 @@
         }
     });
 
-    resetForm.addEventListener("submit", async (e) => {
+    resetRequestForm.addEventListener("submit", async (e) => {
         e.preventDefault();
-        resetMessage.textContent = "";
+        resetRequestMessage.textContent = "";
+        resetRequestBtn.disabled = true;
 
-        const username = document.getElementById("resetUsername").value.trim();
         const email = document.getElementById("resetEmail").value.trim();
+
+        if (!validateEmail(email)) {
+            resetRequestMessage.textContent = "邮箱格式不正确。";
+            resetRequestBtn.disabled = false;
+            return;
+        }
+
+        try {
+            const res = await fetch(`${BASE_URL}/forgot-password`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    email
+                })
+            });
+            const data = await res.json();
+
+            if (data.code === 1) {
+                resetRequestForm.reset();
+                resetRequestMessage.textContent = data.data || "If the email exists, a reset link has been sent.";
+            } else {
+                resetRequestMessage.textContent = data.msg || "Failed to send reset email";
+            }
+        } catch (err) {
+            console.error(err);
+            resetRequestMessage.textContent = "Network error, please try again.";
+        } finally {
+            resetRequestBtn.disabled = false;
+        }
+    });
+
+    resetConfirmForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        resetConfirmMessage.textContent = "";
+        resetConfirmBtn.disabled = true;
+
+        const token = resetTokenInput.value.trim();
         const newPassword = document.getElementById("resetPassword").value;
         const confirmPassword = document.getElementById("resetConfirmPassword").value;
 
-        if (!validateEmail(email)) {
-            resetMessage.textContent = "邮箱格式不正确。";
+        if (!token) {
+            resetConfirmMessage.textContent = "Reset token is missing. Please reopen the email link.";
+            resetConfirmBtn.disabled = false;
             return;
         }
         if (newPassword !== confirmPassword) {
-            resetMessage.textContent = "The two passwords do not match.";
+            resetConfirmMessage.textContent = "The two passwords do not match.";
+            resetConfirmBtn.disabled = false;
             return;
         }
 
@@ -380,23 +444,28 @@
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    username,
-                    email,
+                    token,
                     newPassword
                 })
             });
             const data = await res.json();
 
             if (data.code === 1) {
-                resetForm.reset();
-                resetMessage.textContent = "Password reset successfully. Please log in.";
+                resetConfirmForm.reset();
+                resetConfirmMessage.textContent = "Password reset successfully. Please log in.";
+                const targetUrl = new URL(window.location.href);
+                targetUrl.searchParams.delete("token");
+                history.replaceState({}, "", `${targetUrl.pathname}${targetUrl.search}#login`);
+                configureResetPanel("");
                 showPanel("loginPanel");
             } else {
-                resetMessage.textContent = data.msg || "Password reset failed";
+                resetConfirmMessage.textContent = data.msg || "Password reset failed";
             }
         } catch (err) {
             console.error(err);
-            resetMessage.textContent = "Network error, please try again.";
+            resetConfirmMessage.textContent = "Network error, please try again.";
+        } finally {
+            resetConfirmBtn.disabled = false;
         }
     });
 </script>

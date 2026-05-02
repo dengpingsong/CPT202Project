@@ -2,7 +2,8 @@ package com.cpt202.service;
 
 import com.cpt202.dto.LoginDTO;
 import com.cpt202.dto.RegisterUserDTO;
-import com.cpt202.dto.ResetPasswordDTO;
+import com.cpt202.dto.PasswordResetConfirmDTO;
+import com.cpt202.dto.PasswordResetRequestDTO;
 import com.cpt202.vo.LoginVO;
 
 /**
@@ -29,9 +30,16 @@ public interface AuthService {
     LoginVO login(LoginDTO loginDTO);
 
     /**
-     * 根据用户名和邮箱重置密码。
+     * 根据邮箱发送密码重置链接。
      *
-     * @param resetPasswordDTO 重置密码参数
+     * @param requestDTO 邮箱参数
      */
-    void resetPassword(ResetPasswordDTO resetPasswordDTO);
+    void requestPasswordReset(PasswordResetRequestDTO requestDTO);
+
+    /**
+     * 通过重置令牌更新密码。
+     *
+     * @param confirmDTO 重置确认参数
+     */
+    void resetPassword(PasswordResetConfirmDTO confirmDTO);
 }
