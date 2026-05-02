@@ -5,21 +5,15 @@
 name: CD (Develop) - Docker Deploy
 
 on:
-  workflow_run:
-    workflows: ["CI - Build & Test"]
-    types:
-      - completed
+  push:
     branches: ["develop"]
 
 jobs:
   build-and-push:
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -40,10 +34,10 @@ jobs:
           context: .
           file: ./Dockerfile
           load: true
-          tags: cpt202program:${{ github.event.workflow_run.head_sha }}
+          tags: cpt202program:${{ github.sha }}
 
       - name: Save Docker image archive
-        run: docker save cpt202program:${{ github.event.workflow_run.head_sha }} | gzip > cpt202program-image.tar.gz
+        run: docker save cpt202program:${{ github.sha }} | gzip > cpt202program-image.tar.gz
 
       - name: Show Docker archive file
         run: ls -lh cpt202program-image.tar.gz
@@ -65,7 +59,6 @@ jobs:
           debug: true
 
   deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' }}
     runs-on: ubuntu-latest
     needs: build-and-push
     steps:
@@ -98,6 +91,9 @@ jobs:
           port: 22
           script: |
             set -eux
+            echo "NEW NGINX DEPLOY LOGIC (develop)"
+            hostname
+            curl -fsS ifconfig.me || true
             mkdir -p /opt/cpt202-dev
             docker network create cpt202-network || true
             docker volume create cpt202-mysql-data || true
@@ -134,6 +130,10 @@ jobs:
             fi
 
             docker image inspect mysql:8.4 >/dev/null 2>&1 || docker pull mysql:8.4
+            docker image inspect nginx:1.27-alpine >/dev/null 2>&1 || {
+              docker pull docker.m.daocloud.io/nginx:1.27-alpine
+              docker tag docker.m.daocloud.io/nginx:1.27-alpine nginx:1.27-alpine
+            }
 
             gzip -dc /tmp/cpt202program-image.tar.gz | docker load
             rm -f /tmp/cpt202program-image.tar.gz
@@ -143,7 +143,7 @@ jobs:
             MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}
             MYSQL_USERNAME=${{ secrets.MYSQL_USERNAME }}
             MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
-            APP_IMAGE_TAG=${{ github.event.workflow_run.head_sha }}
+            APP_IMAGE_TAG=${{ github.sha }}
             EOF
             JWT_SECRET_VAL='${{ secrets.JWT_SECRET }}'
             [ -n "$JWT_SECRET_VAL" ] && echo "JWT_SECRET=$JWT_SECRET_VAL" >> /opt/cpt202-dev/.env || true
@@ -164,5 +164,7 @@ jobs:
               docker exec cpt202-nginx nginx -s reload
             fi
 
+            ls -la /opt/cpt202-dev
+            ls -la /opt/cpt202-dev/nginx
             rm -f /opt/cpt202-dev/.env
             docker compose -f docker-compose.yml -f docker-compose.dev.yml ps
