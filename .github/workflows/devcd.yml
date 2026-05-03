@@ -71,7 +71,6 @@ jobs:
           MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
           MYSQL_USERNAME: ${{ secrets.MYSQL_USERNAME }}
           MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
           SPRING_MAIL_USERNAME: ${{ secrets.SPRING_MAIL_USERNAME }}
           SPRING_MAIL_PASSWORD: ${{ secrets.SPRING_MAIL_PASSWORD }}
           APP_FRONTEND_BASE_URL: ${{ secrets.APP_FRONTEND_BASE_URL }}
@@ -83,7 +82,6 @@ jobs:
           test -n "$MYSQL_DATABASE" || { echo "::error::Missing secret MYSQL_DATABASE"; exit 1; }
           test -n "$MYSQL_USERNAME" || { echo "::error::Missing secret MYSQL_USERNAME"; exit 1; }
           test -n "$MYSQL_PASSWORD" || { echo "::error::Missing secret MYSQL_PASSWORD"; exit 1; }
-          test -n "$JWT_SECRET" || echo "::warning::JWT_SECRET not set; falling back to application default (not recommended for production)"
           test -n "$SPRING_MAIL_USERNAME" || echo "::warning::SPRING_MAIL_USERNAME not set; password reset emails will be disabled"
           test -n "$SPRING_MAIL_PASSWORD" || echo "::warning::SPRING_MAIL_PASSWORD not set; password reset emails will be disabled"
           test -n "$APP_FRONTEND_BASE_URL" || echo "::warning::APP_FRONTEND_BASE_URL not set; reset links will fall back to localhost"
@@ -151,8 +149,6 @@ jobs:
             MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
             APP_IMAGE_TAG=${{ github.sha }}
             EOF
-            JWT_SECRET_VAL='${{ secrets.JWT_SECRET }}'
-            [ -n "$JWT_SECRET_VAL" ] && echo "JWT_SECRET=$JWT_SECRET_VAL" >> /opt/cpt202-dev/.env || true
             MAIL_USERNAME_VAL='${{ secrets.SPRING_MAIL_USERNAME }}'
             [ -n "$MAIL_USERNAME_VAL" ] && echo "SPRING_MAIL_USERNAME=$MAIL_USERNAME_VAL" >> /opt/cpt202-dev/.env || true
             MAIL_PASSWORD_VAL='${{ secrets.SPRING_MAIL_PASSWORD }}'
@@ -178,5 +174,5 @@ jobs:
 
             ls -la /opt/cpt202-dev
             ls -la /opt/cpt202-dev/nginx
-            rm -f /opt/cpt202-dev/.env
             docker compose --env-file /opt/cpt202-dev/.env -f docker-compose.yml -f docker-compose.dev.yml ps
+            rm -f /opt/cpt202-dev/.env
