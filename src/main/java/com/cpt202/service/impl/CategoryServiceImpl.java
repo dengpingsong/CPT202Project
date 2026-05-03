@@ -1,19 +1,23 @@
 package com.cpt202.service.impl;
 
+import com.cpt202.constant.RedisKeyConstants;
 import com.cpt202.constant.MessageConstants;
 import com.cpt202.dto.CategoryDTO;
 import com.cpt202.exception.NotFoundException;
 import com.cpt202.exception.RuleViolationException;
 import com.cpt202.model.entity.Category;
 import com.cpt202.repository.CategoryRepository;
+import com.cpt202.service.RedisCacheService;
 import com.cpt202.service.CategoryService;
 import com.cpt202.vo.CategoryVO;
+import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.time.LocalDateTime;
+import java.time.Duration;
 import java.util.List;
 
 /**
@@ -25,20 +29,26 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CategoryServiceImpl implements CategoryService {
 
+    private static final Duration CATEGORY_CACHE_TTL = Duration.ofMinutes(30);
+
     private final CategoryRepository categoryRepository;
+    private final RedisCacheService redisCacheService;
 
     /**
      * 查询全部分类列表。
      */
     @Override
     public List<CategoryVO> listAll() {
-        List<Category> categories = categoryRepository.findAll();
-
-        List<CategoryVO> categoryVos = new ArrayList<>(categories.size());
-        for (Category category : categories) {
-            categoryVos.add(toCategoryVO(category));
-        }
-        return categoryVos;
+        return redisCacheService.get(RedisKeyConstants.CATEGORY_LIST, new TypeReference<List<CategoryVO>>() { })
+                .orElseGet(() -> {
+                    List<Category> categories = categoryRepository.findAll();
+                    List<CategoryVO> categoryVos = new ArrayList<>(categories.size());
+                    for (Category category : categories) {
+                        categoryVos.add(toCategoryVO(category));
+                    }
+                    redisCacheService.set(RedisKeyConstants.CATEGORY_LIST, categoryVos, CATEGORY_CACHE_TTL);
+                    return categoryVos;
+                });
     }
 
     /**
@@ -72,6 +82,7 @@ public class CategoryServiceImpl implements CategoryService {
         category.setUpdatedAt(now);
 
         categoryRepository.save(category);
+        redisCacheService.delete(RedisKeyConstants.CATEGORY_LIST);
     }
 
     /**
@@ -95,6 +106,7 @@ public class CategoryServiceImpl implements CategoryService {
         category.setUpdatedAt(LocalDateTime.now());
 
         categoryRepository.save(category);
+        redisCacheService.delete(RedisKeyConstants.CATEGORY_LIST);
     }
 
     /**
@@ -109,6 +121,7 @@ public class CategoryServiceImpl implements CategoryService {
         }
 
         categoryRepository.deleteById(categoryId);
+        redisCacheService.delete(RedisKeyConstants.CATEGORY_LIST);
     }
 
     private CategoryVO toCategoryVO(Category category) {
