@@ -6,9 +6,10 @@ import com.cpt202.constant.SecurityConstants;
 import com.cpt202.exception.UnauthorizedAccessException;
 import com.cpt202.model.entity.User;
 import com.cpt202.properties.JwtProperties;
-import com.cpt202.repository.UserRepository;
 import com.cpt202.security.AuthContext;
+import com.cpt202.security.UserAuthState;
 import com.cpt202.service.JwtTokenService;
+import com.cpt202.service.UserAuthStateService;
 import com.cpt202.util.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.annotation.PostConstruct;
@@ -24,7 +25,7 @@ import javax.crypto.SecretKey;
 @RequiredArgsConstructor
 public class JwtTokenServiceImpl implements JwtTokenService {
 
-    private final UserRepository userRepository;
+    private final UserAuthStateService userAuthStateService;
     private final JwtProperties jwtProperties;
 
     private SecretKey signingKey;
@@ -52,17 +53,16 @@ public class JwtTokenServiceImpl implements JwtTokenService {
         String roleValue = claims.get(JwtClaimsConstant.ROLE, String.class);
         User.UserRole tokenRole = parseRole(roleValue);
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UnauthorizedAccessException(MessageConstants.USER_NOT_FOUND_OR_DENIED));
+        UserAuthState user = userAuthStateService.getUserAuthState(userId);
 
-        if (user.getRole() != tokenRole) {
+        if (user.role() != tokenRole) {
             throw new UnauthorizedAccessException(MessageConstants.ROLE_MISMATCH);
         }
-        if (!SecurityConstants.ACTIVE_ACCOUNT_STATUS.equalsIgnoreCase(user.getAccountStatus())) {
+        if (!SecurityConstants.ACTIVE_ACCOUNT_STATUS.equalsIgnoreCase(user.accountStatus())) {
             throw new UnauthorizedAccessException(MessageConstants.ACCOUNT_DISABLED);
         }
 
-        return new AuthContext(user.getUserId(), user.getRole());
+        return new AuthContext(user.userId(), user.role());
     }
 
     private User.UserRole parseRole(String roleValue) {

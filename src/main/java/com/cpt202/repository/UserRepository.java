@@ -2,6 +2,7 @@ package com.cpt202.repository;
 
 import com.cpt202.model.entity.User;
 import com.cpt202.repository.specification.UserSpecifications;
+import com.cpt202.security.UserAuthState;
 import com.cpt202.vo.UserVO;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -22,6 +23,17 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     boolean existsByEmail(String email);
 
     boolean existsByEmailIgnoreCaseAndUserIdNot(String email, Long userId);
+
+    @Query("""
+            select new com.cpt202.security.UserAuthState(
+                u.userId,
+                u.role,
+                u.accountStatus
+            )
+            from User u
+            where u.userId = :userId
+            """)
+    Optional<UserAuthState> findAuthStateByUserId(@Param("userId") Long userId);
 
     default List<User> findUsers(User.UserRole role, String accountStatus) {
         return findAll(UserSpecifications.byRoleAndStatus(role, accountStatus));
