@@ -566,6 +566,33 @@
                     </div>
                 </div>
 
+                <div class="form-section">
+                    <div class="section-title">双重验证（TOTP）</div>
+                    <div class="form-row">
+                        <span class="form-label"><i class="bi bi-shield-lock"></i> 当前状态</span>
+                        <div id="twoFactorSummary" style="color:var(--muted);">正在加载 2FA 状态...</div>
+                    </div>
+                    <div id="twoFactorSetupBox" style="border:1px solid rgba(90,43,152,0.12); border-radius:20px; padding:18px; background:#faf8ff;" hidden>
+                        <canvas id="twoFactorQrCanvas" width="180" height="180" style="max-width:180px;"></canvas>
+                        <div style="margin-top:14px; font-size:0.9rem; color:var(--muted);">手动输入密钥</div>
+                        <div id="twoFactorManualKey" style="font-weight:600; word-break:break-all; margin:8px 0 14px;"></div>
+                        <input type="text" class="form-control" id="twoFactorEnableCode" inputmode="numeric" maxlength="6" placeholder="输入验证器中的 6 位验证码">
+                        <div style="margin-top:12px;">
+                            <button type="button" class="btn-primary" id="enableTwoFactorBtn">确认开启 2FA</button>
+                        </div>
+                    </div>
+                    <div id="twoFactorDisableBox" style="border:1px solid rgba(90,43,152,0.12); border-radius:20px; padding:18px; background:#faf8ff;" hidden>
+                        <input type="password" class="form-control" id="twoFactorDisablePassword" placeholder="输入当前密码以关闭 2FA">
+                        <div style="margin-top:12px;">
+                            <button type="button" class="btn-secondary" id="disableTwoFactorBtn">关闭 2FA</button>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                        <button type="button" class="btn-secondary" id="setupTwoFactorBtn">开始设置 2FA</button>
+                    </div>
+                    <div class="form-status" id="twoFactorStatus" aria-live="polite"></div>
+                </div>
+
                 <!-- 操作按钮（包含退出登录） -->
                 <div class="form-actions">
                     <button type="submit" class="btn-primary">
@@ -619,6 +646,7 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 <script src="../js/api.js"></script>
 <script>
     (function() {
@@ -643,6 +671,17 @@
         const passwordStatus = document.getElementById('passwordStatus');
         const closePasswordModalBtn = document.getElementById('closePasswordModalBtn');
         const cancelPasswordBtn = document.getElementById('cancelPasswordBtn');
+        const twoFactorSummary = document.getElementById('twoFactorSummary');
+        const twoFactorSetupBox = document.getElementById('twoFactorSetupBox');
+        const twoFactorDisableBox = document.getElementById('twoFactorDisableBox');
+        const twoFactorManualKey = document.getElementById('twoFactorManualKey');
+        const twoFactorEnableCode = document.getElementById('twoFactorEnableCode');
+        const twoFactorDisablePassword = document.getElementById('twoFactorDisablePassword');
+        const twoFactorStatus = document.getElementById('twoFactorStatus');
+        const setupTwoFactorBtn = document.getElementById('setupTwoFactorBtn');
+        const enableTwoFactorBtn = document.getElementById('enableTwoFactorBtn');
+        const disableTwoFactorBtn = document.getElementById('disableTwoFactorBtn');
+        const twoFactorQrCanvas = document.getElementById('twoFactorQrCanvas');
 
         const inputs = {
             fullName: document.getElementById('fullName'),
@@ -663,6 +702,18 @@
         function setPasswordStatus(message, type) {
             passwordStatus.textContent = message || "";
             passwordStatus.className = type ? `form-status ${type}` : "form-status";
+        }
+
+        function setTwoFactorStatus(message, type) {
+            twoFactorStatus.textContent = message || "";
+            twoFactorStatus.className = type ? `form-status ${type}` : "form-status";
+        }
+
+        function renderTwoFactorState(enabled) {
+            twoFactorSummary.textContent = enabled ? "已开启" : "未开启";
+            twoFactorSetupBox.hidden = true;
+            twoFactorDisableBox.hidden = !enabled;
+            setupTwoFactorBtn.textContent = enabled ? "重新生成设置二维码" : "开始设置 2FA";
         }
 
         //打开密码弹窗*******
@@ -694,13 +745,14 @@
             inputs.enrollmentDate.value = formatDateForInput(profile.enrollmentDate);
             inputs.phone.value = profile.phone || "";
             inputs.interests.value = profile.interests || "";
+            renderTwoFactorState(Boolean(profile.twoFactorEnabled));
         }
 
         //后端加载当前学生信息
         async function fetchProfile() {
             setStatus("正在加载个人资料...", "");//提示
             try {
-                const profile = await ApiClient.get(API_BASE);//向后端发送 GET 请求，获取当前学生的个人资料。
+                const profile = await ApiClient.student.getProfile();//向后端发送 GET 请求，获取当前学生的个人资料。
                 fillProfile(profile || {});
 
                 if (profile?.fullName) {
@@ -712,12 +764,82 @@
                 setStatus(err.message || "个人资料加载失败，请稍后重试。", "error");
             }
         }
+
+        async function initializeTwoFactorSetup() {
+            setupTwoFactorBtn.disabled = true;
+            setTwoFactorStatus("正在生成二维码...", "");
+            try {
+                const setup = await ApiClient.student.initializeTwoFactorSetup();
+                if (setup.enabled) {
+                    renderTwoFactorState(true);
+                    setTwoFactorStatus("当前账号已开启 2FA。", "success");
+                    return;
+                }
+                renderTwoFactorState(false);
+                twoFactorSetupBox.hidden = false;
+                twoFactorManualKey.textContent = setup.manualEntryKey || "";
+                twoFactorEnableCode.value = "";
+                await QRCode.toCanvas(twoFactorQrCanvas, setup.otpAuthUri || "", { width: 180, margin: 1 });
+                setTwoFactorStatus("请扫码后输入 6 位验证码确认开启。", "success");
+            } catch (err) {
+                console.error(err);
+                setTwoFactorStatus(err.message || "二维码生成失败，请稍后重试。", "error");
+            } finally {
+                setupTwoFactorBtn.disabled = false;
+            }
+        }
+
+        async function enableTwoFactor() {
+            const code = twoFactorEnableCode.value.trim();
+            if (!/^\d{6}$/.test(code)) {
+                setTwoFactorStatus("请输入 6 位数字验证码。", "error");
+                return;
+            }
+            enableTwoFactorBtn.disabled = true;
+            setTwoFactorStatus("正在开启 2FA...", "");
+            try {
+                await ApiClient.student.enableTwoFactor(code);
+                renderTwoFactorState(true);
+                twoFactorSetupBox.hidden = true;
+                setTwoFactorStatus("2FA 已开启。", "success");
+                await fetchProfile();
+            } catch (err) {
+                console.error(err);
+                setTwoFactorStatus(err.message || "开启 2FA 失败，请稍后重试。", "error");
+            } finally {
+                enableTwoFactorBtn.disabled = false;
+            }
+        }
+
+        async function disableTwoFactor() {
+            const currentPassword = twoFactorDisablePassword.value.trim();
+            if (!currentPassword) {
+                setTwoFactorStatus("关闭 2FA 前请输入当前密码。", "error");
+                return;
+            }
+            disableTwoFactorBtn.disabled = true;
+            setTwoFactorStatus("正在关闭 2FA...", "");
+            try {
+                await ApiClient.student.disableTwoFactor(currentPassword);
+                renderTwoFactorState(false);
+                setTwoFactorStatus("2FA 已关闭。", "success");
+                await fetchProfile();
+            } catch (err) {
+                console.error(err);
+                setTwoFactorStatus(err.message || "关闭 2FA 失败，请稍后重试。", "error");
+            } finally {
+                disableTwoFactorBtn.disabled = false;
+            }
+        }
         fetchProfile();
 
         //绑定按钮
         changePasswordBtn.addEventListener('click', openPasswordModal);
         closePasswordModalBtn.addEventListener('click', closePasswordModal);
         cancelPasswordBtn.addEventListener('click', closePasswordModal);
+        setupTwoFactorBtn.addEventListener('click', initializeTwoFactorSetup);
+        enableTwoFactorBtn.addEventListener('click', enableTwoFactor);
+        disableTwoFactorBtn.addEventListener('click', disableTwoFactor);
         passwordModal.addEventListener('click', (event) => {
             if (event.target === passwordModal) {
                 closePasswordModal();
@@ -763,10 +885,7 @@
             setPasswordStatus("正在提交密码修改...", "");
 
             try {
-                await ApiClient.put(`${API_BASE}/password`, {
-                    oldPassword: oldPasswordValue,
-                    newPassword: passwordValue
-                });
+                await ApiClient.student.changePassword(oldPasswordValue, passwordValue);
                 setPasswordStatus("密码修改成功。", "success");
                 setStatus("密码修改成功。", "success");
                 setTimeout(closePasswordModal, 700);
@@ -832,7 +951,7 @@
             };
 
             try {
-                await ApiClient.put(API_BASE, payload);
+                await ApiClient.student.updateProfile(payload);
                 localStorage.setItem("fullName", payload.fullName);
                 localStorage.setItem("username", localStorage.getItem("username") || user.username || "");
                 setStatus("个人设置已保存。", "success");

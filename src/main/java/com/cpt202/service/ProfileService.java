@@ -4,9 +4,12 @@ import com.cpt202.dto.AdminProfileUpdateDTO;
 import com.cpt202.dto.ChangePasswordDTO;
 import com.cpt202.dto.StudentProfileUpdateDTO;
 import com.cpt202.dto.TeacherProfileUpdateDTO;
+import com.cpt202.dto.TwoFactorDisableDTO;
+import com.cpt202.dto.TwoFactorEnableDTO;
 import com.cpt202.vo.AdminProfileVO;
 import com.cpt202.vo.StudentProfileVO;
 import com.cpt202.vo.TeacherProfileVO;
+import com.cpt202.vo.TwoFactorSetupVO;
 
 /**
  * 用户资料服务接口。
@@ -71,4 +74,10 @@ public interface ProfileService {
      * @param changePasswordDTO 修改密码参数（旧密码 + 新密码）
      */
     void changePassword(Long userId, ChangePasswordDTO changePasswordDTO);
+
+    TwoFactorSetupVO initializeTwoFactorSetup(Long userId);
+
+    void enableTwoFactor(Long userId, TwoFactorEnableDTO twoFactorEnableDTO);
+
+    void disableTwoFactor(Long userId, TwoFactorDisableDTO twoFactorDisableDTO);
 }
