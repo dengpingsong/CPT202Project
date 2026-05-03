@@ -6,6 +6,7 @@ import com.cpt202.dto.EmailOtpRequestDTO;
 import com.cpt202.dto.RegisterUserDTO;
 import com.cpt202.dto.PasswordResetConfirmDTO;
 import com.cpt202.dto.PasswordResetRequestDTO;
+import com.cpt202.dto.TwoFactorLoginVerifyDTO;
 import com.cpt202.vo.LoginVO;
 
 /**
@@ -45,6 +46,14 @@ public interface AuthService {
      * @return 登录展示对象
      */
     LoginVO loginWithEmailOtp(EmailOtpLoginDTO loginDTO);
+
+    /**
+     * 完成密码登录后的双重验证。
+     *
+     * @param verifyDTO 挑战令牌与 TOTP 验证码
+     * @return 登录展示对象
+     */
+    LoginVO verifyPasswordLoginTwoFactor(TwoFactorLoginVerifyDTO verifyDTO);
 
     /**
      * 根据邮箱发送密码重置链接。

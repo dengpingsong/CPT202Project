@@ -3,9 +3,12 @@ package com.cpt202.controller.teacher;
 import com.cpt202.context.BaseContext;
 import com.cpt202.dto.ChangePasswordDTO;
 import com.cpt202.dto.TeacherProfileUpdateDTO;
+import com.cpt202.dto.TwoFactorDisableDTO;
+import com.cpt202.dto.TwoFactorEnableDTO;
 import com.cpt202.result.Result;
 import com.cpt202.service.ProfileService;
 import com.cpt202.vo.TeacherProfileVO;
+import com.cpt202.vo.TwoFactorSetupVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -69,6 +72,26 @@ public class TeacherProfileController {
         Long teacherId = BaseContext.getCurrentUserId();
         log.info("Change password for teacher: {}", teacherId);
         profileService.changePassword(teacherId, changePasswordDTO);
+        return Result.success();
+    }
+
+    @PostMapping("/me/2fa/setup")
+    @Operation(summary = "Initialize TOTP setup for current teacher")
+    public Result<TwoFactorSetupVO> initializeTwoFactorSetup() {
+        return Result.success(profileService.initializeTwoFactorSetup(BaseContext.getCurrentUserId()));
+    }
+
+    @PostMapping("/me/2fa/enable")
+    @Operation(summary = "Enable TOTP 2FA for current teacher")
+    public Result<Void> enableTwoFactor(@Valid @RequestBody TwoFactorEnableDTO twoFactorEnableDTO) {
+        profileService.enableTwoFactor(BaseContext.getCurrentUserId(), twoFactorEnableDTO);
+        return Result.success();
+    }
+
+    @PostMapping("/me/2fa/disable")
+    @Operation(summary = "Disable TOTP 2FA for current teacher")
+    public Result<Void> disableTwoFactor(@Valid @RequestBody TwoFactorDisableDTO twoFactorDisableDTO) {
+        profileService.disableTwoFactor(BaseContext.getCurrentUserId(), twoFactorDisableDTO);
         return Result.success();
     }
 }

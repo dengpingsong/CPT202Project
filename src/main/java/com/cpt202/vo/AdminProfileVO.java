@@ -19,4 +19,5 @@ public class AdminProfileVO {
     private String email;
     private String fullName;
     private String accountStatus;
+    private Boolean twoFactorEnabled;
 }

@@ -8,6 +8,7 @@ import com.cpt202.dto.LoginDTO;
 import com.cpt202.dto.PasswordResetConfirmDTO;
 import com.cpt202.dto.PasswordResetRequestDTO;
 import com.cpt202.dto.RegisterUserDTO;
+import com.cpt202.dto.TwoFactorLoginVerifyDTO;
 import com.cpt202.exception.BusinessException;
 import com.cpt202.exception.RuleViolationException;
 import com.cpt202.model.entity.PasswordResetToken;
@@ -23,6 +24,7 @@ import com.cpt202.service.EmailLoginOtpMailService;
 import com.cpt202.service.JwtTokenService;
 import com.cpt202.service.PasswordResetMailService;
 import com.cpt202.service.RedisCacheService;
+import com.cpt202.service.TwoFactorAuthService;
 import com.cpt202.vo.LoginVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -62,6 +64,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordResetMailService passwordResetMailService;
     private final EmailLoginOtpMailService emailLoginOtpMailService;
     private final RedisCacheService redisCacheService;
+    private final TwoFactorAuthService twoFactorAuthService;
 
     @Value("${app.frontend-base-url}")
     private String frontendBaseUrl;
@@ -142,6 +145,10 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(MessageConstants.ACCOUNT_UNAVAILABLE_CONTACT_ADMIN);
         }
 
+        if (Boolean.TRUE.equals(user.getTwoFactorEnabled()) && StringUtils.hasText(user.getTwoFactorSecret())) {
+            return buildTwoFactorRequiredLoginVO(user);
+        }
+
         return buildLoginVO(user);
     }
 
@@ -199,6 +206,20 @@ public class AuthServiceImpl implements AuthService {
         }
 
         redisCacheService.delete(otpKey);
+        return buildLoginVO(user);
+    }
+
+    @Override
+    public LoginVO verifyPasswordLoginTwoFactor(TwoFactorLoginVerifyDTO verifyDTO) {
+        String challengeToken = verifyDTO.getChallengeToken().trim();
+        String code = verifyDTO.getCode().trim();
+        if (!StringUtils.hasText(code)) {
+            throw new RuleViolationException(MessageConstants.TWO_FACTOR_CODE_REQUIRED);
+        }
+        User user = twoFactorAuthService.verifyLoginChallenge(challengeToken, code);
+        if (!DEFAULT_ACCOUNT_STATUS.equalsIgnoreCase(user.getAccountStatus())) {
+            throw new BusinessException(MessageConstants.ACCOUNT_UNAVAILABLE_CONTACT_ADMIN);
+        }
         return buildLoginVO(user);
     }
 
@@ -303,6 +324,17 @@ public class AuthServiceImpl implements AuthService {
         LoginVO loginVO = new LoginVO();
         BeanUtils.copyProperties(user, loginVO);
         loginVO.setToken(jwtTokenService.generateToken(user));
+        loginVO.setTwoFactorRequired(false);
+        loginVO.setTwoFactorChallengeToken(null);
+        return loginVO;
+    }
+
+    private LoginVO buildTwoFactorRequiredLoginVO(User user) {
+        LoginVO loginVO = new LoginVO();
+        BeanUtils.copyProperties(user, loginVO);
+        loginVO.setToken("");
+        loginVO.setTwoFactorRequired(true);
+        loginVO.setTwoFactorChallengeToken(twoFactorAuthService.createLoginChallenge(user));
         return loginVO;
     }
 

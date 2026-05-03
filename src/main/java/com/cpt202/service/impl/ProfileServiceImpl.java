@@ -5,6 +5,8 @@ import com.cpt202.dto.AdminProfileUpdateDTO;
 import com.cpt202.dto.ChangePasswordDTO;
 import com.cpt202.dto.StudentProfileUpdateDTO;
 import com.cpt202.dto.TeacherProfileUpdateDTO;
+import com.cpt202.dto.TwoFactorDisableDTO;
+import com.cpt202.dto.TwoFactorEnableDTO;
 import com.cpt202.exception.BusinessException;
 import com.cpt202.exception.NotFoundException;
 import com.cpt202.model.entity.StudentProfile;
@@ -14,9 +16,11 @@ import com.cpt202.repository.StudentProfileRepository;
 import com.cpt202.repository.TeacherProfileRepository;
 import com.cpt202.repository.UserRepository;
 import com.cpt202.service.ProfileService;
+import com.cpt202.service.TwoFactorAuthService;
 import com.cpt202.vo.AdminProfileVO;
 import com.cpt202.vo.StudentProfileVO;
 import com.cpt202.vo.TeacherProfileVO;
+import com.cpt202.vo.TwoFactorSetupVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -41,6 +45,7 @@ public class ProfileServiceImpl implements ProfileService {
     private final StudentProfileRepository studentProfileRepository;
     private final TeacherProfileRepository teacherProfileRepository;
     private final UserRepository userRepository;
+    private final TwoFactorAuthService twoFactorAuthService;
 
     /**
      * 查询学生资料。
@@ -63,6 +68,7 @@ public class ProfileServiceImpl implements ProfileService {
         profileVO.setEmail(profile.getUser().getEmail());
         profileVO.setFullName(profile.getUser().getFullName());
         profileVO.setAcademicYear(profile.getAcademicYear());
+        profileVO.setTwoFactorEnabled(Boolean.TRUE.equals(profile.getUser().getTwoFactorEnabled()));
 
         return profileVO;
     }
@@ -112,6 +118,7 @@ public class ProfileServiceImpl implements ProfileService {
         profileVO.setUsername(profile.getUser().getUsername());
         profileVO.setEmail(profile.getUser().getEmail());
         profileVO.setFullName(profile.getUser().getFullName());
+        profileVO.setTwoFactorEnabled(Boolean.TRUE.equals(profile.getUser().getTwoFactorEnabled()));
         return profileVO;
     }
 
@@ -151,6 +158,7 @@ public class ProfileServiceImpl implements ProfileService {
 
         AdminProfileVO profileVO = new AdminProfileVO();
         BeanUtils.copyProperties(user, profileVO);
+        profileVO.setTwoFactorEnabled(Boolean.TRUE.equals(user.getTwoFactorEnabled()));
         return profileVO;
     }
 
@@ -181,8 +189,7 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     @Transactional
     public void changePassword(Long userId, ChangePasswordDTO changePasswordDTO) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException(MessageConstants.USER_NOT_FOUND));
+        User user = getUserRequired(userId);
 
         String oldHash = hashPassword(changePasswordDTO.getOldPassword());
         if (!oldHash.equals(user.getPasswordHash())) {
@@ -197,6 +204,41 @@ public class ProfileServiceImpl implements ProfileService {
         user.setPasswordHash(newHash);
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
+    }
+
+    @Override
+    public TwoFactorSetupVO initializeTwoFactorSetup(Long userId) {
+        return twoFactorAuthService.initializeSetup(getUserRequired(userId));
+    }
+
+    @Override
+    @Transactional
+    public void enableTwoFactor(Long userId, TwoFactorEnableDTO twoFactorEnableDTO) {
+        String code = twoFactorEnableDTO.getCode() == null ? "" : twoFactorEnableDTO.getCode().trim();
+        if (code.isEmpty()) {
+            throw new BusinessException(MessageConstants.TWO_FACTOR_CODE_REQUIRED);
+        }
+        twoFactorAuthService.enable(getUserRequired(userId), code);
+    }
+
+    @Override
+    @Transactional
+    public void disableTwoFactor(Long userId, TwoFactorDisableDTO twoFactorDisableDTO) {
+        User user = getUserRequired(userId);
+        String currentPassword = twoFactorDisableDTO.getCurrentPassword() == null ? "" : twoFactorDisableDTO.getCurrentPassword().trim();
+        if (currentPassword.isEmpty()) {
+            throw new BusinessException(MessageConstants.TWO_FACTOR_DISABLE_PASSWORD_REQUIRED);
+        }
+        String currentHash = hashPassword(currentPassword);
+        if (!currentHash.equals(user.getPasswordHash())) {
+            throw new BusinessException(MessageConstants.INCORRECT_OLD_PASSWORD);
+        }
+        twoFactorAuthService.disable(user);
+    }
+
+    private User getUserRequired(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException(MessageConstants.USER_NOT_FOUND));
     }
 
     private String hashPassword(String password) {
