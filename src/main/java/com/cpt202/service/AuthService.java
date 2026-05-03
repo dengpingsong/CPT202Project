@@ -1,6 +1,8 @@
 package com.cpt202.service;
 
 import com.cpt202.dto.LoginDTO;
+import com.cpt202.dto.EmailOtpLoginDTO;
+import com.cpt202.dto.EmailOtpRequestDTO;
 import com.cpt202.dto.RegisterUserDTO;
 import com.cpt202.dto.PasswordResetConfirmDTO;
 import com.cpt202.dto.PasswordResetRequestDTO;
@@ -28,6 +30,21 @@ public interface AuthService {
      * @return 登录展示对象
      */
     LoginVO login(LoginDTO loginDTO);
+
+    /**
+     * 发送邮箱登录验证码。
+     *
+     * @param requestDTO 邮箱参数
+     */
+    void sendEmailLoginOtp(EmailOtpRequestDTO requestDTO);
+
+    /**
+     * 通过邮箱验证码登录。
+     *
+     * @param loginDTO 邮箱验证码登录参数
+     * @return 登录展示对象
+     */
+    LoginVO loginWithEmailOtp(EmailOtpLoginDTO loginDTO);
 
     /**
      * 根据邮箱发送密码重置链接。
