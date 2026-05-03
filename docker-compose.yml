@@ -26,8 +26,6 @@ services:
     restart: unless-stopped
     networks:
       - cpt202-network
-    ports:
-      - "8080:8080"
     depends_on:
       mysql:
         condition: service_healthy
@@ -38,6 +36,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
       SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.MySQLDialect
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_SQL_INIT_MODE: always
       SPRING_H2_CONSOLE_ENABLED: "false"
       SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME}
       SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD}
@@ -46,6 +45,7 @@ services:
       SPRING_DATA_REDIS_PORT: ${SPRING_DATA_REDIS_PORT}
       SPRING_DATA_REDIS_DATABASE: ${SPRING_DATA_REDIS_DATABASE}
       SPRING_DATA_REDIS_PASSWORD: ${SPRING_DATA_REDIS_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
 
   nginx:
     image: nginx:1.27-alpine
@@ -63,7 +63,7 @@ services:
       app:
         condition: service_started
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/doc.html && wget --no-check-certificate -q -O /dev/null https://127.0.0.1/doc.html || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/index.html && wget --no-check-certificate -q -O /dev/null https://127.0.0.1/index.html || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 5
