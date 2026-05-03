@@ -50,6 +50,10 @@
                 <h2>Welcome Back!</h2>
                 <h3>Please log in to your account</h3>
 
+                <div class="forgot-wrap">
+                    <button type="button" class="text-link" data-panel="emailOtpPanel">Login with Email OTP</button>
+                </div>
+
                 <form id="loginForm">
                     <input id="loginUsername" type="text" name="username" placeholder="Username" required>
                     <input id="loginPassword" type="password" name="password" placeholder="Password" required>
@@ -61,6 +65,27 @@
                     <div id="generalError" class="helper"></div>
                     <button id="loginBtn" type="submit">Login</button>
                 </form>
+            </div>
+
+            <div id="emailOtpPanel" class="auth-panel">
+                <h2>Email OTP Login</h2>
+                <h3>Use your registered email to receive a one-time code</h3>
+
+                <form id="emailOtpRequestForm">
+                    <input id="emailOtpEmail" type="email" placeholder="Email" required>
+                    <div id="emailOtpRequestMessage" class="helper"></div>
+                    <button id="emailOtpRequestBtn" type="submit">Send Verification Code</button>
+                </form>
+
+                <form id="emailOtpLoginForm">
+                    <input id="emailOtpCode" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code" required>
+                    <div id="emailOtpLoginMessage" class="helper"></div>
+                    <button id="emailOtpLoginBtn" type="submit">Login with Code</button>
+                </form>
+
+                <div class="forgot-wrap">
+                    <button type="button" class="text-link" data-panel="loginPanel">Back to Password Login</button>
+                </div>
             </div>
 
             <div id="registerPanel" class="auth-panel">
@@ -168,6 +193,12 @@
     const loginForm = document.getElementById("loginForm");
     const loginBtn = document.getElementById("loginBtn");
     const generalError = document.getElementById("generalError");
+    const emailOtpRequestForm = document.getElementById("emailOtpRequestForm");
+    const emailOtpRequestMessage = document.getElementById("emailOtpRequestMessage");
+    const emailOtpRequestBtn = document.getElementById("emailOtpRequestBtn");
+    const emailOtpLoginForm = document.getElementById("emailOtpLoginForm");
+    const emailOtpLoginMessage = document.getElementById("emailOtpLoginMessage");
+    const emailOtpLoginBtn = document.getElementById("emailOtpLoginBtn");
     const registerForm = document.getElementById("registerForm");
     const registerBtn = document.getElementById("registerBtn");
     const registerRole = document.getElementById("registerRole");
@@ -187,6 +218,7 @@
 
     function clearSensitiveFields() {
         document.getElementById("loginPassword").value = "";
+        document.getElementById("emailOtpCode").value = "";
         document.getElementById("resetPassword").value = "";
         document.getElementById("resetConfirmPassword").value = "";
     }
@@ -220,6 +252,7 @@
     function showInitialPanel() {
         const hashPanels = {
             "#register": "registerPanel",
+            "#email-otp": "emailOtpPanel",
             "#reset": "resetPanel",
             "#forgot-password": "resetPanel"
         };
@@ -281,6 +314,15 @@
         generalError.textContent = "Unknown role, cannot redirect.";
     }
 
+    function persistLogin(loginData) {
+        localStorage.setItem("token", loginData.token || "");
+        localStorage.setItem("role", loginData.role || "");
+        localStorage.setItem("userId", String(loginData.userId || ""));
+        localStorage.setItem("username", loginData.username || "");
+        localStorage.setItem("fullName", loginData.fullName || "");
+        localStorage.setItem("accountStatus", loginData.accountStatus || "");
+    }
+
     loginForm.addEventListener("submit", async (e) => {
         e.preventDefault();
         generalError.textContent = "";
@@ -303,15 +345,7 @@
             // 后端 Result.success => code = 1；Result.error => code = 0
             if (data.code === 1 && data.data) {
                 const loginData = data.data;
-
-                // 保存登录态
-                localStorage.setItem("token", loginData.token || "");
-                localStorage.setItem("role", loginData.role || "");
-                localStorage.setItem("userId", String(loginData.userId || ""));
-                localStorage.setItem("username", loginData.username || "");
-                localStorage.setItem("fullName", loginData.fullName || "");
-                localStorage.setItem("accountStatus", loginData.accountStatus || "");
-
+                persistLogin(loginData);
                 redirectByRole(loginData.role);
             } else {
                 generalError.textContent = data.msg || "Login failed";
@@ -321,6 +355,82 @@
             generalError.textContent = "Network error, please try again.";
         } finally {
             loginBtn.disabled = false;
+        }
+    });
+
+    emailOtpRequestForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        emailOtpRequestMessage.textContent = "";
+        emailOtpLoginMessage.textContent = "";
+        emailOtpRequestBtn.disabled = true;
+
+        const email = document.getElementById("emailOtpEmail").value.trim();
+        if (!validateEmail(email)) {
+            emailOtpRequestMessage.textContent = "邮箱格式不正确。";
+            emailOtpRequestBtn.disabled = false;
+            return;
+        }
+
+        try {
+            const res = await fetch(`${BASE_URL}/email-otp/send`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email })
+            });
+            const data = await res.json();
+
+            if (data.code === 1) {
+                emailOtpRequestMessage.textContent = data.data || "Verification code sent.";
+            } else {
+                emailOtpRequestMessage.textContent = data.msg || "Failed to send verification code";
+            }
+        } catch (err) {
+            console.error(err);
+            emailOtpRequestMessage.textContent = "Network error, please try again.";
+        } finally {
+            emailOtpRequestBtn.disabled = false;
+        }
+    });
+
+    emailOtpLoginForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        emailOtpLoginMessage.textContent = "";
+        emailOtpLoginBtn.disabled = true;
+
+        const email = document.getElementById("emailOtpEmail").value.trim();
+        const otp = document.getElementById("emailOtpCode").value.trim();
+
+        if (!validateEmail(email)) {
+            emailOtpLoginMessage.textContent = "请输入有效邮箱。";
+            emailOtpLoginBtn.disabled = false;
+            return;
+        }
+        if (!/^\d{6}$/.test(otp)) {
+            emailOtpLoginMessage.textContent = "请输入 6 位数字验证码。";
+            emailOtpLoginBtn.disabled = false;
+            return;
+        }
+
+        try {
+            const res = await fetch(`${BASE_URL}/email-otp/login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, otp })
+            });
+            const data = await res.json();
+
+            if (data.code === 1 && data.data) {
+                const loginData = data.data;
+                persistLogin(loginData);
+                redirectByRole(loginData.role);
+            } else {
+                emailOtpLoginMessage.textContent = data.msg || "Email OTP login failed";
+            }
+        } catch (err) {
+            console.error(err);
+            emailOtpLoginMessage.textContent = "Network error, please try again.";
+        } finally {
+            emailOtpLoginBtn.disabled = false;
         }
     });
 

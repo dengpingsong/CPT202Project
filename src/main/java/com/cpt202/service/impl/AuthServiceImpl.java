@@ -1,6 +1,9 @@
 package com.cpt202.service.impl;
 
 import com.cpt202.constant.MessageConstants;
+import com.cpt202.constant.RedisKeyConstants;
+import com.cpt202.dto.EmailOtpLoginDTO;
+import com.cpt202.dto.EmailOtpRequestDTO;
 import com.cpt202.dto.LoginDTO;
 import com.cpt202.dto.PasswordResetConfirmDTO;
 import com.cpt202.dto.PasswordResetRequestDTO;
@@ -16,8 +19,10 @@ import com.cpt202.repository.StudentProfileRepository;
 import com.cpt202.repository.TeacherProfileRepository;
 import com.cpt202.repository.UserRepository;
 import com.cpt202.service.AuthService;
+import com.cpt202.service.EmailLoginOtpMailService;
 import com.cpt202.service.JwtTokenService;
 import com.cpt202.service.PasswordResetMailService;
+import com.cpt202.service.RedisCacheService;
 import com.cpt202.vo.LoginVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -32,6 +37,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Duration;
 import java.util.HexFormat;
 import java.util.Base64;
 import java.util.regex.Pattern;
@@ -54,12 +60,20 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final JwtTokenService jwtTokenService;
     private final PasswordResetMailService passwordResetMailService;
+    private final EmailLoginOtpMailService emailLoginOtpMailService;
+    private final RedisCacheService redisCacheService;
 
     @Value("${app.frontend-base-url}")
     private String frontendBaseUrl;
 
     @Value("${app.password-reset-token-expiration-minutes:30}")
     private long passwordResetTokenExpirationMinutes;
+
+    @Value("${app.email-login-otp-expiration-minutes:5}")
+    private long emailLoginOtpExpirationMinutes;
+
+    @Value("${app.email-login-otp-cooldown-seconds:60}")
+    private long emailLoginOtpCooldownSeconds;
 
     /**
      * 注册新用户。
@@ -132,14 +146,69 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    public void sendEmailLoginOtp(EmailOtpRequestDTO requestDTO) {
+        String normalizedEmail = requestDTO.getEmail().trim();
+        validateEmail(normalizedEmail);
+
+        String cooldownKey = RedisKeyConstants.EMAIL_LOGIN_OTP_COOLDOWN_PREFIX + normalizedEmail.toLowerCase();
+        if (redisCacheService.get(cooldownKey, String.class).isPresent()) {
+            throw new RuleViolationException(MessageConstants.EMAIL_OTP_REQUEST_TOO_FREQUENT);
+        }
+
+        User user = userRepository.findByEmailIgnoreCase(normalizedEmail).orElse(null);
+        if (user == null || !DEFAULT_ACCOUNT_STATUS.equalsIgnoreCase(user.getAccountStatus())) {
+            return;
+        }
+
+        String otp = generateEmailOtp();
+        String otpKey = RedisKeyConstants.EMAIL_LOGIN_OTP_PREFIX + normalizedEmail.toLowerCase();
+        try {
+            redisCacheService.set(otpKey, otp, Duration.ofMinutes(emailLoginOtpExpirationMinutes));
+            redisCacheService.set(cooldownKey, "1", Duration.ofSeconds(emailLoginOtpCooldownSeconds));
+            emailLoginOtpMailService.sendLoginOtpMail(user, otp);
+        } catch (RuntimeException ex) {
+            redisCacheService.delete(otpKey);
+            redisCacheService.delete(cooldownKey);
+            throw ex;
+        }
+    }
+
+    @Override
+    public LoginVO loginWithEmailOtp(EmailOtpLoginDTO loginDTO) {
+        String normalizedEmail = loginDTO.getEmail().trim();
+        validateEmail(normalizedEmail);
+
+        String submittedOtp = loginDTO.getOtp().trim();
+        if (!StringUtils.hasText(submittedOtp)) {
+            throw new RuleViolationException(MessageConstants.EMAIL_OTP_REQUIRED);
+        }
+
+        User user = userRepository.findByEmailIgnoreCase(normalizedEmail)
+                .orElseThrow(() -> new BusinessException(MessageConstants.INVALID_CREDENTIALS));
+
+        if (!DEFAULT_ACCOUNT_STATUS.equalsIgnoreCase(user.getAccountStatus())) {
+            throw new BusinessException(MessageConstants.ACCOUNT_UNAVAILABLE_CONTACT_ADMIN);
+        }
+
+        String otpKey = RedisKeyConstants.EMAIL_LOGIN_OTP_PREFIX + normalizedEmail.toLowerCase();
+        String storedOtp = redisCacheService.get(otpKey, String.class)
+                .orElseThrow(() -> new BusinessException(MessageConstants.EMAIL_OTP_EXPIRED));
+
+        if (!storedOtp.equals(submittedOtp)) {
+            throw new BusinessException(MessageConstants.EMAIL_OTP_INVALID);
+        }
+
+        redisCacheService.delete(otpKey);
+        return buildLoginVO(user);
+    }
+
+    @Override
     @Transactional
     public void requestPasswordReset(PasswordResetRequestDTO requestDTO) {
         passwordResetTokenRepository.deleteByExpiresAtBefore(LocalDateTime.now());
 
         String normalizedEmail = requestDTO.getEmail().trim();
-        if (!EMAIL_PATTERN.matcher(normalizedEmail).matches()) {
-            throw new RuleViolationException(MessageConstants.EMAIL_FORMAT_INVALID);
-        }
+        validateEmail(normalizedEmail);
 
         User user = userRepository.findByEmailIgnoreCase(normalizedEmail).orElse(null);
         if (user == null || !DEFAULT_ACCOUNT_STATUS.equalsIgnoreCase(user.getAccountStatus())) {
@@ -159,6 +228,12 @@ public class AuthServiceImpl implements AuthService {
         passwordResetTokenRepository.save(passwordResetToken);
 
         passwordResetMailService.sendPasswordResetMail(user, buildResetLink(rawToken));
+    }
+
+    private void validateEmail(String email) {
+        if (!EMAIL_PATTERN.matcher(email).matches()) {
+            throw new RuleViolationException(MessageConstants.EMAIL_FORMAT_INVALID);
+        }
     }
 
     @Override
@@ -254,6 +329,10 @@ public class AuthServiceImpl implements AuthService {
         byte[] tokenBytes = new byte[32];
         SECURE_RANDOM.nextBytes(tokenBytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes);
+    }
+
+    private String generateEmailOtp() {
+        return String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
     }
 
     private String hashPassword(String password) {

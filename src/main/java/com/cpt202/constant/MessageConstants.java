@@ -16,6 +16,12 @@ public final class MessageConstants {
     public static final String EMAIL_EXISTS = "邮箱已被注册，请更换后重试。";
     public static final String EMAIL_FORMAT_INVALID = "邮箱格式不正确。";
     public static final String INVALID_CREDENTIALS = "用户名或密码错误。";
+    public static final String EMAIL_OTP_SENT = "如果该邮箱已绑定可用账号，验证码已发送，请注意查收。";
+    public static final String EMAIL_OTP_MAIL_NOT_CONFIGURED = "系统尚未配置发信邮箱，暂时无法通过邮箱验证码登录。";
+    public static final String EMAIL_OTP_REQUIRED = "验证码不能为空。";
+    public static final String EMAIL_OTP_INVALID = "验证码错误，请重新输入。";
+    public static final String EMAIL_OTP_EXPIRED = "验证码已过期，请重新获取。";
+    public static final String EMAIL_OTP_REQUEST_TOO_FREQUENT = "验证码发送过于频繁，请稍后再试。";
     public static final String PASSWORD_RESET_EMAIL_SENT = "如果该邮箱已绑定账号，重置链接已发送，请注意查收。";
     public static final String PASSWORD_RESET_LINK_INVALID = "重置链接无效，请重新申请。";
     public static final String PASSWORD_RESET_LINK_EXPIRED = "重置链接已过期，请重新申请。";
