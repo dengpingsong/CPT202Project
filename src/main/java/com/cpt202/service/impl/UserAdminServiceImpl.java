@@ -4,6 +4,7 @@ import com.cpt202.constant.MessageConstants;
 import com.cpt202.exception.NotFoundException;
 import com.cpt202.model.entity.User;
 import com.cpt202.repository.UserRepository;
+import com.cpt202.service.UserAuthStateService;
 import com.cpt202.service.UserAdminService;
 import com.cpt202.vo.UserVO;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import java.util.List;
 public class UserAdminServiceImpl implements UserAdminService {
 
     private final UserRepository userRepository;
+    private final UserAuthStateService userAuthStateService;
 
     /**
      * 查询用户列表。
@@ -39,5 +41,6 @@ public class UserAdminServiceImpl implements UserAdminService {
                 .orElseThrow(() -> new NotFoundException(MessageConstants.USER_NOT_FOUND));
         user.setAccountStatus(accountStatus);
         userRepository.save(user);
+        userAuthStateService.evictUserAuthState(userId);
     }
 }
