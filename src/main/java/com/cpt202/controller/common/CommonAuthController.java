@@ -6,6 +6,7 @@ import com.cpt202.dto.EmailOtpRequestDTO;
 import com.cpt202.dto.PasswordResetConfirmDTO;
 import com.cpt202.dto.PasswordResetRequestDTO;
 import com.cpt202.dto.RegisterUserDTO;
+import com.cpt202.dto.TwoFactorLoginVerifyDTO;
 import com.cpt202.constant.MessageConstants;
 import com.cpt202.result.Result;
 import com.cpt202.service.AuthService;
@@ -82,6 +83,12 @@ public class CommonAuthController {
     @Operation(summary = "Log in with email OTP")
     public Result<LoginVO> loginWithEmailOtp(@Valid @RequestBody EmailOtpLoginDTO loginDTO) {
         return Result.success(authService.loginWithEmailOtp(loginDTO));
+    }
+
+    @PostMapping("/2fa/verify-login")
+    @Operation(summary = "Verify password login with TOTP")
+    public Result<LoginVO> verifyPasswordLoginTwoFactor(@Valid @RequestBody TwoFactorLoginVerifyDTO verifyDTO) {
+        return Result.success(authService.verifyPasswordLoginTwoFactor(verifyDTO));
     }
 
     /**

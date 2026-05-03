@@ -88,6 +88,22 @@
                 </div>
             </div>
 
+            <div id="twoFactorPanel" class="auth-panel">
+                <h2>Two-Factor Verification</h2>
+                <h3 id="twoFactorSubtitle">Enter the 6-digit code from your authenticator app</h3>
+
+                <form id="twoFactorForm">
+                    <input id="twoFactorCode" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit authenticator code" required>
+                    <input id="twoFactorChallengeToken" type="hidden">
+                    <div id="twoFactorMessage" class="helper"></div>
+                    <button id="twoFactorBtn" type="submit">Verify and Login</button>
+                </form>
+
+                <div class="forgot-wrap">
+                    <button type="button" class="text-link" data-panel="loginPanel">Use another login method</button>
+                </div>
+            </div>
+
             <div id="registerPanel" class="auth-panel">
                 <h2>Create Account</h2>
                 <h3>Register a student or teacher account</h3>
@@ -199,6 +215,12 @@
     const emailOtpLoginForm = document.getElementById("emailOtpLoginForm");
     const emailOtpLoginMessage = document.getElementById("emailOtpLoginMessage");
     const emailOtpLoginBtn = document.getElementById("emailOtpLoginBtn");
+    const twoFactorForm = document.getElementById("twoFactorForm");
+    const twoFactorSubtitle = document.getElementById("twoFactorSubtitle");
+    const twoFactorMessage = document.getElementById("twoFactorMessage");
+    const twoFactorBtn = document.getElementById("twoFactorBtn");
+    const twoFactorCode = document.getElementById("twoFactorCode");
+    const twoFactorChallengeToken = document.getElementById("twoFactorChallengeToken");
     const registerForm = document.getElementById("registerForm");
     const registerBtn = document.getElementById("registerBtn");
     const registerRole = document.getElementById("registerRole");
@@ -219,6 +241,7 @@
     function clearSensitiveFields() {
         document.getElementById("loginPassword").value = "";
         document.getElementById("emailOtpCode").value = "";
+        document.getElementById("twoFactorCode").value = "";
         document.getElementById("resetPassword").value = "";
         document.getElementById("resetConfirmPassword").value = "";
     }
@@ -246,6 +269,8 @@
         authOrbit.classList.toggle("hidden", panelId !== "loginPanel");
         if (panelId === "loginPanel") {
             clearSensitiveFields();
+            twoFactorChallengeToken.value = "";
+            twoFactorMessage.textContent = "";
         }
     }
 
@@ -253,6 +278,7 @@
         const hashPanels = {
             "#register": "registerPanel",
             "#email-otp": "emailOtpPanel",
+            "#two-factor": "twoFactorPanel",
             "#reset": "resetPanel",
             "#forgot-password": "resetPanel"
         };
@@ -323,6 +349,15 @@
         localStorage.setItem("accountStatus", loginData.accountStatus || "");
     }
 
+    function beginTwoFactorLogin(loginData) {
+        twoFactorChallengeToken.value = loginData.twoFactorChallengeToken || "";
+        twoFactorCode.value = "";
+        twoFactorMessage.textContent = "";
+        twoFactorSubtitle.textContent = `Enter the 6-digit code for ${loginData.username || "your account"}`;
+        showPanel("twoFactorPanel");
+        twoFactorCode.focus();
+    }
+
     loginForm.addEventListener("submit", async (e) => {
         e.preventDefault();
         generalError.textContent = "";
@@ -345,6 +380,10 @@
             // 后端 Result.success => code = 1；Result.error => code = 0
             if (data.code === 1 && data.data) {
                 const loginData = data.data;
+                if (loginData.twoFactorRequired) {
+                    beginTwoFactorLogin(loginData);
+                    return;
+                }
                 persistLogin(loginData);
                 redirectByRole(loginData.role);
             } else {
@@ -355,6 +394,51 @@
             generalError.textContent = "Network error, please try again.";
         } finally {
             loginBtn.disabled = false;
+        }
+    });
+
+    twoFactorForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        twoFactorMessage.textContent = "";
+        twoFactorBtn.disabled = true;
+
+        const code = twoFactorCode.value.trim();
+        const challengeToken = twoFactorChallengeToken.value.trim();
+
+        if (!challengeToken) {
+            twoFactorMessage.textContent = "Verification session expired. Please log in again.";
+            twoFactorBtn.disabled = false;
+            return;
+        }
+        if (!/^\d{6}$/.test(code)) {
+            twoFactorMessage.textContent = "Please enter a valid 6-digit authenticator code.";
+            twoFactorBtn.disabled = false;
+            return;
+        }
+
+        try {
+            const res = await fetch(`${BASE_URL}/2fa/verify-login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    challengeToken,
+                    code
+                })
+            });
+            const data = await res.json();
+
+            if (data.code === 1 && data.data) {
+                const loginData = data.data;
+                persistLogin(loginData);
+                redirectByRole(loginData.role);
+            } else {
+                twoFactorMessage.textContent = data.msg || "Two-factor verification failed";
+            }
+        } catch (err) {
+            console.error(err);
+            twoFactorMessage.textContent = "Network error, please try again.";
+        } finally {
+            twoFactorBtn.disabled = false;
         }
     });
 

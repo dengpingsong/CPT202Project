@@ -191,6 +191,19 @@
                 newPassword
             });
         },
+        initializeTwoFactorSetup() {
+            return sendJsonRequest("POST", "/api/teacher/profile/me/2fa/setup", {});
+        },
+        enableTwoFactor(code) {
+            return sendJsonRequest("POST", "/api/teacher/profile/me/2fa/enable", {
+                code
+            });
+        },
+        disableTwoFactor(currentPassword) {
+            return sendJsonRequest("POST", "/api/teacher/profile/me/2fa/disable", {
+                currentPassword
+            });
+        },
         reviewRequest(requestId, requestStatus, decisionComment) {
             return sendJsonRequest("PUT", `/api/teacher/requests/${encodeURIComponent(requestId)}/review`, {
                 requestStatus,
@@ -200,6 +213,33 @@
     };
 
     const studentApi = {
+        getProfile() {
+            return request("/api/student/profile/me", {
+                method: "GET"
+            });
+        },
+        updateProfile(payload) {
+            return sendJsonRequest("PUT", "/api/student/profile/me", payload);
+        },
+        changePassword(oldPassword, newPassword) {
+            return sendJsonRequest("PUT", "/api/student/profile/me/password", {
+                oldPassword,
+                newPassword
+            });
+        },
+        initializeTwoFactorSetup() {
+            return sendJsonRequest("POST", "/api/student/profile/me/2fa/setup", {});
+        },
+        enableTwoFactor(code) {
+            return sendJsonRequest("POST", "/api/student/profile/me/2fa/enable", {
+                code
+            });
+        },
+        disableTwoFactor(currentPassword) {
+            return sendJsonRequest("POST", "/api/student/profile/me/2fa/disable", {
+                currentPassword
+            });
+        },
         withdrawRequest(requestId) {
             return request(`/api/student/requests/${encodeURIComponent(requestId)}/withdraw`, {
                 method: "PUT"
@@ -246,6 +286,19 @@
         },
         changePassword(payload) {
             return sendJsonRequest("PUT", "/api/admin/profile/me/password", payload);
+        },
+        initializeTwoFactorSetup() {
+            return sendJsonRequest("POST", "/api/admin/profile/me/2fa/setup", {});
+        },
+        enableTwoFactor(code) {
+            return sendJsonRequest("POST", "/api/admin/profile/me/2fa/enable", {
+                code
+            });
+        },
+        disableTwoFactor(currentPassword) {
+            return sendJsonRequest("POST", "/api/admin/profile/me/2fa/disable", {
+                currentPassword
+            });
         }
     };
 

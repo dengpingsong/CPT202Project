@@ -74,6 +74,30 @@
                     <label class="form-label">办公地点</label>
                     <input type="text" class="form-control" id="office" value="">
                 </div>
+                <div class="mb-4 p-3 border rounded-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <div>
+                            <h3 class="h5 mb-1">双重验证（TOTP）</h3>
+                            <div class="text-muted small" id="twoFactorSummary">正在加载 2FA 状态...</div>
+                        </div>
+                    </div>
+                    <div class="text-muted small mb-3">可使用 Google Authenticator、Microsoft Authenticator 或 1Password 扫码登录。</div>
+                    <div id="twoFactorSetupBox" class="border rounded-4 p-3 bg-light mb-3" hidden>
+                        <canvas id="twoFactorQrCanvas" width="180" height="180" style="max-width:180px;"></canvas>
+                        <div class="small mt-3">手动输入密钥：</div>
+                        <div id="twoFactorManualKey" class="fw-semibold text-break mb-3"></div>
+                        <input type="text" class="form-control mb-2" id="twoFactorEnableCode" inputmode="numeric" maxlength="6" placeholder="输入 App 中的 6 位验证码">
+                        <button type="button" class="btn btn-primary px-4" style="border-radius:20px; background-color:#35b8e0; border:none;" id="enableTwoFactorBtn">确认开启 2FA</button>
+                    </div>
+                    <div id="twoFactorDisableBox" class="border rounded-4 p-3 bg-light mb-3" hidden>
+                        <input type="password" class="form-control mb-2" id="twoFactorDisablePassword" placeholder="输入当前密码以关闭 2FA">
+                        <button type="button" class="btn btn-outline-danger px-4" style="border-radius:20px;" id="disableTwoFactorBtn">关闭 2FA</button>
+                    </div>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button type="button" class="btn btn-outline-primary px-4" style="border-radius:20px;" id="setupTwoFactorBtn">开始设置 2FA</button>
+                    </div>
+                    <div id="twoFactorStatus" class="footnote" style="text-align:left; margin-top:12px;"></div>
+                </div>
                 <div class="d-flex gap-3">
                     <button type="submit" class="btn btn-primary px-4" style="border-radius:20px; background-color:#35b8e0; border:none;" id="saveBtn">保存修改</button>
                     <button type="button" class="btn btn-secondary px-4" style="border-radius:20px;" id="changePasswordBtn">修改密码</button>
@@ -113,6 +137,7 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 <script src="../js/api.js"></script>
 <script>
     (function() {
@@ -133,6 +158,17 @@
         const passwordStatus = document.getElementById("passwordStatus");
         const closePasswordModalBtn = document.getElementById("closePasswordModalBtn");
         const cancelPasswordBtn = document.getElementById("cancelPasswordBtn");
+        const twoFactorSummary = document.getElementById("twoFactorSummary");
+        const twoFactorStatus = document.getElementById("twoFactorStatus");
+        const twoFactorSetupBox = document.getElementById("twoFactorSetupBox");
+        const twoFactorDisableBox = document.getElementById("twoFactorDisableBox");
+        const twoFactorManualKey = document.getElementById("twoFactorManualKey");
+        const twoFactorEnableCode = document.getElementById("twoFactorEnableCode");
+        const twoFactorDisablePassword = document.getElementById("twoFactorDisablePassword");
+        const setupTwoFactorBtn = document.getElementById("setupTwoFactorBtn");
+        const enableTwoFactorBtn = document.getElementById("enableTwoFactorBtn");
+        const disableTwoFactorBtn = document.getElementById("disableTwoFactorBtn");
+        const twoFactorQrCanvas = document.getElementById("twoFactorQrCanvas");
         const inputs = {
             fullName: document.getElementById("fullName"),
             email: document.getElementById("email"),
@@ -153,6 +189,22 @@
             if (!passwordStatus) return;
             passwordStatus.textContent = message || "";
             passwordStatus.style.color = type === "error" ? "#c74545" : type === "success" ? "var(--green)" : "var(--muted)";
+        }
+
+        function setTwoFactorStatus(message, type) {
+            if (!twoFactorStatus) return;
+            twoFactorStatus.textContent = message || "";
+            twoFactorStatus.style.color = type === "error" ? "#c74545" : type === "success" ? "var(--green)" : "var(--muted)";
+        }
+
+        function renderTwoFactorState(enabled) {
+            twoFactorSummary.textContent = enabled ? "当前状态：已开启" : "当前状态：未开启";
+            twoFactorSetupBox.hidden = true;
+            twoFactorDisableBox.hidden = !enabled;
+            setupTwoFactorBtn.textContent = enabled ? "重新生成设置二维码" : "开始设置 2FA";
+            if (!enabled) {
+                twoFactorDisablePassword.value = "";
+            }
         }
 
         function openPasswordModal() {
@@ -178,6 +230,7 @@
             inputs.title.value = profile.title || "";
             inputs.researchArea.value = profile.researchArea || "";
             inputs.office.value = profile.office || "";
+            renderTwoFactorState(Boolean(profile.twoFactorEnabled));
         }
 
         //连接后端获取个人资料
@@ -193,6 +246,75 @@
             } catch (error) {
                 console.error(error);
                 setStatus(error.message || "个人资料加载失败，请稍后重试。", "error");
+            }
+        }
+
+        async function initializeTwoFactorSetup() {
+            setupTwoFactorBtn.disabled = true;
+            setTwoFactorStatus("正在生成二维码...", "");
+            try {
+                const setup = await ApiClient.teacher.initializeTwoFactorSetup();
+                if (setup.enabled) {
+                    renderTwoFactorState(true);
+                    setTwoFactorStatus("当前账号已开启 2FA。", "success");
+                    return;
+                }
+                renderTwoFactorState(false);
+                twoFactorSetupBox.hidden = false;
+                twoFactorManualKey.textContent = setup.manualEntryKey || "";
+                twoFactorEnableCode.value = "";
+                await QRCode.toCanvas(twoFactorQrCanvas, setup.otpAuthUri || "", { width: 180, margin: 1 });
+                setTwoFactorStatus("请使用验证器扫码后输入 6 位验证码确认开启。", "success");
+            } catch (error) {
+                console.error(error);
+                setTwoFactorStatus(error.message || "二维码生成失败，请稍后重试。", "error");
+            } finally {
+                setupTwoFactorBtn.disabled = false;
+            }
+        }
+
+        async function enableTwoFactor() {
+            const code = twoFactorEnableCode.value.trim();
+            if (!/^\d{6}$/.test(code)) {
+                setTwoFactorStatus("请输入 6 位数字验证码。", "error");
+                twoFactorEnableCode.focus();
+                return;
+            }
+            enableTwoFactorBtn.disabled = true;
+            setTwoFactorStatus("正在开启 2FA...", "");
+            try {
+                await ApiClient.teacher.enableTwoFactor(code);
+                renderTwoFactorState(true);
+                twoFactorSetupBox.hidden = true;
+                setTwoFactorStatus("2FA 已开启，后续密码登录将要求输入验证器验证码。", "success");
+                await fetchProfile();
+            } catch (error) {
+                console.error(error);
+                setTwoFactorStatus(error.message || "开启 2FA 失败，请稍后重试。", "error");
+            } finally {
+                enableTwoFactorBtn.disabled = false;
+            }
+        }
+
+        async function disableTwoFactor() {
+            const currentPassword = twoFactorDisablePassword.value.trim();
+            if (!currentPassword) {
+                setTwoFactorStatus("关闭 2FA 前请输入当前密码。", "error");
+                twoFactorDisablePassword.focus();
+                return;
+            }
+            disableTwoFactorBtn.disabled = true;
+            setTwoFactorStatus("正在关闭 2FA...", "");
+            try {
+                await ApiClient.teacher.disableTwoFactor(currentPassword);
+                renderTwoFactorState(false);
+                setTwoFactorStatus("2FA 已关闭。", "success");
+                await fetchProfile();
+            } catch (error) {
+                console.error(error);
+                setTwoFactorStatus(error.message || "关闭 2FA 失败，请稍后重试。", "error");
+            } finally {
+                disableTwoFactorBtn.disabled = false;
             }
         }
 
@@ -245,6 +367,9 @@
         changePasswordBtn.addEventListener("click", openPasswordModal);
         closePasswordModalBtn.addEventListener("click", closePasswordModal);
         cancelPasswordBtn.addEventListener("click", closePasswordModal);
+        setupTwoFactorBtn.addEventListener("click", initializeTwoFactorSetup);
+        enableTwoFactorBtn.addEventListener("click", enableTwoFactor);
+        disableTwoFactorBtn.addEventListener("click", disableTwoFactor);
         passwordModal.addEventListener("click", event => {
             if (event.target === passwordModal) {
                 closePasswordModal();

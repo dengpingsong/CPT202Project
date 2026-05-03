@@ -22,6 +22,13 @@ public final class MessageConstants {
     public static final String EMAIL_OTP_INVALID = "验证码错误，请重新输入。";
     public static final String EMAIL_OTP_EXPIRED = "验证码已过期，请重新获取。";
     public static final String EMAIL_OTP_REQUEST_TOO_FREQUENT = "验证码发送过于频繁，请稍后再试。";
+    public static final String TWO_FACTOR_CODE_REQUIRED = "双重验证验证码不能为空。";
+    public static final String TWO_FACTOR_CODE_INVALID = "双重验证验证码错误，请重试。";
+    public static final String TWO_FACTOR_NOT_ENABLED = "当前账号尚未开启双重验证。";
+    public static final String TWO_FACTOR_ALREADY_ENABLED = "当前账号已开启双重验证。";
+    public static final String TWO_FACTOR_SETUP_EXPIRED = "双重验证初始化已过期，请重新开始配置。";
+    public static final String TWO_FACTOR_LOGIN_REQUIRED = "当前账号需要完成双重验证后才能登录。";
+    public static final String TWO_FACTOR_CHALLENGE_INVALID = "双重验证登录会话无效或已过期，请重新登录。";
     public static final String PASSWORD_RESET_EMAIL_SENT = "如果该邮箱已绑定账号，重置链接已发送，请注意查收。";
     public static final String PASSWORD_RESET_LINK_INVALID = "重置链接无效，请重新申请。";
     public static final String PASSWORD_RESET_LINK_EXPIRED = "重置链接已过期，请重新申请。";
@@ -69,6 +76,7 @@ public final class MessageConstants {
     public static final String CANNOT_VIEW_OTHER_STUDENT_HISTORY = "不能查看其他学生的申请历史。";
     public static final String INCORRECT_OLD_PASSWORD = "旧密码不正确。";
     public static final String NEW_PASSWORD_SAME_AS_OLD = "新密码不能与旧密码相同。";
+    public static final String TWO_FACTOR_DISABLE_PASSWORD_REQUIRED = "关闭双重验证前请输入当前密码。";
 
     public static final String NON_STUDENT_PROFILE_ACCESS = "该用户不是学生角色。无法查询学生资料。";
     public static final String NON_STUDENT_PROFILE_UPDATE = "该用户不是学生角色。无法修改学生资料。";

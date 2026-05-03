@@ -39,6 +39,8 @@ public class StudentProfileVO {
     private String phone;
     /** 兴趣方向。 */
     private String interests;
+    /** 是否已开启双重验证。 */
+    private Boolean twoFactorEnabled;
     /** 更新时间。 */
     private LocalDateTime updatedAt;
 }
