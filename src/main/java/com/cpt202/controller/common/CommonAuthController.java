@@ -1,6 +1,8 @@
 package com.cpt202.controller.common;
 
 import com.cpt202.dto.LoginDTO;
+import com.cpt202.dto.EmailOtpLoginDTO;
+import com.cpt202.dto.EmailOtpRequestDTO;
 import com.cpt202.dto.PasswordResetConfirmDTO;
 import com.cpt202.dto.PasswordResetRequestDTO;
 import com.cpt202.dto.RegisterUserDTO;
@@ -55,6 +57,31 @@ public class CommonAuthController {
     @Operation(summary = "Log in a common user")
     public Result<LoginVO> login(@Valid @RequestBody LoginDTO loginDTO) {
         return Result.success(authService.login(loginDTO));
+    }
+
+    /**
+     * 发送邮箱验证码登录邮件。
+     *
+     * @param requestDTO 邮箱参数
+     * @return 统一成功响应
+     */
+    @PostMapping("/email-otp/send")
+    @Operation(summary = "Send email OTP for login")
+    public Result<String> sendEmailOtp(@Valid @RequestBody EmailOtpRequestDTO requestDTO) {
+        authService.sendEmailLoginOtp(requestDTO);
+        return Result.success(MessageConstants.EMAIL_OTP_SENT);
+    }
+
+    /**
+     * 通过邮箱验证码登录。
+     *
+     * @param loginDTO 邮箱验证码登录参数
+     * @return 登录展示对象
+     */
+    @PostMapping("/email-otp/login")
+    @Operation(summary = "Log in with email OTP")
+    public Result<LoginVO> loginWithEmailOtp(@Valid @RequestBody EmailOtpLoginDTO loginDTO) {
+        return Result.success(authService.loginWithEmailOtp(loginDTO));
     }
 
     /**
