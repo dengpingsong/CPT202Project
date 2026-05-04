@@ -117,6 +117,11 @@ export const teacherApi = {
     request('/teacher/projects', { method: 'POST', body: JSON.stringify(payload) }),
   updateProject: (projectId: number | string, payload: Record<string, any>) =>
     request(`/teacher/projects/${projectId}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  changeProjectStatus: (projectId: number | string, projectStatus: string, remark?: string) =>
+    request(`/teacher/projects/${projectId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ projectStatus, remark: remark || '' }),
+    }),
   listCategories: () => request('/teacher/categories'),
   listTags: () => request('/teacher/tags'),
   listProjectTags: (projectId: number | string) =>
@@ -125,11 +130,19 @@ export const teacherApi = {
     request(`/teacher/project-tags/${projectId}`, { method: 'PUT', body: JSON.stringify({ tagIds }) }),
   listRequests: (status?: string) =>
     request(`/teacher/requests${status ? `?status=${status}` : ''}`),
+  listHistory: () => request('/teacher/requests'),
+  listNotifications: () => request('/teacher/requests'),
   getProfile: () => request('/teacher/profile/me'),
   updateProfile: (payload: Record<string, any>) =>
     request('/teacher/profile/me', { method: 'PUT', body: JSON.stringify(payload) }),
   changePassword: (oldPassword: string, newPassword: string) =>
     request('/teacher/profile/me/password', { method: 'PUT', body: JSON.stringify({ oldPassword, newPassword }) }),
+  initializeTwoFactorSetup: () =>
+    request('/teacher/profile/me/2fa/setup', { method: 'POST', body: JSON.stringify({}) }),
+  enableTwoFactor: (code: string) =>
+    request('/teacher/profile/me/2fa/enable', { method: 'POST', body: JSON.stringify({ code }) }),
+  disableTwoFactor: (currentPassword: string) =>
+    request('/teacher/profile/me/2fa/disable', { method: 'POST', body: JSON.stringify({ currentPassword }) }),
   reviewRequest: (requestId: number | string, requestStatus: string, decisionComment?: string) =>
     request(`/teacher/requests/${requestId}/review`, {
       method: 'PUT',

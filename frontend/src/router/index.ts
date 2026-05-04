@@ -35,10 +35,10 @@ const router = createRouter({
       path: '/teacher',
       component: () => import('../layouts/TeacherLayout.vue'),
       children: [
-        { path: '', redirect: '/teacher/dashboard' },
-        { path: 'dashboard', name: 'TeacherDashboard', component: () => import('../views/teacher/TeacherDashboard.vue') },
+        { path: '', redirect: '/teacher/projects' },
         { path: 'projects', name: 'TeacherProjects', component: () => import('../views/teacher/TeacherProjects.vue') },
         { path: 'create-project', name: 'TeacherCreateProject', component: () => import('../views/teacher/TeacherCreateProject.vue') },
+        { path: 'dashboard', name: 'TeacherDashboard', component: () => import('../views/teacher/TeacherDashboard.vue') },
         { path: 'request/:id', name: 'TeacherRequestDetail', component: () => import('../views/teacher/TeacherRequestDetail.vue') },
         { path: 'history', name: 'TeacherHistory', component: () => import('../views/teacher/TeacherHistory.vue') },
         { path: 'notifications', name: 'TeacherNotifications', component: () => import('../views/teacher/TeacherNotifications.vue') },
