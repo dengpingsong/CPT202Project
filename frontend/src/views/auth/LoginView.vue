@@ -18,17 +18,80 @@ const loginLoading = ref(false)
 // Email OTP
 const otpEmail = ref('')
 const otpCode = ref('')
+const otpDigits = ref<string[]>(['', '', '', '', '', ''])
+const otpRefs = ref<HTMLInputElement[]>([])
 const otpRequestMessage = ref('')
 const otpRequestLoading = ref(false)
 const otpLoginMessage = ref('')
 const otpLoginLoading = ref(false)
 
+function onOtpInput(index: number, e: Event) {
+  const raw = (e.target as HTMLInputElement).value
+  const val = raw.replace(/[^0-9]/g, '')
+  otpDigits.value[index] = val.slice(-1)
+  ;(e.target as HTMLInputElement).value = otpDigits.value[index]
+  if (val && index < 5) otpRefs.value[index + 1]?.focus()
+  otpCode.value = otpDigits.value.join('')
+}
+
+function onOtpKeydown(index: number, e: KeyboardEvent) {
+  if (e.key === 'Backspace' && !otpDigits.value[index] && index > 0) {
+    otpDigits.value[index - 1] = ''
+    otpRefs.value[index - 1]?.focus()
+    otpCode.value = otpDigits.value.join('')
+  }
+}
+
+function onOtpPaste(e: ClipboardEvent) {
+  const text = e.clipboardData?.getData('text')?.replace(/\D/g, '') ?? ''
+  if (text.length >= 6) {
+    e.preventDefault()
+    for (let i = 0; i < 6; i++) otpDigits.value[i] = text[i]
+    otpCode.value = otpDigits.value.join('')
+    otpRefs.value[5]?.focus()
+  }
+}
+
+function resetOtpDigits() {
+  otpDigits.value = ['', '', '', '', '', '']
+  otpCode.value = ''
+}
+
 // Two-Factor
 const twoFactorCode = ref('')
+const twoFactorDigits = ref<string[]>(['', '', '', '', '', ''])
+const twoFactorRefs = ref<HTMLInputElement[]>([])
 const twoFactorChallengeToken = ref('')
 const twoFactorMessage = ref('')
 const twoFactorLoading = ref(false)
 const twoFactorUsername = ref('')
+
+function onTwoFactorInput(index: number, e: Event) {
+  const raw = (e.target as HTMLInputElement).value
+  const val = raw.replace(/[^0-9]/g, '')
+  twoFactorDigits.value[index] = val.slice(-1)
+  ;(e.target as HTMLInputElement).value = twoFactorDigits.value[index]
+  if (val && index < 5) twoFactorRefs.value[index + 1]?.focus()
+  twoFactorCode.value = twoFactorDigits.value.join('')
+}
+
+function onTwoFactorKeydown(index: number, e: KeyboardEvent) {
+  if (e.key === 'Backspace' && !twoFactorDigits.value[index] && index > 0) {
+    twoFactorDigits.value[index - 1] = ''
+    twoFactorRefs.value[index - 1]?.focus()
+    twoFactorCode.value = twoFactorDigits.value.join('')
+  }
+}
+
+function onTwoFactorPaste(e: ClipboardEvent) {
+  const text = e.clipboardData?.getData('text')?.replace(/\D/g, '') ?? ''
+  if (text.length >= 6) {
+    e.preventDefault()
+    for (let i = 0; i < 6; i++) twoFactorDigits.value[i] = text[i]
+    twoFactorCode.value = twoFactorDigits.value.join('')
+    twoFactorRefs.value[5]?.focus()
+  }
+}
 
 // Register
 const regUsername = ref('')
@@ -162,6 +225,7 @@ async function handleSendOtp() {
     otpRequestMessage.value = res.code === 1
       ? (res.data as string) || 'Verification code sent.'
       : res.msg || 'Failed to send code'
+    if (res.code === 1) resetOtpDigits()
   } catch {
     otpRequestMessage.value = 'Network error, please try again.'
   } finally {
@@ -378,10 +442,6 @@ onMounted(async () => {
           <h2>Welcome Back!</h2>
           <h3>Please log in to your account</h3>
 
-          <div class="forgot-wrap">
-            <button type="button" class="text-link" @click="showPanel('emailOtp')">Login with Email OTP</button>
-          </div>
-
           <form @submit.prevent="handleLogin">
             <input v-model="loginUsername" type="text" placeholder="Username" required>
             <input v-model="loginPassword" type="password" placeholder="Password" required>
@@ -395,6 +455,8 @@ onMounted(async () => {
               {{ loginLoading ? 'Logging in...' : 'Login' }}
             </button>
           </form>
+
+          <button type="button" class="otp-btn" @click="showPanel('emailOtp')">Login with Email OTP</button>
         </div>
 
         <!-- Email OTP Panel -->
@@ -402,16 +464,34 @@ onMounted(async () => {
           <h2>Email OTP Login</h2>
           <h3>Use your registered email to receive a one-time code</h3>
 
-          <form @submit.prevent="handleSendOtp">
-            <input v-model="otpEmail" type="email" placeholder="Email" required>
-            <div class="helper">{{ otpRequestMessage }}</div>
-            <button type="submit" :disabled="otpRequestLoading">
-              {{ otpRequestLoading ? 'Sending...' : 'Send Verification Code' }}
+          <form @submit.prevent="handleSendOtp" class="otp-send-row">
+            <input v-model="otpEmail" type="email" placeholder="Enter your email" required>
+            <button type="submit" class="otp-send-btn" :disabled="otpRequestLoading">
+              {{ otpRequestLoading ? '...' : 'Send' }}
             </button>
           </form>
+          <div class="helper">{{ otpRequestMessage }}</div>
 
-          <form @submit.prevent="handleOtpLogin">
-            <input v-model="otpCode" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code" required>
+          <div class="otp-divider">
+            <span>Verification Code</span>
+          </div>
+
+          <form @submit.prevent="handleOtpLogin" class="otp-verify-form">
+            <div class="otp-inputs" @paste="onOtpPaste">
+              <input
+                v-for="(_, i) in 6"
+                :key="i"
+                :ref="el => { if (el) otpRefs[i] = el as HTMLInputElement }"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]"
+                maxlength="1"
+                class="otp-box"
+                :value="otpDigits[i]"
+                @input="onOtpInput(i, $event)"
+                @keydown="onOtpKeydown(i, $event)"
+              >
+            </div>
             <div class="helper">{{ otpLoginMessage }}</div>
             <button type="submit" :disabled="otpLoginLoading">
               {{ otpLoginLoading ? 'Verifying...' : 'Login with Code' }}
@@ -429,7 +509,20 @@ onMounted(async () => {
           <h3>Enter the 6-digit code for {{ twoFactorUsername }}</h3>
 
           <form @submit.prevent="handleTwoFactor">
-            <input v-model="twoFactorCode" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit authenticator code" required>
+            <div class="otp-inputs" @paste="onTwoFactorPaste">
+              <input
+                v-for="(_, i) in 6"
+                :key="i"
+                :ref="el => { if (el) twoFactorRefs[i] = el as HTMLInputElement }"
+                type="text"
+                inputmode="numeric"
+                maxlength="1"
+                class="otp-box"
+                :value="twoFactorDigits[i]"
+                @input="onTwoFactorInput(i, $event)"
+                @keydown="onTwoFactorKeydown(i, $event)"
+              >
+            </div>
             <div class="helper">{{ twoFactorMessage }}</div>
             <button type="submit" :disabled="twoFactorLoading">
               {{ twoFactorLoading ? 'Verifying...' : 'Verify and Login' }}
@@ -703,7 +796,7 @@ h2 {
 }
 
 h3 {
-  margin: 0 0 18px;
+  margin: 0 0 6px;
   font-size: 0.88rem;
   font-weight: 400;
   color: var(--muted);
@@ -740,7 +833,7 @@ label, .inline-label {
 }
 
 .inline-label {
-  margin: 10px 0 6px;
+  margin: 2px 0 2px;
 }
 
 button, .register-link {
@@ -799,6 +892,96 @@ button:disabled {
 .forgot-wrap {
   margin: -2px 0 0;
   text-align: right;
+}
+
+.otp-btn {
+  width: 100%;
+  min-height: 38px;
+  margin-top: 6px;
+  padding: 8px 13px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--deep);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.otp-btn:hover {
+  border-color: var(--deep);
+  box-shadow: 0 2px 8px rgba(90, 43, 152, 0.1);
+}
+
+.otp-send-row {
+  display: flex;
+  gap: 8px;
+}
+
+.otp-send-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.otp-send-btn {
+  width: auto !important;
+  min-width: 72px;
+  padding: 0 16px !important;
+  white-space: nowrap;
+}
+
+.otp-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 8px;
+}
+
+.otp-divider::before,
+.otp-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.otp-divider span {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.otp-verify-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.otp-inputs {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.otp-box {
+  width: 42px;
+  height: 48px;
+  text-align: center;
+  font-size: 1.2rem;
+  font-weight: 700;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.otp-box:focus {
+  border-color: var(--deep);
+  box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.14);
 }
 
 .helper {
