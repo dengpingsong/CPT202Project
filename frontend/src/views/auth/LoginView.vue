@@ -1,0 +1,927 @@
+<script setup lang="ts">
+import { ref, computed, onMounted, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
+import { authApi, setAuth } from '../../utils/api'
+
+const router = useRouter()
+
+// Panel state
+type PanelId = 'login' | 'emailOtp' | 'twoFactor' | 'register' | 'reset'
+const currentPanel = ref<PanelId>('login')
+
+// Login
+const loginUsername = ref('')
+const loginPassword = ref('')
+const loginError = ref('')
+const loginLoading = ref(false)
+
+// Email OTP
+const otpEmail = ref('')
+const otpCode = ref('')
+const otpRequestMessage = ref('')
+const otpRequestLoading = ref(false)
+const otpLoginMessage = ref('')
+const otpLoginLoading = ref(false)
+
+// Two-Factor
+const twoFactorCode = ref('')
+const twoFactorChallengeToken = ref('')
+const twoFactorMessage = ref('')
+const twoFactorLoading = ref(false)
+const twoFactorUsername = ref('')
+
+// Register
+const regUsername = ref('')
+const regPassword = ref('')
+const regEmail = ref('')
+const regFullName = ref('')
+const regRole = ref<'STUDENT' | 'TEACHER'>('STUDENT')
+const regStudentNo = ref('')
+const regProgramme = ref('')
+const regEntryDate = ref('')
+const regStaffNo = ref('')
+const regDepartment = ref('')
+const regTitle = ref('')
+const registerError = ref('')
+const registerLoading = ref(false)
+
+// Reset password
+const resetEmail = ref('')
+const resetToken = ref('')
+const resetPassword = ref('')
+const resetConfirmPassword = ref('')
+const resetRequestMessage = ref('')
+const resetRequestLoading = ref(false)
+const resetConfirmMessage = ref('')
+const resetConfirmLoading = ref(false)
+
+const hasResetToken = computed(() => !!resetToken.value)
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function validateEmail(email: string) {
+  return EMAIL_PATTERN.test(email.trim())
+}
+
+function isFutureDate(value: string) {
+  if (!value) return false
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return new Date(`${value}T00:00:00`) > today
+}
+
+function showPanel(id: PanelId) {
+  currentPanel.value = id
+  if (id === 'login') {
+    loginError.value = ''
+  }
+}
+
+function redirectByRole(role: string) {
+  const routes: Record<string, string> = {
+    TEACHER: '/teacher/dashboard',
+    STUDENT: '/student/dashboard',
+    ADMIN: '/admin/projects',
+  }
+  const target = routes[role]
+  if (target) {
+    router.push(target)
+  } else {
+    loginError.value = 'Unknown role, cannot redirect.'
+  }
+}
+
+// Login
+async function handleLogin() {
+  loginError.value = ''
+  loginLoading.value = true
+  try {
+    const res = await authApi.login({
+      username: loginUsername.value.trim(),
+      password: loginPassword.value,
+    })
+    if (res.code === 1 && res.data) {
+      const data = res.data as any
+      if (data.twoFactorRequired) {
+        twoFactorChallengeToken.value = data.twoFactorChallengeToken || ''
+        twoFactorUsername.value = data.username || ''
+        twoFactorCode.value = ''
+        twoFactorMessage.value = ''
+        showPanel('twoFactor')
+        return
+      }
+      setAuth(data)
+      redirectByRole(data.role)
+    } else {
+      loginError.value = res.msg || 'Login failed'
+    }
+  } catch {
+    loginError.value = 'Network error, please try again.'
+  } finally {
+    loginLoading.value = false
+  }
+}
+
+// Two-Factor
+async function handleTwoFactor() {
+  twoFactorMessage.value = ''
+  if (!twoFactorChallengeToken.value) {
+    twoFactorMessage.value = 'Session expired. Please log in again.'
+    return
+  }
+  if (!/^\d{6}$/.test(twoFactorCode.value)) {
+    twoFactorMessage.value = 'Please enter a valid 6-digit code.'
+    return
+  }
+  twoFactorLoading.value = true
+  try {
+    const res = await authApi.verifyTwoFactor(twoFactorChallengeToken.value, twoFactorCode.value)
+    if (res.code === 1 && res.data) {
+      setAuth(res.data as any)
+      redirectByRole((res.data as any).role)
+    } else {
+      twoFactorMessage.value = res.msg || 'Verification failed'
+    }
+  } catch {
+    twoFactorMessage.value = 'Network error, please try again.'
+  } finally {
+    twoFactorLoading.value = false
+  }
+}
+
+// Email OTP - send code
+async function handleSendOtp() {
+  otpRequestMessage.value = ''
+  otpLoginMessage.value = ''
+  if (!validateEmail(otpEmail.value)) {
+    otpRequestMessage.value = 'Invalid email format.'
+    return
+  }
+  otpRequestLoading.value = true
+  try {
+    const res = await authApi.sendEmailOtp(otpEmail.value.trim())
+    otpRequestMessage.value = res.code === 1
+      ? (res.data as string) || 'Verification code sent.'
+      : res.msg || 'Failed to send code'
+  } catch {
+    otpRequestMessage.value = 'Network error, please try again.'
+  } finally {
+    otpRequestLoading.value = false
+  }
+}
+
+// Email OTP - login
+async function handleOtpLogin() {
+  otpLoginMessage.value = ''
+  if (!validateEmail(otpEmail.value)) {
+    otpLoginMessage.value = 'Invalid email format.'
+    return
+  }
+  if (!/^\d{6}$/.test(otpCode.value)) {
+    otpLoginMessage.value = 'Please enter a 6-digit code.'
+    return
+  }
+  otpLoginLoading.value = true
+  try {
+    const res = await authApi.emailOtpLogin(otpEmail.value.trim(), otpCode.value.trim())
+    if (res.code === 1 && res.data) {
+      setAuth(res.data as any)
+      redirectByRole((res.data as any).role)
+    } else {
+      otpLoginMessage.value = res.msg || 'Login failed'
+    }
+  } catch {
+    otpLoginMessage.value = 'Network error, please try again.'
+  } finally {
+    otpLoginLoading.value = false
+  }
+}
+
+// Register
+async function handleRegister() {
+  registerError.value = ''
+  registerLoading.value = true
+
+  const payload: Record<string, string> = {
+    username: regUsername.value.trim(),
+    password: regPassword.value,
+    email: regEmail.value.trim(),
+    fullName: regFullName.value.trim(),
+    role: regRole.value,
+  }
+
+  if (regRole.value === 'STUDENT') {
+    payload.studentNo = regStudentNo.value.trim()
+    payload.programme = regProgramme.value.trim()
+    payload.enrollmentDate = regEntryDate.value
+  } else {
+    payload.staffNo = regStaffNo.value.trim()
+    payload.department = regDepartment.value.trim()
+    payload.title = regTitle.value.trim()
+  }
+
+  if (!validateEmail(payload.email)) {
+    registerError.value = 'Invalid email format.'
+    registerLoading.value = false
+    return
+  }
+  if (regRole.value === 'STUDENT' && isFutureDate(payload.enrollmentDate)) {
+    registerError.value = 'Enrollment date cannot be in the future.'
+    registerLoading.value = false
+    return
+  }
+
+  try {
+    const res = await authApi.register(payload)
+    if (res.code === 1) {
+      regUsername.value = ''
+      regPassword.value = ''
+      regEmail.value = ''
+      regFullName.value = ''
+      showPanel('login')
+      loginError.value = 'Register success. Please log in.'
+    } else {
+      registerError.value = res.msg || 'Register failed'
+    }
+  } catch {
+    registerError.value = 'Network error, please try again.'
+  } finally {
+    registerLoading.value = false
+  }
+}
+
+// Reset - request
+async function handleResetRequest() {
+  resetRequestMessage.value = ''
+  if (!validateEmail(resetEmail.value)) {
+    resetRequestMessage.value = 'Invalid email format.'
+    return
+  }
+  resetRequestLoading.value = true
+  try {
+    const res = await authApi.forgotPassword(resetEmail.value.trim())
+    resetRequestMessage.value = res.code === 1
+      ? (res.data as string) || 'If the email exists, a reset link has been sent.'
+      : res.msg || 'Failed to send reset email'
+  } catch {
+    resetRequestMessage.value = 'Network error, please try again.'
+  } finally {
+    resetRequestLoading.value = false
+  }
+}
+
+// Reset - confirm
+async function handleResetConfirm() {
+  resetConfirmMessage.value = ''
+  if (!resetToken.value) {
+    resetConfirmMessage.value = 'Reset token is missing.'
+    return
+  }
+  if (resetPassword.value !== resetConfirmPassword.value) {
+    resetConfirmMessage.value = 'Passwords do not match.'
+    return
+  }
+  resetConfirmLoading.value = true
+  try {
+    const res = await authApi.resetPassword(resetToken.value, resetPassword.value)
+    if (res.code === 1) {
+      resetConfirmMessage.value = 'Password reset successfully. Please log in.'
+      resetToken.value = ''
+      showPanel('login')
+    } else {
+      resetConfirmMessage.value = res.msg || 'Reset failed'
+    }
+  } catch {
+    resetConfirmMessage.value = 'Network error, please try again.'
+  } finally {
+    resetConfirmLoading.value = false
+  }
+}
+
+onMounted(async () => {
+  // Check for reset token in URL
+  const params = new URLSearchParams(window.location.search)
+  const token = params.get('token')
+  if (token) {
+    resetToken.value = token
+    showPanel('reset')
+  }
+
+  // Anime.js animations
+  try {
+    const { animate, stagger, splitText } = await import('animejs')
+    await nextTick()
+
+    const { chars } = splitText('.guide-eyebrow', { words: false, chars: true })
+
+    animate(chars, {
+      y: [
+        { to: '-0.7rem', ease: 'outExpo', duration: 600 },
+        { to: 0, ease: 'outBounce', duration: 800, delay: 100 },
+      ],
+      rotate: { from: '-1turn', delay: 0 },
+      delay: stagger(50),
+      ease: 'inOutCirc',
+      loopDelay: 1000,
+      loop: true,
+    })
+
+    animate('.square', {
+      keyframes: [
+        { x: '24.2rem', y: 0, ease: 'inOut', duration: 800 },
+        { x: '24.2rem', y: '23rem', ease: 'inOut', duration: 800 },
+        { x: 0, y: '23rem', ease: 'inOut', duration: 800 },
+        { x: 0, y: 0, ease: 'inOut', duration: 850 },
+      ],
+      rotate: { to: 360, ease: 'linear' },
+      delay: stagger(320),
+      duration: 3250,
+      loop: true,
+    })
+  } catch {
+    // animejs not available, skip animations
+  }
+})
+</script>
+
+<template>
+  <section class="guide-page" aria-label="Project introduction">
+    <div class="guide-copy">
+      <p class="guide-eyebrow">CPT202 Project Selection System</p>
+      <h1>Find and manage your final year project in one place.</h1>
+      <p class="guide-text">
+        Students can browse available topics and submit applications. Teachers can publish projects,
+        review requests, and keep project capacity under control.
+      </p>
+
+      <div class="guide-points" aria-label="Core features">
+        <div>
+          <strong>Students</strong>
+          <span>Search projects, track requests, and manage profile details.</span>
+        </div>
+        <div>
+          <strong>Teachers</strong>
+          <span>Create projects, review applications, and bind tags.</span>
+        </div>
+        <div>
+          <strong>Admins</strong>
+          <span>Maintain users, categories, tags, and request records.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="guide-visual">
+      <div class="auth-orbit" v-show="currentPanel === 'login'" aria-hidden="true">
+        <span class="square"></span>
+        <span class="square"></span>
+        <span class="square"></span>
+      </div>
+
+      <div class="login-card auth-panel-card" :class="{ 'register-mode': currentPanel === 'register' }">
+        <div class="auth-tabs" aria-label="Authentication options">
+          <button
+            type="button"
+            class="auth-tab"
+            :class="{ active: currentPanel === 'login' }"
+            @click="showPanel('login')"
+          >Login</button>
+          <button
+            type="button"
+            class="auth-tab"
+            :class="{ active: currentPanel === 'register' }"
+            @click="showPanel('register')"
+          >Register</button>
+        </div>
+
+        <!-- Login Panel -->
+        <div v-show="currentPanel === 'login'" class="auth-panel active">
+          <h2>Welcome Back!</h2>
+          <h3>Please log in to your account</h3>
+
+          <div class="forgot-wrap">
+            <button type="button" class="text-link" @click="showPanel('emailOtp')">Login with Email OTP</button>
+          </div>
+
+          <form @submit.prevent="handleLogin">
+            <input v-model="loginUsername" type="text" placeholder="Username" required>
+            <input v-model="loginPassword" type="password" placeholder="Password" required>
+
+            <div class="forgot-wrap">
+              <button type="button" class="text-link" @click="showPanel('reset')">Forgot Password?</button>
+            </div>
+
+            <div class="helper">{{ loginError }}</div>
+            <button type="submit" :disabled="loginLoading">
+              {{ loginLoading ? 'Logging in...' : 'Login' }}
+            </button>
+          </form>
+        </div>
+
+        <!-- Email OTP Panel -->
+        <div v-show="currentPanel === 'emailOtp'" class="auth-panel active">
+          <h2>Email OTP Login</h2>
+          <h3>Use your registered email to receive a one-time code</h3>
+
+          <form @submit.prevent="handleSendOtp">
+            <input v-model="otpEmail" type="email" placeholder="Email" required>
+            <div class="helper">{{ otpRequestMessage }}</div>
+            <button type="submit" :disabled="otpRequestLoading">
+              {{ otpRequestLoading ? 'Sending...' : 'Send Verification Code' }}
+            </button>
+          </form>
+
+          <form @submit.prevent="handleOtpLogin">
+            <input v-model="otpCode" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code" required>
+            <div class="helper">{{ otpLoginMessage }}</div>
+            <button type="submit" :disabled="otpLoginLoading">
+              {{ otpLoginLoading ? 'Verifying...' : 'Login with Code' }}
+            </button>
+          </form>
+
+          <div class="forgot-wrap">
+            <button type="button" class="text-link" @click="showPanel('login')">Back to Password Login</button>
+          </div>
+        </div>
+
+        <!-- Two-Factor Panel -->
+        <div v-show="currentPanel === 'twoFactor'" class="auth-panel active">
+          <h2>Two-Factor Verification</h2>
+          <h3>Enter the 6-digit code for {{ twoFactorUsername }}</h3>
+
+          <form @submit.prevent="handleTwoFactor">
+            <input v-model="twoFactorCode" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit authenticator code" required>
+            <div class="helper">{{ twoFactorMessage }}</div>
+            <button type="submit" :disabled="twoFactorLoading">
+              {{ twoFactorLoading ? 'Verifying...' : 'Verify and Login' }}
+            </button>
+          </form>
+
+          <div class="forgot-wrap">
+            <button type="button" class="text-link" @click="showPanel('login')">Use another login method</button>
+          </div>
+        </div>
+
+        <!-- Register Panel -->
+        <div v-show="currentPanel === 'register'" class="auth-panel active">
+          <h2>Create Account</h2>
+          <h3>Register a student or teacher account</h3>
+
+          <form @submit.prevent="handleRegister" class="register-form">
+            <div class="general-error">{{ registerError }}</div>
+
+            <div class="form-field">
+              <label class="inline-label">Username</label>
+              <input v-model="regUsername" type="text" placeholder="Username" required>
+            </div>
+
+            <div class="form-field">
+              <label class="inline-label">Password</label>
+              <input v-model="regPassword" type="password" placeholder="Password" required>
+            </div>
+
+            <div class="form-field">
+              <label class="inline-label">Email</label>
+              <input v-model="regEmail" type="email" placeholder="Email" required>
+            </div>
+
+            <div class="form-field">
+              <label class="inline-label">Full Name</label>
+              <input v-model="regFullName" type="text" placeholder="Full Name" required>
+            </div>
+
+            <div class="form-field full-span">
+              <label class="inline-label">Role</label>
+              <select v-model="regRole" required>
+                <option value="STUDENT">Student</option>
+                <option value="TEACHER">Teacher</option>
+              </select>
+            </div>
+
+            <div class="field-group" v-show="regRole === 'STUDENT'">
+              <div class="form-field">
+                <label class="inline-label">Student No</label>
+                <input v-model="regStudentNo" type="text" placeholder="Student No" :required="regRole === 'STUDENT'">
+              </div>
+              <div class="form-field">
+                <label class="inline-label">Programme</label>
+                <input v-model="regProgramme" type="text" placeholder="Programme" :required="regRole === 'STUDENT'">
+              </div>
+              <div class="form-field full-span">
+                <label class="inline-label">Enrollment Date</label>
+                <input v-model="regEntryDate" type="date" :required="regRole === 'STUDENT'">
+              </div>
+            </div>
+
+            <div class="field-group" v-show="regRole === 'TEACHER'">
+              <div class="form-field">
+                <label class="inline-label">Staff No</label>
+                <input v-model="regStaffNo" type="text" placeholder="Staff No">
+              </div>
+              <div class="form-field">
+                <label class="inline-label">Department</label>
+                <input v-model="regDepartment" type="text" placeholder="Department">
+              </div>
+              <div class="form-field full-span">
+                <label class="inline-label">Title</label>
+                <input v-model="regTitle" type="text" placeholder="Title">
+              </div>
+            </div>
+
+            <button class="full-span" type="submit" :disabled="registerLoading">
+              {{ registerLoading ? 'Registering...' : 'Register' }}
+            </button>
+          </form>
+        </div>
+
+        <!-- Reset Password Panel -->
+        <div v-show="currentPanel === 'reset'" class="auth-panel active">
+          <h2>Reset Password</h2>
+          <h3>{{ hasResetToken ? 'Set a new password for your account' : 'Enter your email to receive a reset link' }}</h3>
+
+          <form v-if="!hasResetToken" @submit.prevent="handleResetRequest">
+            <input v-model="resetEmail" type="email" placeholder="Email" required>
+            <div class="helper">{{ resetRequestMessage }}</div>
+            <button type="submit" :disabled="resetRequestLoading">
+              {{ resetRequestLoading ? 'Sending...' : 'Send Reset Link' }}
+            </button>
+          </form>
+
+          <form v-else @submit.prevent="handleResetConfirm">
+            <input v-model="resetPassword" type="password" placeholder="New Password" required>
+            <input v-model="resetConfirmPassword" type="password" placeholder="Confirm New Password" required>
+            <div class="helper">{{ resetConfirmMessage }}</div>
+            <button type="submit" :disabled="resetConfirmLoading">
+              {{ resetConfirmLoading ? 'Setting...' : 'Set New Password' }}
+            </button>
+          </form>
+
+          <div class="forgot-wrap">
+            <button type="button" class="text-link" @click="showPanel('login')">Back to Password Login</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</template>
+
+<style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  --bg: #f4f3f7;
+  --deep: #5a2b98;
+  --mid: #7b4fbd;
+  --panel: #ffffff;
+  --text: #1c1b33;
+  --muted: #6b6b82;
+  --accent: #24b3ff;
+  --green: #2fc5a8;
+  --danger: #d93025;
+  --border: rgba(28, 27, 51, 0.1);
+}
+
+.guide-page {
+  display: grid;
+  grid-template-columns: minmax(360px, 1fr) minmax(360px, 420px);
+  gap: 52px;
+  align-items: center;
+  min-height: 100vh;
+  width: min(100%, 1040px);
+  margin: 0 auto;
+  padding: 56px 28px 52px;
+  font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.guide-copy {
+  max-width: 560px;
+  transform: translateY(-6px);
+}
+
+.guide-eyebrow {
+  margin: 0 0 14px;
+  color: var(--deep);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.guide-copy h1 {
+  margin: 0;
+  color: var(--text);
+  font-size: 2.6rem;
+  font-weight: 800;
+  line-height: 1.08;
+}
+
+.guide-text {
+  max-width: 500px;
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.guide-points {
+  display: grid;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.guide-points div {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: 14px;
+  align-items: start;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+
+.guide-points strong {
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.guide-points span {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.guide-visual {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  transform: translateY(26px);
+}
+
+.auth-orbit {
+  position: absolute;
+  top: calc(50% - 11.7rem);
+  left: calc(50% - 12.5rem);
+  width: 26rem;
+  height: 17.7rem;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.square {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0.62rem;
+  height: 0.62rem;
+  border-radius: 3px;
+  background: var(--deep);
+  opacity: 0.72;
+  box-shadow: 0 0 18px rgba(90, 43, 152, 0.42);
+  will-change: transform;
+}
+
+.login-card {
+  width: min(100%, 336px);
+  padding: 22px 20px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--panel);
+  box-shadow: 0 20px 60px rgba(21, 16, 45, 0.12);
+}
+
+.auth-panel-card {
+  position: relative;
+  width: min(100%, 372px);
+  max-height: calc(100vh - 112px);
+  overflow-y: auto;
+  z-index: 1;
+}
+
+.auth-panel-card.register-mode {
+  width: min(100%, 392px);
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  margin-bottom: 16px;
+  padding: 4px;
+  border-radius: 12px;
+  background: #f4f3f7;
+}
+
+.auth-tab {
+  min-height: 32px;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.auth-tab:hover {
+  background: rgba(90, 43, 152, 0.08);
+  color: var(--deep);
+}
+
+.auth-tab.active {
+  background: var(--panel);
+  color: var(--deep);
+  box-shadow: 0 6px 18px rgba(21, 16, 45, 0.08);
+}
+
+h2 {
+  margin: 0 0 8px;
+  font-size: 1.38rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+h3 {
+  margin: 0 0 18px;
+  font-size: 0.88rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+form {
+  display: grid;
+  gap: 10px;
+}
+
+input, select {
+  width: 100%;
+  min-height: 38px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input:focus, select:focus {
+  border-color: var(--deep);
+  box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.14);
+}
+
+label, .inline-label {
+  display: block;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.inline-label {
+  margin: 10px 0 6px;
+}
+
+button, .register-link {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 13px;
+  border: none;
+  border-radius: 12px;
+  background: var(--deep);
+  color: #fff;
+  cursor: pointer;
+  display: block;
+  font: inherit;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+button:hover {
+  background: var(--mid);
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+button:disabled {
+  background: #c4c4d8;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.text-link {
+  width: auto;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--deep);
+  display: inline;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.text-link:hover {
+  background: transparent;
+  text-decoration: underline;
+}
+
+.forgot-wrap {
+  margin: -2px 0 0;
+  text-align: right;
+}
+
+.helper {
+  min-height: 16px;
+  margin: -6px 0 8px;
+  color: var(--danger);
+  font-size: 0.78rem;
+}
+
+.general-error {
+  min-height: 18px;
+  margin-bottom: 10px;
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.register-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.form-field {
+  min-width: 0;
+}
+
+.register-form .field-group {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.register-form .general-error,
+.register-form .field-group,
+.register-form .full-span {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 520px) {
+  .guide-page {
+    grid-template-columns: 1fr;
+    gap: 26px;
+    padding: 42px 18px 32px;
+  }
+
+  .guide-copy {
+    transform: none;
+  }
+
+  .guide-visual {
+    justify-content: center;
+    transform: none;
+  }
+
+  .auth-orbit {
+    display: none;
+  }
+
+  .auth-panel-card {
+    max-height: none;
+  }
+
+  .auth-panel-card.register-mode {
+    width: min(100%, 420px);
+  }
+
+  .guide-copy h1 {
+    font-size: 2rem;
+  }
+
+  .guide-text {
+    font-size: 0.94rem;
+  }
+
+  .guide-points div {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .login-card {
+    padding: 24px 20px;
+  }
+}
+</style>

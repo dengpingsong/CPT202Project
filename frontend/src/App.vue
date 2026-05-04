@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
+import GlobalFeedback from './components/GlobalFeedback.vue'
 </script>
 
 <template>
-  <HelloWorld />
+  <router-view />
+  <GlobalFeedback />
 </template>
