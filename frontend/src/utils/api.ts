@@ -152,6 +152,7 @@ export const teacherApi = {
 
 // Admin APIs
 export const adminApi = {
+  // Users
   listUsers: (role?: string, accountStatus?: string) => {
     const params = new URLSearchParams()
     if (role) params.set('role', role)
@@ -161,6 +162,13 @@ export const adminApi = {
   },
   updateUserStatus: (userId: number | string, accountStatus: string) =>
     request(`/admin/users/${userId}/status?accountStatus=${accountStatus}`, { method: 'PUT' }),
+
+  // Projects
+  listProjects: () => request('/admin/records/projects'),
+  listProjectTags: (projectId: number | string) =>
+    request(`/admin/projects/${projectId}/tags`),
+
+  // Requests
   listRequestRecords: (status?: string) => {
     const params = new URLSearchParams()
     if (status) params.set('status', status)
@@ -168,11 +176,39 @@ export const adminApi = {
     return request(`/admin/records/requests${query ? `?${query}` : ''}`)
   },
   listRequestHistoryRecords: () => request('/admin/records/request-history'),
+
+  // Categories
+  listCategories: () => request('/admin/categories'),
+  createCategory: (payload: { categoryName: string; description?: string }) =>
+    request('/admin/categories', { method: 'POST', body: JSON.stringify(payload) }),
+  updateCategory: (categoryId: number | string, payload: { categoryName: string; description?: string }) =>
+    request(`/admin/categories/${categoryId}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  deleteCategory: (categoryId: number | string) =>
+    request(`/admin/categories/${categoryId}`, { method: 'DELETE' }),
+
+  // Tags
+  listTags: () => request('/admin/tags'),
+  createTag: (payload: { tagName: string; description?: string }) =>
+    request('/admin/tags', { method: 'POST', body: JSON.stringify(payload) }),
+  updateTag: (tagId: number | string, payload: { tagName: string; description?: string }) =>
+    request(`/admin/tags/${tagId}`, { method: 'PUT', body: JSON.stringify(payload) }),
+  deleteTag: (tagId: number | string) =>
+    request(`/admin/tags/${tagId}`, { method: 'DELETE' }),
+
+  // Profile
   getProfile: () => request('/admin/profile/me'),
   updateProfile: (payload: Record<string, any>) =>
     request('/admin/profile/me', { method: 'PUT', body: JSON.stringify(payload) }),
   changePassword: (payload: { oldPassword: string; newPassword: string }) =>
     request('/admin/profile/me/password', { method: 'PUT', body: JSON.stringify(payload) }),
+
+  // 2FA
+  initializeTwoFactorSetup: () =>
+    request('/admin/profile/me/2fa/setup', { method: 'POST', body: JSON.stringify({}) }),
+  enableTwoFactor: (code: string) =>
+    request('/admin/profile/me/2fa/enable', { method: 'POST', body: JSON.stringify({ code }) }),
+  disableTwoFactor: (currentPassword: string) =>
+    request('/admin/profile/me/2fa/disable', { method: 'POST', body: JSON.stringify({ currentPassword }) }),
 }
 
 // Generic request helpers
