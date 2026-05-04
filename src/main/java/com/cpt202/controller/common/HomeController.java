@@ -2,6 +2,7 @@ package com.cpt202.controller.common;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 /**
  * 友好 URL 路由控制器。
@@ -29,5 +30,13 @@ public class HomeController {
     @GetMapping("/auth/forgot-password")
     public String forgotPassword() {
         return "redirect:/login/login.html#reset";
+    }
+
+    @GetMapping("/auth/reset-password")
+    public String resetPassword(@RequestParam(name = "token", required = false) String token) {
+        if (token == null || token.isBlank()) {
+            return "redirect:/login/login.html#reset";
+        }
+        return "redirect:/login/login.html?token=" + token + "#reset";
     }
 }

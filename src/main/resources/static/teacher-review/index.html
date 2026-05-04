@@ -7,8 +7,108 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <link rel="stylesheet" href="../css/dashboard.css" />
+    <style>
+        .teacher-review-page .page-header h1 {
+            font-size: 1.72rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+        .teacher-review-page .panel h3 {
+            margin-bottom: 8px;
+            font-size: 1.08rem;
+            font-weight: 700;
+            color: var(--text);
+            text-transform: none;
+            letter-spacing: 0;
+        }
+        .teacher-review-page #reviewStatus {
+            font-size: 0.96rem;
+            line-height: 1.6;
+        }
+        .teacher-review-page .project-table {
+            min-width: 980px;
+            font-size: 0.96rem;
+        }
+        .teacher-review-page .project-table th {
+            font-size: 0.95rem;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            padding: 18px 20px;
+        }
+        .teacher-review-page .project-table td {
+            padding: 20px;
+            vertical-align: middle;
+        }
+        .teacher-review-page .student-cell {
+            min-width: 140px;
+        }
+        .teacher-review-page .student-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text);
+            line-height: 1.45;
+        }
+        .teacher-review-page .student-role {
+            margin-top: 4px;
+            font-size: 0.92rem;
+            color: var(--muted);
+            line-height: 1.45;
+        }
+        .teacher-review-page .project-cell {
+            min-width: 320px;
+        }
+        .teacher-review-page .project-title {
+            display: block;
+            font-size: 1.18rem;
+            font-weight: 700;
+            line-height: 1.42;
+            color: var(--text);
+            margin-bottom: 10px;
+        }
+        .teacher-review-page .project-note {
+            display: block;
+            font-size: 0.94rem;
+            line-height: 1.65;
+            color: var(--muted);
+        }
+        .teacher-review-page .time-cell {
+            min-width: 150px;
+            font-size: 0.98rem;
+            font-weight: 500;
+            line-height: 1.6;
+            color: var(--text);
+        }
+        .teacher-review-page .status-cell {
+            min-width: 110px;
+        }
+        .teacher-review-page .status-pill {
+            font-size: 0.88rem;
+            font-weight: 700;
+            padding: 6px 12px;
+        }
+        .teacher-review-page .action-cell {
+            min-width: 280px;
+        }
+        .teacher-review-page .action-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        .teacher-review-page .action-stack button {
+            min-width: 116px;
+            justify-content: center;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.94rem;
+            font-weight: 600;
+            line-height: 1;
+            padding: 10px 16px;
+        }
+    </style>
 </head>
-<body>
+<body class="teacher-review-page">
 <div class="layout" id="layout">
     <!-- 侧边栏 -->
     <aside class="sidebar" id="sidebar">
@@ -32,7 +132,7 @@
             </a>
             <a href="notifications.html" class="">
                 <i class="bi bi-chat-dots nav-icon"></i>
-                <span class="nav-label">消息/通知</span>
+                <span class="nav-label">消息通知</span>
             </a>
             <a href="settings.html" class="">
                 <i class="bi bi-person-gear nav-icon"></i>
@@ -50,6 +150,7 @@
 
         <div class="panel">
             <h3>待处理的申请</h3>
+            <div id="reviewStatus" class="footnote" style="text-align:left;">正在加载待审批申请...</div>
             <div class="table-wrapper">
                 <table class="project-table mt-3">
                     <thead>
@@ -63,19 +164,187 @@
                     </thead>
                     <tbody id="requestTableBody">
                         <tr>
-                            <td colspan="5" class="text-center" style="color: var(--muted);">暂无待审批的申请数据，这里可以等后端接口联调。</td>
+                            <td colspan="5" class="text-center" style="color: var(--muted);">正在加载...</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
     </main>
-    <script src="script.js"></script>
 </div>
 
+<script src="../js/ui-feedback.js"></script>
+<script src="../js/api.js"></script>
 <script>
     (function() {
         "use strict";
+        const user = ApiClient.requireAuth("TEACHER");
+        if (!user) return;
+
+        const requestTableBody = document.getElementById("requestTableBody");
+        const reviewStatus = document.getElementById("reviewStatus");
+
+        function esc(value) {
+            if (value === null || value === undefined) return "";
+            return String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function formatDate(value) {
+            if (!value) return "-";
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return String(value).replace("T", " ").slice(0, 16);
+            return date.toLocaleString("zh-CN", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+        }
+
+        //mapping 可读文本
+        function statusText(status) {
+            const map = {
+                PENDING: "待审批",
+                ACCEPTED: "已同意",
+                REJECTED: "已拒绝",
+                WITHDRAWN: "已撤回"
+            };
+            const normalized = String(status || "UNKNOWN").toUpperCase();
+            return map[normalized] || normalized;
+        }
+        //提示词 （error: 红色）
+        function setStatus(message, type) {
+            if (!reviewStatus) return;
+            reviewStatus.textContent = message;
+            reviewStatus.style.color = type === "error" ? "#c74545" : "var(--muted)";
+        }
+
+        function renderRequests(requests) {
+            if (!requestTableBody) return;//老师看到的申请列表表格区域
+
+            if (!requests.length) {
+                requestTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center" style="color: var(--muted);">暂无待审批的申请。</td>
+                    </tr>
+                `;
+                setStatus("当前没有待审批申请。", "");
+                return;
+            }
+
+            requestTableBody.innerHTML = requests.map(request => {
+                const requestId = esc(request.requestId);
+                const notes = request.notes ? `<span class="project-note">备注：${esc(request.notes)}</span>` : "";
+                return `
+                    <tr>
+                        <td class="student-cell">
+                            <div class="student-name">${esc(request.studentName || "-")}</div>
+                            <div class="student-role">Student</div>
+                        </td>
+                        <td class="project-cell">
+                            <span class="project-title">${esc(request.projectTitle || "-")}</span>
+                            ${notes}
+                        </td>
+                        <td class="time-cell">${esc(formatDate(request.submittedAt))}</td>
+                        <td class="status-cell"><span class="status-pill status-requested">${esc(statusText(request.requestStatus))}</span></td>
+                        <td class="action-cell">
+                            <div class="action-stack">
+                            <button class="btn-secondary detail-btn" type="button" data-id="${requestId}">
+                                <i class="bi bi-eye"></i> 详情
+                            </button>
+                            <button class="btn-primary review-btn" data-id="${requestId}" data-action="ACCEPTED">
+                                <i class="bi bi-check2-circle"></i> 同意
+                            </button>
+                            <button class="btn-secondary review-btn" data-id="${requestId}" data-action="REJECTED" style="border-color: #f56c6c; color: #f56c6c;">
+                                <i class="bi bi-x-circle"></i> 拒绝
+                            </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join("");
+
+            setStatus(`共 ${requests.length} 条待审批申请。`, "");
+            bindReviewButtons();
+        }
+
+        //submit
+        async function submitReview(requestId, requestStatus, decisionComment) {
+            setStatus("正在提交审核结果...", "");
+            try {
+                await ApiClient.teacher.reviewRequest(requestId, requestStatus, decisionComment);
+                setStatus("审核结果已保存。", "");
+                await loadRequests();
+            } catch (error) {
+                console.error(error);
+                setStatus(error.message || "审核失败，请稍后重试。", "error");
+            }
+        }
+
+        //绑定按钮
+        function bindReviewButtons() {
+            document.querySelectorAll(".detail-btn").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const requestId = btn.getAttribute("data-id");
+                    if (requestId) {
+                        window.location.href = `request-detail.html?requestId=${encodeURIComponent(requestId)}`;
+                    }
+                });
+            });
+
+            document.querySelectorAll(".review-btn").forEach(btn => {
+                btn.addEventListener("click", async () => {
+                    const requestId = btn.getAttribute("data-id");
+                    const action = btn.getAttribute("data-action");
+                    if (!requestId || !action) return;
+
+                    if (action === "REJECTED") {
+                        const comment = await UiFeedback.prompt("请输入拒绝原因（可选）：", "拒绝申请", "", "例如：项目人数已满");
+                        if (comment === null) return;
+                        await submitReview(requestId, action, comment.trim());
+                        return;
+                    }
+
+                    const confirmed = await UiFeedback.confirm("确认同意这条申请吗？", "同意申请");
+                    if (confirmed) {
+                        await submitReview(requestId, action, "");
+                    }
+                });
+            });
+        }
+
+        //加载待审批申请
+        async function loadRequests() {
+            if (!requestTableBody) return;
+            requestTableBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center" style="color: var(--muted);">正在加载...</td>
+                </tr>
+            `;
+            setStatus("正在加载待审批申请...", "");
+
+            try {
+                const requests = await ApiClient.teacher.listRequests("PENDING");
+                renderRequests(Array.isArray(requests) ? requests : []);
+            } catch (error) {
+                console.error(error);
+                requestTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center" style="color: #c74545;">加载失败：${esc(error.message || "请稍后重试")}</td>
+                    </tr>
+                `;
+                setStatus(error.message || "待审批申请加载失败。", "error");
+            }
+        }
+        loadRequests();
+
+        //default sidebar
         const layout = document.getElementById("layout");
         const toggle = document.getElementById("toggleSidebar");
         if(layout && toggle) {

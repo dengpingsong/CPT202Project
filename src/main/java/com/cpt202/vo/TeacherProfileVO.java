@@ -36,6 +36,8 @@ public class TeacherProfileVO {
     private String researchArea;
     /** 办公地点。 */
     private String office;
+    /** 是否已开启双重验证。 */
+    private Boolean twoFactorEnabled;
     /** 更新时间。 */
     private LocalDateTime updatedAt;
 }

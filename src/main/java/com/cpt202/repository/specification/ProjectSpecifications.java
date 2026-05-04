@@ -34,10 +34,9 @@ public final class ProjectSpecifications {
             if (keyword != null && !keyword.trim().isEmpty()) {
                 String pattern = "%" + keyword.trim().toLowerCase(Locale.ROOT) + "%";
                 Predicate titleLike = cb.like(cb.lower(root.get("title")), pattern);
-                Predicate descLike = cb.like(cb.lower(root.get("description")), pattern);
                 Predicate topicLike = cb.like(cb.lower(root.get("topicArea")), pattern);
                 Predicate skillsLike = cb.like(cb.lower(root.get("requiredSkills")), pattern);
-                predicates.add(cb.or(titleLike, descLike, topicLike, skillsLike));
+                predicates.add(cb.or(titleLike, topicLike, skillsLike));
             }
 
             if (tagIds != null && !tagIds.isEmpty()) {

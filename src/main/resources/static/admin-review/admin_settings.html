@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>管理员 · 个人设置</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --bg: #f4f3f7;
+            --deep: #5a2b98;
+            --mid: #7b4fbd;
+            --panel: #ffffff;
+            --text: #1c1b33;
+            --muted: #6b6b82;
+            --border: rgba(28,27,51,0.08);
+        }
+        * { box-sizing: border-box; margin:0; padding:0; }
+        body { margin:0; font-family: "Segoe UI", Arial, sans-serif; background:var(--bg); color:var(--text); height:100vh; display:flex; overflow:hidden; }
+        .layout { display:grid; grid-template-columns:260px 1fr; min-height:100vh; transition:.3s ease; width:100%; }
+        .layout.collapsed { grid-template-columns:80px 1fr; }
+        .sidebar { background:linear-gradient(180deg,#3d1566,#631e97); padding:24px 16px; color:white; display:flex; flex-direction:column; gap:20px; position:relative; overflow:hidden; }
+        .sidebar::after { content:""; position:absolute; inset:0; background:radial-gradient(circle at top, rgba(255,255,255,0.2), transparent 60%); pointer-events:none; }
+        .toggle-wrap { width:48px; height:48px; border-radius:16px; margin-bottom:4px; }
+        .toggle { width:100%; height:100%; border-radius:16px; border:none; background:rgba(255,255,255,0.18); display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative; }
+        .toggle span, .toggle span::before, .toggle span::after { display:block; width:22px; height:2px; background:white; transition:all .3s ease; position:absolute; }
+        .toggle span { background:transparent; }
+        .toggle span::before { content:""; top:0; transform:rotate(45deg); }
+        .toggle span::after { content:""; top:0; transform:rotate(-45deg); }
+        .layout.collapsed .toggle span { background:white; }
+        .layout.collapsed .toggle span::before { top:-8px; transform:none; }
+        .layout.collapsed .toggle span::after { top:8px; transform:none; }
+        .nav-group { display:flex; flex-direction:column; gap:12px; margin-top:8px; }
+        .nav-group a { border:none; background:transparent; color:white; font-size:0.95rem; padding:10px 14px; border-radius:12px; cursor:pointer; display:flex; align-items:center; gap:10px; text-decoration:none; }
+        .nav-group a.active, .nav-group a:hover { background:rgba(255,255,255,0.2); }
+        .nav-icon { font-size:1.2rem; width:28px; text-align:center; }
+        .nav-label { transition:opacity .3s ease; white-space:nowrap; }
+        .layout.collapsed .nav-group a { justify-content:center; padding:12px; }
+        .layout.collapsed .nav-label { opacity:0; width:0; overflow:hidden; }
+        .main-content { flex:1; overflow-y:auto; padding:32px 40px; background:#f8fafc; }
+        .dashboard-card { background:white; border-radius:28px; padding:28px 32px; box-shadow:0 12px 30px rgba(0,0,0,0.05); border:1px solid #f0eef2; max-width:700px; }
+        .card-header { border-bottom:2px solid #f1f5f9; padding-bottom:16px; margin-bottom:24px; }
+        .card-header h2 { font-size:1.65rem; background:linear-gradient(135deg,#1e293b,#2d3a4b); background-clip:text; -webkit-background-clip:text; color:transparent; }
+        .info-line { display:flex; padding:16px 0; border-bottom:1px solid #edf2f7; align-items:center; gap:16px; }
+        .info-label { width:120px; font-weight:600; color:#334155; }
+        .editable-field input { flex:1; padding:10px 14px; border-radius:20px; border:1px solid #cbd5e1; outline:none; font-size:0.95rem; }
+        .editable-field input:focus { border-color:#8b5cf6; box-shadow:0 0 0 3px rgba(139,92,246,0.2); }
+        .password-form { margin-top:32px; background:#f8fafc; border-radius:24px; padding:20px; }
+        .form-group { margin-bottom:16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+        .form-group label { width:100px; font-weight:500; color:var(--text); }
+        .form-group input { flex:1; min-width:200px; padding:10px 14px; border-radius:20px; border:1px solid #cbd5e1; outline:none; transition:0.2s; }
+        .form-group input:focus { border-color:#8b5cf6; box-shadow:0 0 0 3px rgba(139,92,246,0.2); }
+        .btn-primary { background:#7c3aed; border:none; padding:10px 24px; border-radius:40px; color:white; font-weight:600; cursor:pointer; transition:0.2s; }
+        .btn-primary:hover { background:#5b21b6; }
+        .btn-primary:disabled { background:#c4c4d8; cursor:not-allowed; }
+        .btn-secondary { background:#e2e8f0; border:none; padding:10px 24px; border-radius:40px; color:#1f2937; font-weight:500; cursor:pointer; transition:0.2s; }
+        .btn-secondary:hover { background:#cbd5e1; }
+        .btn-logout { background:transparent; border:1.5px solid #dc3545; color:#dc3545; padding:10px 24px; border-radius:40px; font-weight:500; cursor:pointer; transition:all 0.2s; font-size:0.95rem; display:inline-flex; align-items:center; gap:6px; }
+        .btn-logout:hover { background-color:rgba(220,53,69,0.05); border-color:#b02a37; color:#b02a37; }
+        .action-buttons { display:flex; gap:16px; margin-top:24px; align-items:center; flex-wrap:wrap; }
+        .status-message { margin-top:16px; font-size:0.85rem; color:var(--muted); }
+        .status-message.success { color:#2c7a4d; }
+        .status-message.error { color:#dc2626; }
+        .project-demo-note { background:#f1f5f9; border-radius:20px; padding:14px 20px; font-size:0.8rem; margin-top:18px; color:#475569; }
+    </style>
+</head>
+<body>
+<div class="layout" id="layout">
+    <aside class="sidebar">
+        <div class="toggle-wrap"><button class="toggle" id="toggleSidebar"><span></span></button></div>
+        <div class="nav-group">
+            <a href="admin_projects.html"><i class="bi bi-kanban nav-icon"></i><span class="nav-label">项目列表</span></a>
+            <a href="admin_categories.html"><i class="bi bi-tags nav-icon"></i><span class="nav-label">Category 列表</span></a>
+            <a href="admin_tags.html"><i class="bi bi-bookmark nav-icon"></i><span class="nav-label">Tag 列表</span></a>
+            <a href="admin_settings.html" class="active"><i class="bi bi-person-gear nav-icon"></i><span class="nav-label">个人设置</span></a>
+        </div>
+    </aside>
+    <main class="main-content">
+        <div class="dashboard-card">
+            <div class="card-header"><h2>管理员个人设置</h2></div>
+            <!-- 基本信息（可编辑） -->
+            <div class="info-line">
+                <div class="info-label">账号</div>
+                <div><span id="displayUsername">加载中...</span></div>
+            </div>
+            <div class="info-line editable-field">
+                <div class="info-label">邮箱</div>
+                <input type="email" id="editEmail" style="flex:1; max-width:300px;">
+            </div>
+            <div class="info-line editable-field">
+                <div class="info-label">姓名</div>
+                <input type="text" id="editFullName" style="flex:1; max-width:300px;">
+            </div>
+            <div class="info-line">
+                <div class="info-label">角色</div>
+                <div>系统管理员（全局类别/标签管理）</div>
+            </div>
+
+            <!-- 保存个人资料按钮 -->
+            <div class="action-buttons">
+                <button type="button" class="btn-primary" id="saveProfileBtn">保存个人资料</button>
+                <button type="button" class="btn-logout" id="logoutBtn">
+                    <i class="bi bi-box-arrow-right"></i> 退出登录
+                </button>
+            </div>
+            <div id="profileStatus" class="status-message"></div>
+
+            <!-- 修改密码区域 -->
+            <div class="password-form">
+                <h3 style="margin-bottom:16px;">修改密码</h3>
+                <div class="form-group">
+                    <label>旧密码</label>
+                    <input type="password" id="oldPassword" placeholder="请输入当前密码">
+                </div>
+                <div class="form-group">
+                    <label>新密码</label>
+                    <input type="password" id="newPassword" placeholder="请输入新密码">
+                </div>
+                <div class="form-group">
+                    <label>确认密码</label>
+                    <input type="password" id="confirmPassword" placeholder="请再次输入新密码">
+                </div>
+                <button class="btn-primary" id="changePasswordBtn">修改密码</button>
+                <div id="passwordStatus" class="status-message"></div>
+            </div>
+
+            <div class="password-form">
+                <h3 style="margin-bottom:16px;">双重验证（TOTP）</h3>
+                <div class="status-message" id="twoFactorSummary" style="margin-top:0;">正在加载 2FA 状态...</div>
+                <div id="twoFactorSetupBox" style="display:none; margin-top:16px; background:white; border:1px solid #e5e7eb; border-radius:20px; padding:18px;">
+                    <canvas id="twoFactorQrCanvas" width="180" height="180" style="max-width:180px;"></canvas>
+                    <div style="margin-top:12px; font-size:0.85rem; color:var(--muted);">手动输入密钥</div>
+                    <div id="twoFactorManualKey" style="font-weight:600; word-break:break-all; margin:8px 0 12px;"></div>
+                    <input type="text" id="twoFactorEnableCode" placeholder="输入验证器中的 6 位验证码" style="width:100%; max-width:320px; padding:10px 14px; border-radius:20px; border:1px solid #cbd5e1; outline:none;">
+                    <div style="margin-top:12px;">
+                        <button class="btn-primary" id="enableTwoFactorBtn" type="button">确认开启 2FA</button>
+                    </div>
+                </div>
+                <div id="twoFactorDisableBox" style="display:none; margin-top:16px; background:white; border:1px solid #e5e7eb; border-radius:20px; padding:18px;">
+                    <input type="password" id="twoFactorDisablePassword" placeholder="输入当前密码以关闭 2FA" style="width:100%; max-width:320px; padding:10px 14px; border-radius:20px; border:1px solid #cbd5e1; outline:none;">
+                    <div style="margin-top:12px;">
+                        <button class="btn-secondary" id="disableTwoFactorBtn" type="button">关闭 2FA</button>
+                    </div>
+                </div>
+                <div class="action-buttons" style="margin-top:16px;">
+                    <button class="btn-secondary" id="setupTwoFactorBtn" type="button">开始设置 2FA</button>
+                </div>
+                <div id="twoFactorStatus" class="status-message"></div>
+            </div>
+
+            <div class="project-demo-note">
+                个人资料及密码修改均对接后端接口，修改后请重新登录生效（token 未刷新）。
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="../js/ui-feedback.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<script>
+    // ==================== 配置 ====================
+    const TOKEN_KEY = 'token';
+    const LOGIN_PAGE = '../login/login.html';
+    const API_BASE = '/api/admin/profile';
+
+    // 辅助函数：获取 token
+    function getToken() {
+        return localStorage.getItem(TOKEN_KEY);
+    }
+
+    // 通用 fetch (自动处理 401)
+    async function fetchApi(url, options = {}) {
+        const token = getToken();
+        if (!token) {
+            UiFeedback.alert('请先登录').then(() => {
+                window.location.href = LOGIN_PAGE;
+            });
+            throw new Error('No token');
+        }
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            ...options.headers
+        };
+        const response = await fetch(url, { ...options, headers });
+        if (response.status === 401) {
+            localStorage.clear();
+            UiFeedback.alert('登录已过期，请重新登录').then(() => {
+                window.location.href = LOGIN_PAGE;
+            });
+            throw new Error('Unauthorized');
+        }
+        const json = await response.json();
+        if (json.code !== 1) {
+            throw new Error(json.msg || '请求失败');
+        }
+        return json.data;
+    }
+
+    // 获取当前管理员资料
+    async function fetchProfile() {
+        const data = await fetchApi(`${API_BASE}/me`, { method: 'GET' });
+        return data;
+    }
+
+    // 更新个人资料
+    async function updateProfile(payload) {
+        await fetchApi(`${API_BASE}/me`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+        });
+    }
+
+    // 修改密码
+    async function changePassword(oldPassword, newPassword) {
+        await fetchApi(`${API_BASE}/me/password`, {
+            method: 'PUT',
+            body: JSON.stringify({ oldPassword, newPassword })
+        });
+    }
+
+    async function initializeTwoFactorSetup() {
+        return await fetchApi(`${API_BASE}/me/2fa/setup`, {
+            method: 'POST',
+            body: JSON.stringify({})
+        });
+    }
+
+    async function enableTwoFactor(code) {
+        await fetchApi(`${API_BASE}/me/2fa/enable`, {
+            method: 'POST',
+            body: JSON.stringify({ code })
+        });
+    }
+
+    async function disableTwoFactor(currentPassword) {
+        await fetchApi(`${API_BASE}/me/2fa/disable`, {
+            method: 'POST',
+            body: JSON.stringify({ currentPassword })
+        });
+    }
+
+    // 显示状态信息
+    function setStatus(element, message, isError = false) {
+        element.textContent = message;
+        element.className = 'status-message ' + (isError ? 'error' : 'success');
+        setTimeout(() => {
+            if (element.textContent === message) {
+                element.textContent = '';
+                element.className = 'status-message';
+            }
+        }, 3000);
+    }
+
+    function renderTwoFactorState(enabled) {
+        document.getElementById('twoFactorSummary').textContent = enabled ? '当前状态：已开启' : '当前状态：未开启';
+        document.getElementById('twoFactorSetupBox').style.display = 'none';
+        document.getElementById('twoFactorDisableBox').style.display = enabled ? 'block' : 'none';
+        document.getElementById('setupTwoFactorBtn').textContent = enabled ? '重新生成设置二维码' : '开始设置 2FA';
+    }
+
+    // 加载并填充表单
+    async function loadAndFill() {
+        try {
+            const profile = await fetchProfile();
+            document.getElementById('displayUsername').innerText = profile.username || '未知';
+            document.getElementById('editEmail').value = profile.email || '';
+            document.getElementById('editFullName').value = profile.fullName || '';
+            renderTwoFactorState(Boolean(profile.twoFactorEnabled));
+            // 同步更新 localStorage 中的基本信息
+            localStorage.setItem('username', profile.username || '');
+            localStorage.setItem('email', profile.email || '');
+            localStorage.setItem('fullName', profile.fullName || '');
+        } catch (err) {
+            console.error(err);
+            setStatus(document.getElementById('profileStatus'), `加载失败：${err.message}`, true);
+        }
+    }
+
+    // 保存个人资料
+    async function handleSaveProfile() {
+        const email = document.getElementById('editEmail').value.trim();
+        const fullName = document.getElementById('editFullName').value.trim();
+
+        if (!email) {
+            setStatus(document.getElementById('profileStatus'), '邮箱不能为空', true);
+            return;
+        }
+        if (!fullName) {
+            setStatus(document.getElementById('profileStatus'), '姓名不能为空', true);
+            return;
+        }
+        // 简单邮箱格式校验
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailPattern.test(email)) {
+            setStatus(document.getElementById('profileStatus'), '邮箱格式不正确', true);
+            return;
+        }
+
+        const saveBtn = document.getElementById('saveProfileBtn');
+        const originalText = saveBtn.textContent;
+        saveBtn.disabled = true;
+        saveBtn.textContent = '保存中...';
+
+        try {
+            await updateProfile({ fullName, email });
+            // 更新 localStorage 中的信息
+            localStorage.setItem('fullName', fullName);
+            localStorage.setItem('email', email);
+            setStatus(document.getElementById('profileStatus'), '个人资料已更新', false);
+            // 刷新显示的用户名（可能没变，但确保一致性）
+            const profile = await fetchProfile(); // 重新获取确认
+            document.getElementById('displayUsername').innerText = profile.username || '';
+        } catch (err) {
+            setStatus(document.getElementById('profileStatus'), `保存失败：${err.message}`, true);
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = originalText;
+        }
+    }
+
+    // 修改密码
+    async function handleChangePassword() {
+        const oldPwd = document.getElementById('oldPassword').value;
+        const newPwd = document.getElementById('newPassword').value;
+        const confirmPwd = document.getElementById('confirmPassword').value;
+
+        if (!oldPwd) {
+            setStatus(document.getElementById('passwordStatus'), '请输入旧密码', true);
+            return;
+        }
+        if (!newPwd) {
+            setStatus(document.getElementById('passwordStatus'), '请输入新密码', true);
+            return;
+        }
+        if (newPwd !== confirmPwd) {
+            setStatus(document.getElementById('passwordStatus'), '两次输入的新密码不一致', true);
+            return;
+        }
+        if (oldPwd === newPwd) {
+            setStatus(document.getElementById('passwordStatus'), '新密码不能与旧密码相同', true);
+            return;
+        }
+
+        const btn = document.getElementById('changePasswordBtn');
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = '修改中...';
+
+        try {
+            await changePassword(oldPwd, newPwd);
+            setStatus(document.getElementById('passwordStatus'), '密码修改成功，请重新登录', false);
+            // 清空密码框
+            document.getElementById('oldPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            // 可选：3秒后自动退出登录（让用户重新登录）
+            setTimeout(() => {
+                UiFeedback.alert('密码已更改，请重新登录').then(() => {
+                    handleLogout();
+                });
+            }, 1500);
+        } catch (err) {
+            setStatus(document.getElementById('passwordStatus'), `修改失败：${err.message}`, true);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = originalText;
+        }
+    }
+
+    async function handleSetupTwoFactor() {
+        const statusEl = document.getElementById('twoFactorStatus');
+        document.getElementById('setupTwoFactorBtn').disabled = true;
+        setStatus(statusEl, '正在生成二维码...', false);
+        try {
+            const setup = await initializeTwoFactorSetup();
+            if (setup.enabled) {
+                renderTwoFactorState(true);
+                setStatus(statusEl, '当前账号已开启 2FA', false);
+                return;
+            }
+            renderTwoFactorState(false);
+            document.getElementById('twoFactorSetupBox').style.display = 'block';
+            document.getElementById('twoFactorManualKey').textContent = setup.manualEntryKey || '';
+            document.getElementById('twoFactorEnableCode').value = '';
+            await QRCode.toCanvas(document.getElementById('twoFactorQrCanvas'), setup.otpAuthUri || '', { width: 180, margin: 1 });
+            setStatus(statusEl, '请扫码后输入 6 位验证码确认开启', false);
+        } catch (err) {
+            setStatus(statusEl, `设置失败：${err.message}`, true);
+        } finally {
+            document.getElementById('setupTwoFactorBtn').disabled = false;
+        }
+    }
+
+    async function handleEnableTwoFactor() {
+        const code = document.getElementById('twoFactorEnableCode').value.trim();
+        const statusEl = document.getElementById('twoFactorStatus');
+        if (!/^\d{6}$/.test(code)) {
+            setStatus(statusEl, '请输入 6 位数字验证码', true);
+            return;
+        }
+        document.getElementById('enableTwoFactorBtn').disabled = true;
+        setStatus(statusEl, '正在开启 2FA...', false);
+        try {
+            await enableTwoFactor(code);
+            renderTwoFactorState(true);
+            setStatus(statusEl, '2FA 已开启', false);
+            await loadAndFill();
+        } catch (err) {
+            setStatus(statusEl, `开启失败：${err.message}`, true);
+        } finally {
+            document.getElementById('enableTwoFactorBtn').disabled = false;
+        }
+    }
+
+    async function handleDisableTwoFactor() {
+        const currentPassword = document.getElementById('twoFactorDisablePassword').value.trim();
+        const statusEl = document.getElementById('twoFactorStatus');
+        if (!currentPassword) {
+            setStatus(statusEl, '关闭 2FA 前请输入当前密码', true);
+            return;
+        }
+        document.getElementById('disableTwoFactorBtn').disabled = true;
+        setStatus(statusEl, '正在关闭 2FA...', false);
+        try {
+            await disableTwoFactor(currentPassword);
+            renderTwoFactorState(false);
+            setStatus(statusEl, '2FA 已关闭', false);
+            await loadAndFill();
+        } catch (err) {
+            setStatus(statusEl, `关闭失败：${err.message}`, true);
+        } finally {
+            document.getElementById('disableTwoFactorBtn').disabled = false;
+        }
+    }
+
+    // 退出登录
+    function handleLogout() {
+        localStorage.clear();
+        window.location.href = LOGIN_PAGE;
+    }
+
+    // 初始化页面
+    function init() {
+        // 检查 token
+        if (!getToken()) {
+            UiFeedback.alert('请先登录').then(() => {
+                window.location.href = LOGIN_PAGE;
+            });
+            return;
+        }
+        loadAndFill();
+
+        // 绑定事件
+        document.getElementById('saveProfileBtn').addEventListener('click', handleSaveProfile);
+        document.getElementById('changePasswordBtn').addEventListener('click', handleChangePassword);
+        document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+        document.getElementById('setupTwoFactorBtn').addEventListener('click', handleSetupTwoFactor);
+        document.getElementById('enableTwoFactorBtn').addEventListener('click', handleEnableTwoFactor);
+        document.getElementById('disableTwoFactorBtn').addEventListener('click', handleDisableTwoFactor);
+    }
+
+    // 侧边栏折叠逻辑
+    const layout = document.getElementById('layout');
+    const toggle = document.getElementById('toggleSidebar');
+    let collapsed = false;
+    toggle.addEventListener('click', () => {
+        collapsed = !collapsed;
+        layout.classList.toggle('collapsed', collapsed);
+    });
+
+    init();
+</script>
+</body>
+</html>

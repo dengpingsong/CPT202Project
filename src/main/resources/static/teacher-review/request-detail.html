@@ -32,7 +32,7 @@
             </a>
             <a href="notifications.html" class="">
                 <i class="bi bi-chat-dots nav-icon"></i>
-                <span class="nav-label">消息/通知</span>
+                <span class="nav-label">消息通知</span>
             </a>
             <a href="settings.html" class="">
                 <i class="bi bi-person-gear nav-icon"></i>
@@ -43,43 +43,28 @@
 
     <main class="main">
         <header class="page-header">
-            <a href="index.html" class="back-link"><i class="bi bi-arrow-left"></i> 返回工作台</a>
             <h1 class="mb-0">申请详情 (Application Details)</h1>
         </header>
 
         <div class="panel student-info" style="margin-bottom: 24px;">
             <h3 class="mb-3" style="color: var(--deep);"><i class="bi bi-person-badge"></i> 学生档案 (Student Profile)</h3>
-            <div class="meta-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; background: #f9f5ff; padding: 18px; border-radius: 12px; margin: 0;">
+            <div class="meta-grid" id="studentProfile" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; background: #f9f5ff; padding: 18px; border-radius: 12px; margin: 0;">
                 <div class="meta-item" style="display: flex; flex-direction: column;">
-                    <span class="meta-label" style="font-size: 0.8rem; color: var(--muted); text-transform: uppercase;">姓名 Name</span>
-                    <span class="meta-value" style="font-weight: 600; margin-top: 4px;">Alice Wang</span>
-                </div>
-                <div class="meta-item" style="display: flex; flex-direction: column;">
-                    <span class="meta-label" style="font-size: 0.8rem; color: var(--muted); text-transform: uppercase;">学号 Student ID</span>
-                    <span class="meta-value" style="font-weight: 600; margin-top: 4px;">2361000</span>
-                </div>
-                <div class="meta-item" style="display: flex; flex-direction: column;">
-                    <span class="meta-label" style="font-size: 0.8rem; color: var(--muted); text-transform: uppercase;">专业 Major</span>
-                    <span class="meta-value" style="font-weight: 600; margin-top: 4px;">Computer Science</span>
-                </div>
-                <div class="meta-item" style="display: flex; flex-direction: column;">
-                    <span class="meta-label" style="font-size: 0.8rem; color: var(--muted); text-transform: uppercase;">绩点 GPA</span>
-                    <span class="meta-value" style="font-weight: 600; margin-top: 4px;">3.8 / 4.0</span>
+                    <span class="meta-value" style="font-weight: 600; margin-top: 4px;">正在加载学生信息...</span>
                 </div>
             </div>
         </div>
 
-        <div class="panel">
+        <div class="panel" id="applicationPanel">
             <h3 class="mb-3" style="color: var(--deep);"><i class="bi bi-file-text"></i> 申请内容 (Application Notes)</h3>
-            <h4 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 16px;">项目：An online project selection system</h4>
-            
-            <div class="detail-text" style="margin-bottom: 24px;">
-                "Dear Professor, I am very interested in this topic. I have experience in Java and Web Development from my previous coursework. I believe I am a good fit for building the Allocation Control module."
+            <div id="detailStatus" class="footnote" style="text-align:left;">正在加载申请详情...</div>
+            <div id="applicationDetail" class="detail-text" style="margin-bottom: 24px;">
+                正在加载...
             </div>
 
-            <div class="action-buttons">
-                <button class="btn-primary" onclick="acceptProject()"><i class="bi bi-check2-circle"></i> 同意申请 (Accept)</button>
-                <button class="btn-secondary" data-bs-toggle="modal" data-bs-target="#rejectModal" style="border-color: #f56c6c; color: #f56c6c;"><i class="bi bi-x-circle"></i> 拒绝申请 (Reject)</button>
+            <div class="action-buttons" id="actionButtons">
+                <button class="btn-primary" id="acceptBtn" disabled><i class="bi bi-check2-circle"></i> 同意申请 (Accept)</button>
+                <button class="btn-secondary" id="rejectBtn" disabled data-bs-toggle="modal" data-bs-target="#rejectModal" style="border-color: #f56c6c; color: #f56c6c;"><i class="bi bi-x-circle"></i> 拒绝申请 (Reject)</button>
             </div>
         </div>
     </main>
@@ -92,7 +77,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p style="color: #555;">您确定要拒绝 <strong>Alice Wang</strong> 的项目申请吗？可以留下拒绝原因（可选）。</p>
+                    <p style="color: #555;">您确定要拒绝 <strong id="rejectStudentName">该学生</strong> 的项目申请吗？可以留下拒绝原因（可选）。</p>
                     <div class="mb-3 mt-4">
                         <label for="feedback" class="form-label text-muted" style="font-size: 14px;">反馈信息 (Feedback) :</label>
                         <textarea class="form-control" id="feedback" rows="3" placeholder="例如：抱歉，该项目人数已满..." style="border-radius: 8px; background: #fafafa; border: 1px solid #ddd;"></textarea>
@@ -100,19 +85,200 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 20px; padding: 8px 20px;">取消</button>
-                    <button type="button" class="btn btn-danger" onclick="confirmReject()" style="border-radius: 20px; padding: 8px 20px; background: #f56c6c; border: none;">确认拒绝</button>
+                    <button type="button" class="btn btn-danger" id="confirmRejectBtn" style="border-radius: 20px; padding: 8px 20px; background: #f56c6c; border: none;">确认拒绝</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="script.js"></script>
 </div>
 
+<script src="../js/ui-feedback.js"></script>
+<script src="../js/api.js"></script>
 <script>
     (function() {
         "use strict";
+        const user = ApiClient.requireAuth("TEACHER");
+        if (!user) return;
+
+        const params = new URLSearchParams(window.location.search);
+        const requestId = params.get("requestId");
+        const projectId = params.get("projectId");
+        const studentProfile = document.getElementById("studentProfile");
+        const applicationDetail = document.getElementById("applicationDetail");
+        const detailStatus = document.getElementById("detailStatus");
+        const acceptBtn = document.getElementById("acceptBtn");
+        const rejectBtn = document.getElementById("rejectBtn");
+        const confirmRejectBtn = document.getElementById("confirmRejectBtn");
+        const feedback = document.getElementById("feedback");
+        const rejectStudentName = document.getElementById("rejectStudentName");
+        let currentRequest = null;
+        let currentProject = null;
+
+        function esc(value) {
+            if (value === null || value === undefined) return "";
+            return String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function formatDate(value) {
+            if (!value) return "-";
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return String(value).replace("T", " ").slice(0, 16);
+            return date.toLocaleString("zh-CN", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+        }
+
+        function normalizeStatus(status) {
+            return String(status || "UNKNOWN").toUpperCase();
+        }
+
+        function statusText(status) {
+            const map = {
+                PENDING: "待审批",
+                ACCEPTED: "已同意",
+                REJECTED: "已拒绝",
+                WITHDRAWN: "已撤回"
+            };
+            const normalized = normalizeStatus(status);
+            return map[normalized] || normalized;
+        }
+
+        function setStatus(message, type) {
+            if (!detailStatus) return;
+            detailStatus.textContent = message;
+            detailStatus.style.color = type === "error" ? "#c74545" : type === "success" ? "var(--green)" : "var(--muted)";
+        }
+
+        // 在请求列表中查找对应的申请记录
+        function findRequest(requests) {
+            if (requestId) {
+                return requests.find(item => String(item.requestId) === String(requestId));//优先用 requestId 查找
+            }
+            if (projectId) {//如果没有 requestId，再用 projectId 查找
+                return requests.find(item => String(item.projectId) === String(projectId) && normalizeStatus(item.requestStatus) === "PENDING")
+                    || requests.find(item => String(item.projectId) === String(projectId));
+            }
+            return null;
+        }
+
+        function renderStudent(request) {
+            studentProfile.innerHTML = `
+                <div class="meta-item" style="display: flex; flex-direction: column;">
+                    <span class="meta-label" style="font-size: 0.8rem; color: var(--muted); text-transform: uppercase;">姓名 Name</span>
+                    <span class="meta-value" style="font-weight: 600; margin-top: 4px;">${esc(request.studentName || "-")}</span>
+                </div>
+                <div class="meta-item" style="display: flex; flex-direction: column;">
+                    <span class="meta-label" style="font-size: 0.8rem; color: var(--muted); text-transform: uppercase;">学生 ID</span>
+                    <span class="meta-value" style="font-weight: 600; margin-top: 4px;">${esc(request.studentId || "-")}</span>
+                </div>
+                <div class="meta-item" style="display: flex; flex-direction: column;">
+                    <span class="meta-label" style="font-size: 0.8rem; color: var(--muted); text-transform: uppercase;">志愿顺位</span>
+                    <span class="meta-value" style="font-weight: 600; margin-top: 4px;">${esc(request.preferenceRank || "-")}</span>
+                </div>
+            `;
+        }
+
+        function renderApplication(request, project) {
+            const status = normalizeStatus(request.requestStatus);
+            const parts = [
+                `<h4 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 16px;">项目：${esc(request.projectTitle || project?.title || "-")}</h4>`,
+                `<p><strong>申请状态：</strong>${esc(statusText(status))}</p>`,
+                `<p><strong>申请时间：</strong>${esc(formatDate(request.submittedAt))}</p>`,
+                `<p><strong>项目方向：</strong>${esc(project?.topicArea || "-")}</p>`,
+                `<p><strong>所需技能：</strong>${esc(project?.requiredSkills || "-")}</p>`,
+                `<p><strong>申请备注：</strong>${esc(request.notes || "-")}</p>`
+            ];
+
+            //如果这条申请有老师的审核反馈，就把反馈显示到申请详情里
+            if (request.decisionComment) {
+                parts.push(`<p><strong>审核反馈：</strong>${esc(request.decisionComment)}</p>`);
+            }
+
+            applicationDetail.innerHTML = parts.join("");
+            const canReview = status === "PENDING";
+            acceptBtn.disabled = !canReview;
+            rejectBtn.disabled = !canReview;
+            setStatus(canReview ? "该申请等待审批。" : `该申请已处理：${statusText(status)}。`, canReview ? "" : "success");
+        }
+
+        // 提交审核结果
+        async function submitReview(requestStatus, decisionComment) {
+            if (!currentRequest) return;
+            acceptBtn.disabled = true;
+            rejectBtn.disabled = true;
+            setStatus("正在提交审核结果...", "");
+
+            try {
+                await ApiClient.teacher.reviewRequest(currentRequest.requestId, requestStatus, decisionComment || "");
+                setStatus("审核结果已保存。", "success");
+                await loadDetail();
+            } catch (error) {
+                console.error(error);
+                setStatus(error.message || "审核失败，请稍后重试。", "error");
+                acceptBtn.disabled = false;
+                rejectBtn.disabled = false;
+            }
+        }
+
+        async function loadDetail() {
+            setStatus("正在加载申请详情...", "");
+            try {
+                const requests = await ApiClient.teacher.listRequests();
+                currentRequest = findRequest(Array.isArray(requests) ? requests : []);
+                if (!currentRequest) {
+                    throw new Error("没有找到对应的申请记录。");
+                }
+
+                try {
+                    currentProject = await ApiClient.teacher.getProject(currentRequest.projectId);
+                } catch (error) {
+                    console.error(error);
+                    currentProject = null;
+                }
+
+                renderStudent(currentRequest);
+                renderApplication(currentRequest, currentProject);
+                rejectStudentName.textContent = currentRequest.studentName || "该学生";
+            } catch (error) {
+                console.error(error);
+                studentProfile.innerHTML = `
+                    <div class="meta-item" style="display: flex; flex-direction: column;">
+                        <span class="meta-value" style="font-weight: 600; margin-top: 4px; color: #c74545;">加载失败</span>
+                    </div>
+                `;
+                applicationDetail.innerHTML = esc(error.message || "请稍后重试");
+                setStatus(error.message || "申请详情加载失败。", "error");
+            }
+        }
+
+        acceptBtn.addEventListener("click", () => {
+            UiFeedback.confirm("确认同意这条申请吗？", "同意申请").then(confirmed => {
+                if (!confirmed) return;
+                submitReview("ACCEPTED", "");
+            });
+        });
+
+        confirmRejectBtn.addEventListener("click", async () => {
+            const modal = bootstrap.Modal.getInstance(document.getElementById("rejectModal"));
+            if (modal) modal.hide();
+            await submitReview("REJECTED", feedback.value.trim());
+            feedback.value = "";
+        });
+
+        loadDetail();
+
+        //default sidebar
         const layout = document.getElementById("layout");
         const toggle = document.getElementById("toggleSidebar");
         if(layout && toggle) {

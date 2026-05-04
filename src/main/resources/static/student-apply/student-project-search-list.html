@@ -6,14 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <link rel="stylesheet" href="../css/dashboard.css" />
-    <link rel="stylesheet" href="../css/studentsp.css" />
-
+    <link rel="stylesheet" href="../css/studentsp.css?v=20260430" />
 </head>
 <body>
 <div class="layout" id="layout">
     <aside class="sidebar" id="sidebar">
         <div class="toggle-wrap">
-            <button class="toggle" id="toggleSidebar" aria-label="切换菜单">
+            <button class="toggle" id="toggleSidebar" aria-label="Toggle sidebar">
                 <span></span>
             </button>
         </div>
@@ -32,7 +31,7 @@
             </a>
             <a href="student-notification.html">
                 <i class="bi bi-chat-dots nav-icon"></i>
-                <span class="nav-label">消息/通知</span>
+                <span class="nav-label">消息通知</span>
             </a>
             <a href="student-profile.html">
                 <i class="bi bi-person-gear nav-icon"></i>
@@ -43,11 +42,38 @@
 
     <main class="main">
         <div class="page-header">
-            <a href="student-dashboard.html" class="back-link">← 返回工作台</a>
-            <h1>📋 开放项目目录</h1>
+            <h1>开放项目列表</h1>
         </div>
         <div class="panel-card">
-            <p style="color: var(--muted); margin-bottom: 10px;">点击 "View" 在新页面查看项目详情</p>
+            <div id="pageNotice" class="footnote" style="display:none; margin:0 auto 14px; max-width:520px; padding:12px 16px; border-radius:12px; background:rgba(47,197,168,0.12); color:#157a63; text-align:center; font-weight:600;"></div>
+            <p style="color: var(--muted); margin-bottom: 10px;">点击 View 可在新页面查看项目详情</p>
+            <div style="display:grid; grid-template-columns: minmax(180px, 1.5fr) minmax(150px, 1fr) minmax(150px, 1fr) auto; gap:10px; align-items:end; margin-bottom:14px;">
+                <label style="display:flex; flex-direction:column; gap:6px; font-size:0.9rem; color:var(--muted);">
+                    关键词
+                    <input id="keywordFilter" type="search" placeholder="项目名称、方向或技能" style="padding:10px 12px; border:1px solid rgba(90,43,152,0.18); border-radius:12px; font:inherit;">
+                </label>
+                <label style="display:flex; flex-direction:column; gap:6px; font-size:0.9rem; color:var(--muted);">
+                    分类
+                    <select id="categoryFilter" style="padding:10px 12px; border:1px solid rgba(90,43,152,0.18); border-radius:12px; font:inherit; background:#fff;">
+                        <option value="">全部分类</option>
+                    </select>
+                </label>
+                <label style="display:flex; flex-direction:column; gap:6px; font-size:0.9rem; color:var(--muted);">
+                    状态
+                    <select id="statusFilter" style="padding:10px 12px; border:1px solid rgba(90,43,152,0.18); border-radius:12px; font:inherit; background:#fff;">
+                        <option value="">全部状态</option>
+                        <option value="AVAILABLE">正在招募</option>
+                        <option value="REQUESTED">已有申请</option>
+                        <option value="AGREED">已确认</option>
+                        <option value="CLOSED">已关闭</option>
+                    </select>
+                </label>
+                <button class="pagination-btn" id="clearProjectFiltersBtn" type="button" style="padding:10px 14px; border-radius:12px;">清除筛选</button>
+            </div>
+            <div id="tagFilterBar" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:16px;">
+                <span style="color:var(--muted); font-size:0.9rem;">标签筛选：</span>
+                <span style="color:var(--muted); font-size:0.9rem;">正在加载标签...</span>
+            </div>
             <div class="table-wrapper">
                 <table class="project-table" id="projectTable">
                     <thead>
@@ -66,22 +92,61 @@
                 </table>
             </div>
             <div style="margin-top: 16px; font-size: 0.9rem;">
-                ⚡ 共 <span id="projectCount">0</span> 个项目
+                共 <span id="projectCount">0</span> 个项目
             </div>
+            <div class="pagination-bar" id="paginationBar" hidden>
+                <button type="button" class="pagination-btn pagination-nav" id="prevPageBtn" aria-label="Previous page">
+                    <i class="bi bi-chevron-left" aria-hidden="true"></i>
+                    <span>上一页</span>
+                </button>
+                <div class="pagination-pages" id="paginationPages"></div>
+                <button type="button" class="pagination-btn pagination-nav" id="nextPageBtn" aria-label="Next page">
+                    <span>下一页</span>
+                    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="pagination-summary" id="paginationSummary"></div>
         </div>
         <div class="footnote">* 点击 View 跳转至详情页</div>
     </main>
 </div>
 
+<script src="../js/api.js"></script>
 <script>
     (function () {
-        const API_URL = "/api/student/projects";
+        "use strict";
+
+        const user = ApiClient.requireAuth("STUDENT");
+        if (!user) return;
+
         const tbody = document.getElementById("tableBody");
         const projectCountSpan = document.getElementById("projectCount");
+        const paginationBar = document.getElementById("paginationBar");
+        const paginationPages = document.getElementById("paginationPages");
+        const paginationSummary = document.getElementById("paginationSummary");
+        const prevPageBtn = document.getElementById("prevPageBtn");
+        const nextPageBtn = document.getElementById("nextPageBtn");
+        const tagFilterBar = document.getElementById("tagFilterBar");
+        const keywordFilter = document.getElementById("keywordFilter");
+        const categoryFilter = document.getElementById("categoryFilter");
+        const statusFilter = document.getElementById("statusFilter");
+        const clearProjectFiltersBtn = document.getElementById("clearProjectFiltersBtn");
+        const pageNotice = document.getElementById("pageNotice");
+        const DEFAULT_PAGE_SIZE = 8;
+        const state = {
+            currentPage: 1,
+            pageSize: null,
+            totalPages: 1,
+            total: 0,
+            requests: [],
+            tags: [],
+            categories: [],
+            selectedTagIds: new Set()
+        };
 
-        function esc(v) {
-            if (v === null || v === undefined) return "";
-            return String(v)
+        function esc(value) {
+            if (value === null || value === undefined) return "";
+            return String(value)
                 .replace(/&/g, "&amp;")
                 .replace(/</g, "&lt;")
                 .replace(/>/g, "&gt;")
@@ -89,77 +154,312 @@
                 .replace(/'/g, "&#39;");
         }
 
+        function showPageNotice() {
+            const notice = sessionStorage.getItem("studentProjectListNotice");
+            if (!notice || !pageNotice) return;
+            pageNotice.textContent = notice;
+            pageNotice.style.display = "block";
+            sessionStorage.removeItem("studentProjectListNotice");
+            window.setTimeout(() => {
+                pageNotice.style.display = "none";
+                pageNotice.textContent = "";
+            }, 2600);
+        }
+        // 根据状态返回对应的标签css
         function statusPill(status) {
             const text = status || "UNKNOWN";
-            const cls = (status === "AVAILABLE" || status === "REQUESTED" || status === "AGREED")
-                ? "status-available"
-                : "status-unavailable";
+            let cls = "status-unavailable";
+            if (status === "AVAILABLE") cls = "status-available";
+            if (status === "PENDING" || status === "REQUESTED") cls = "status-requested";
+            if (status === "ACCEPTED" || status === "AGREED") cls = "status-agreed";
+            if (status === "REJECTED") cls = "status-rejected";
             return `<span class="status-pill ${cls}">${esc(text)}</span>`;
         }
 
-        async function loadProjects() {
-            try {
-                const token = localStorage.getItem("token") || "";
-                const headers = token ? { "Authorization": `Bearer ${token}` } : {};
+        function getResolvedPageSize(projectPage, listLength) {
+            const backendPageSize = Number(projectPage?.pageSize);
+            if (Number.isInteger(backendPageSize) && backendPageSize > 0) {
+                return backendPageSize;
+            }
+            if (Number.isInteger(state.pageSize) && state.pageSize > 0) {
+                return state.pageSize;
+            }
+            if (Number.isInteger(listLength) && listLength > 0) {
+                return listLength;
+            }
+            return DEFAULT_PAGE_SIZE;
+        }
 
-                const res = await fetch(`${API_URL}?pageNum=1&pageSize=50`, { method: "GET", headers });
-                const result = await res.json();
+        function getVisiblePages(currentPage, totalPages) {
+            if (totalPages <= 5) {
+                return Array.from({ length: totalPages }, (_, index) => index + 1);
+            }
+            if (currentPage <= 3) {
+                return [1, 2, 3, 4, 5];
+            }
+            if (currentPage >= totalPages - 2) {
+                return [totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+            }
+            return [currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2];
+        }
 
-                console.log("student projects response:", result);
+        function renderPagination() {
+            const total = Math.max(0, Number(state.total || 0));
+            const totalPages = Math.max(1, Number(state.totalPages || 1));
+            const currentPage = Math.min(Math.max(1, Number(state.currentPage || 1)), totalPages);
+            const pageSize = Math.max(1, Number(state.pageSize || DEFAULT_PAGE_SIZE));
 
-                if (!res.ok || result.code !== 1) {
-                    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#888;">加载失败：${esc(result.msg || "请稍后重试")}</td></tr>`;
-                    projectCountSpan.textContent = "0";
-                    return;
-                }
+            if (total === 0) {
+                paginationBar.hidden = true;
+                paginationPages.innerHTML = "";
+                paginationSummary.textContent = "";
+                return;
+            }
 
-                const list = Array.isArray(result?.data?.records) ? result.data.records : [];
-                const total = Number(result?.data?.total || list.length);
+            const start = (currentPage - 1) * pageSize + 1;
+            const end = Math.min(total, currentPage * pageSize);
+            const visiblePages = getVisiblePages(currentPage, totalPages);
 
-                if (list.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#888;">暂无可申请项目</td></tr>`;
-                    projectCountSpan.textContent = "0";
-                    return;
-                }
+            paginationBar.hidden = false;
+            prevPageBtn.disabled = currentPage <= 1;
+            nextPageBtn.disabled = currentPage >= totalPages;
+            paginationSummary.textContent = `第 ${currentPage} / ${totalPages} 页，共 ${total} 个项目`;
+            paginationPages.innerHTML = visiblePages.map(page => `
+                <button
+                    type="button"
+                    class="pagination-number${page === currentPage ? " active" : ""}"
+                    data-page="${page}">
+                    ${page}
+                </button>
+            `).join("");
+        }
 
-                let html = "";
-                list.forEach(p => {
-                    const current = Number(p.currentAgreedCount || 0);
-                    const max = Number(p.maxStudents || 0);
+        function findStudentRequestStatus(projectId) {
+            const matched = state.requests.find(item =>
+                String(item.projectId) === String(projectId)
+                && ["PENDING", "ACCEPTED", "REJECTED"].includes(String(item.requestStatus || "").toUpperCase())
+            );
+            return matched ? String(matched.requestStatus || "").toUpperCase() : null;
+        }
 
-                    html += `
+        function renderRows(list) {
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#888;">暂无可申请项目</td></tr>`;
+                return;
+            }
+
+            let html = "";
+            list.forEach(project => {
+                const current = Number(project.currentAgreedCount || 0);
+                const max = Number(project.maxStudents || 0);
+                const requestStatus = findStudentRequestStatus(project.projectId);
+                const displayStatus = requestStatus === "PENDING"
+                    ? "REQUESTED"
+                    : (requestStatus || project.projectStatus);
+
+                html += `
                 <tr>
-                    <td><strong>${esc(p.projectId)}</strong></td>
-                    <td>${esc(p.title)}</td>
-                    <td>${esc(p.teacherName || "-")}</td>
-                    <td>${esc(p.categoryName || "-")}</td>
-                    <td>${esc(p.topicArea || "-")}</td>
+                    <td><strong>${esc(project.projectId)}</strong></td>
+                    <td>${esc(project.title)}</td>
+                    <td>${esc(project.teacherName || "-")}</td>
+                    <td>${esc(project.categoryName || "-")}</td>
+                    <td>${esc(project.topicArea || "-")}</td>
                     <td>${current}/${max}</td>
-                    <td>${statusPill(p.projectStatus)}</td>
+                    <td>${statusPill(displayStatus)}</td>
                     <td>
                         <a class="view-btn"
-                           href="student-project-search-list-detail.html?projectId=${encodeURIComponent(p.projectId)}&code=${encodeURIComponent("SURF-" + p.projectId)}">
+                           href="student-project-search-list-detail.html?projectId=${encodeURIComponent(project.projectId)}&from=list">
                            View
                         </a>
                     </td>
                 </tr>
             `;
-                });
+            });
+            tbody.innerHTML = html;
+        }
 
-                tbody.innerHTML = html;
+        //加载tag
+        function renderTagFilters() {
+            if (!tagFilterBar) return;
+            if (!state.tags.length) {
+                tagFilterBar.innerHTML = `<span style="color:var(--muted); font-size:0.9rem;">暂无可筛选标签</span>`;
+                return;
+            }
+
+            const clearDisabled = state.selectedTagIds.size === 0 ? "disabled" : "";
+            tagFilterBar.innerHTML = `
+                <span style="color:var(--muted); font-size:0.9rem;">标签筛选：</span>
+                ${state.tags.map(tag => {
+                    const tagId = String(tag.tagId);
+                    const active = state.selectedTagIds.has(tagId);
+                    return `
+                        <button
+                            type="button"
+                            data-tag-id="${esc(tagId)}"
+                            class="pagination-btn tag-filter-btn${active ? " active" : ""}"
+                            style="padding:6px 12px; border-radius:999px; ${active ? "background:var(--deep); color:#fff;" : ""}">
+                            ${esc(tag.tagName)}
+                        </button>
+                    `;
+                }).join("")}
+                <button type="button" class="pagination-btn" id="clearTagFiltersBtn" ${clearDisabled} style="padding:6px 12px; border-radius:999px;">清除</button>
+            `;
+        }
+
+        async function loadTags() {
+            if (!tagFilterBar) return;
+            try {
+                const tags = await ApiClient.get("/api/student/projects/tags");
+                state.tags = Array.isArray(tags) ? tags : [];
+                renderTagFilters();
+            } catch (error) {
+                console.error(error);
+                tagFilterBar.innerHTML = `<span style="color:#c74545; font-size:0.9rem;">标签加载失败：${esc(error.message || "请稍后重试")}</span>`;
+            }
+        }
+
+        function renderCategoryFilters() {
+            if (!categoryFilter) return;
+            categoryFilter.innerHTML = `<option value="">全部分类</option>` + state.categories.map(category => `
+                <option value="${esc(category.categoryId)}">${esc(category.categoryName)}</option>
+            `).join("");
+        }
+
+        async function loadCategories() {
+            try {
+                const categories = await ApiClient.get("/api/student/projects/categories");
+                state.categories = Array.isArray(categories) ? categories : [];
+                renderCategoryFilters();
+            } catch (error) {
+                console.error(error);
+                categoryFilter.innerHTML = `<option value="">分类加载失败</option>`;
+            }
+        }
+
+        async function loadProjects(targetPage) {
+            try {
+                const pageNum = Math.max(1, Number(targetPage || state.currentPage || 1));
+                const params = new URLSearchParams({ pageNum: String(pageNum) });
+                if (Number.isInteger(state.pageSize) && state.pageSize > 0) {
+                    params.set("pageSize", String(state.pageSize));
+                }
+                state.selectedTagIds.forEach(tagId => {
+                    params.append("tagIds", tagId);
+                });
+                const keyword = keywordFilter.value.trim();
+                if (keyword) {
+                    params.set("keyword", keyword);
+                }
+                if (categoryFilter.value) {
+                    params.set("categoryId", categoryFilter.value);
+                }
+                if (statusFilter.value) {
+                    params.set("status", statusFilter.value);
+                }
+
+                const projectPage = await ApiClient.get(`/api/student/projects?${params.toString()}`);
+                const list = Array.isArray(projectPage?.records) ? projectPage.records : [];
+                const total = Number(projectPage?.total || list.length);
+                const pageSize = getResolvedPageSize(projectPage, list.length);
+                const currentPage = Math.max(1, Number(projectPage?.pageNum || pageNum || 1));
+                const totalPages = Math.max(1, Number(projectPage?.totalPages || Math.ceil(total / pageSize) || 1));
+
+                state.currentPage = currentPage;
+                state.pageSize = pageSize;
+                state.total = total;
+                state.totalPages = totalPages;
+
+                renderRows(list);
                 projectCountSpan.textContent = String(total);
-            } catch (e) {
-                console.error(e);
-                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#888;">网络异常，请稍后重试</td></tr>`;
+                renderPagination();
+            } catch (error) {
+                console.error(error);
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#888;">加载失败：${esc(error.message || "请稍后重试")}</td></tr>`;
+                projectCountSpan.textContent = "0";
+                paginationBar.hidden = true;
+                paginationPages.innerHTML = "";
+                paginationSummary.textContent = "";
+            }
+        }
+
+        async function initPage() {
+            try {
+                const [requests] = await Promise.all([
+                    ApiClient.get("/api/student/requests"),
+                    loadTags(),
+                    loadCategories()
+                ]);
+                state.requests = Array.isArray(requests) ? requests : [];
+                await loadProjects(1);
+            } catch (error) {
+                console.error(error);
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#888;">加载失败：${esc(error.message || "请稍后重试")}</td></tr>`;
                 projectCountSpan.textContent = "0";
             }
         }
 
+        prevPageBtn.addEventListener("click", function () {
+            if (state.currentPage > 1) {
+                loadProjects(state.currentPage - 1);
+            }
+        });
 
+        nextPageBtn.addEventListener("click", function () {
+            if (state.currentPage < state.totalPages) {
+                loadProjects(state.currentPage + 1);
+            }
+        });
 
-        loadProjects();
+        paginationPages.addEventListener("click", function (event) {
+            const button = event.target.closest("[data-page]");
+            if (!button) return;
+            const page = Number(button.getAttribute("data-page"));
+            if (Number.isInteger(page) && page > 0 && page !== state.currentPage) {
+                loadProjects(page);
+            }
+        });
+
+        tagFilterBar.addEventListener("click", function (event) {
+            const tagButton = event.target.closest("[data-tag-id]");
+            if (tagButton) {
+                const tagId = tagButton.getAttribute("data-tag-id");
+                if (state.selectedTagIds.has(tagId)) {
+                    state.selectedTagIds.delete(tagId);
+                } else {
+                    state.selectedTagIds.add(tagId);
+                }
+                renderTagFilters();
+                loadProjects(1);
+                return;
+            }
+
+            if (event.target.closest("#clearTagFiltersBtn")) {
+                state.selectedTagIds.clear();
+                renderTagFilters();
+                loadProjects(1);
+            }
+        });
+
+        let keywordTimer = null;
+        keywordFilter.addEventListener("input", () => {
+            window.clearTimeout(keywordTimer);
+            keywordTimer = window.setTimeout(() => loadProjects(1), 250);
+        });
+        categoryFilter.addEventListener("change", () => loadProjects(1));
+        statusFilter.addEventListener("change", () => loadProjects(1));
+        clearProjectFiltersBtn.addEventListener("click", () => {
+            keywordFilter.value = "";
+            categoryFilter.value = "";
+            statusFilter.value = "";
+            state.selectedTagIds.clear();
+            renderTagFilters();
+            loadProjects(1);
+        });
+
+        showPageNotice();
+        initPage();
     })();
-
+    //default sidebar toggle behavior
     const layout = document.getElementById("layout");
     const toggle = document.getElementById("toggleSidebar");
     let isCollapsed = false;

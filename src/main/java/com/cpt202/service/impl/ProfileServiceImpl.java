@@ -1,8 +1,12 @@
 package com.cpt202.service.impl;
 
 import com.cpt202.constant.MessageConstants;
+import com.cpt202.dto.AdminProfileUpdateDTO;
+import com.cpt202.dto.ChangePasswordDTO;
 import com.cpt202.dto.StudentProfileUpdateDTO;
 import com.cpt202.dto.TeacherProfileUpdateDTO;
+import com.cpt202.dto.TwoFactorDisableDTO;
+import com.cpt202.dto.TwoFactorEnableDTO;
 import com.cpt202.exception.BusinessException;
 import com.cpt202.exception.NotFoundException;
 import com.cpt202.model.entity.StudentProfile;
@@ -10,15 +14,24 @@ import com.cpt202.model.entity.TeacherProfile;
 import com.cpt202.model.entity.User;
 import com.cpt202.repository.StudentProfileRepository;
 import com.cpt202.repository.TeacherProfileRepository;
+import com.cpt202.repository.UserRepository;
 import com.cpt202.service.ProfileService;
+import com.cpt202.service.TwoFactorAuthService;
+import com.cpt202.vo.AdminProfileVO;
 import com.cpt202.vo.StudentProfileVO;
 import com.cpt202.vo.TeacherProfileVO;
+import com.cpt202.vo.TwoFactorSetupVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.util.HexFormat;
+import java.util.regex.Pattern;
 
 /**
  * 用户资料服务实现类。
@@ -28,8 +41,11 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class ProfileServiceImpl implements ProfileService {
 
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
     private final StudentProfileRepository studentProfileRepository;
     private final TeacherProfileRepository teacherProfileRepository;
+    private final UserRepository userRepository;
+    private final TwoFactorAuthService twoFactorAuthService;
 
     /**
      * 查询学生资料。
@@ -52,6 +68,7 @@ public class ProfileServiceImpl implements ProfileService {
         profileVO.setEmail(profile.getUser().getEmail());
         profileVO.setFullName(profile.getUser().getFullName());
         profileVO.setAcademicYear(profile.getAcademicYear());
+        profileVO.setTwoFactorEnabled(Boolean.TRUE.equals(profile.getUser().getTwoFactorEnabled()));
 
         return profileVO;
     }
@@ -72,9 +89,10 @@ public class ProfileServiceImpl implements ProfileService {
             throw new BusinessException(MessageConstants.NON_STUDENT_PROFILE_UPDATE);
         }
 
+        validateEmailForUser(profile.getUser(), studentProfileUpdateDTO.getEmail());
         BeanUtils.copyProperties(studentProfileUpdateDTO, profile, "fullName", "email");
         profile.getUser().setFullName(studentProfileUpdateDTO.getFullName());
-        profile.getUser().setEmail(studentProfileUpdateDTO.getEmail());
+        profile.getUser().setEmail(studentProfileUpdateDTO.getEmail().trim());
         profile.setUpdatedAt(LocalDateTime.now());
 
         studentProfileRepository.save(profile);
@@ -100,6 +118,7 @@ public class ProfileServiceImpl implements ProfileService {
         profileVO.setUsername(profile.getUser().getUsername());
         profileVO.setEmail(profile.getUser().getEmail());
         profileVO.setFullName(profile.getUser().getFullName());
+        profileVO.setTwoFactorEnabled(Boolean.TRUE.equals(profile.getUser().getTwoFactorEnabled()));
         return profileVO;
     }
 
@@ -119,11 +138,126 @@ public class ProfileServiceImpl implements ProfileService {
             throw new BusinessException(MessageConstants.NON_TEACHER_PROFILE_UPDATE);
         }
 
+        validateEmailForUser(profile.getUser(), teacherProfileUpdateDTO.getEmail());
         BeanUtils.copyProperties(teacherProfileUpdateDTO, profile, "fullName", "email");
         profile.getUser().setFullName(teacherProfileUpdateDTO.getFullName());
-        profile.getUser().setEmail(teacherProfileUpdateDTO.getEmail());
+        profile.getUser().setEmail(teacherProfileUpdateDTO.getEmail().trim());
         profile.setUpdatedAt(LocalDateTime.now());
 
         teacherProfileRepository.save(profile);
+    }
+
+    @Override
+    public AdminProfileVO getAdminProfile(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException(MessageConstants.USER_NOT_FOUND));
+
+        if (user.getRole() != User.UserRole.ADMIN) {
+            throw new BusinessException(MessageConstants.NON_ADMIN_PROFILE_ACCESS);
+        }
+
+        AdminProfileVO profileVO = new AdminProfileVO();
+        BeanUtils.copyProperties(user, profileVO);
+        profileVO.setTwoFactorEnabled(Boolean.TRUE.equals(user.getTwoFactorEnabled()));
+        return profileVO;
+    }
+
+    @Override
+    @Transactional
+    public void updateAdminProfile(Long userId, AdminProfileUpdateDTO adminProfileUpdateDTO) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException(MessageConstants.USER_NOT_FOUND));
+
+        if (user.getRole() != User.UserRole.ADMIN) {
+            throw new BusinessException(MessageConstants.NON_ADMIN_PROFILE_UPDATE);
+        }
+
+        validateEmailForUser(user, adminProfileUpdateDTO.getEmail());
+        user.setFullName(adminProfileUpdateDTO.getFullName());
+        user.setEmail(adminProfileUpdateDTO.getEmail().trim());
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+    }
+
+    /**
+     * Change the password for the given user.
+     * Verifies the old password before applying the new hash.
+     *
+     * @param userId            current user's primary key
+     * @param changePasswordDTO old and new password payload
+     */
+    @Override
+    @Transactional
+    public void changePassword(Long userId, ChangePasswordDTO changePasswordDTO) {
+        User user = getUserRequired(userId);
+
+        String oldHash = hashPassword(changePasswordDTO.getOldPassword());
+        if (!oldHash.equals(user.getPasswordHash())) {
+            throw new BusinessException(MessageConstants.INCORRECT_OLD_PASSWORD);
+        }
+
+        String newHash = hashPassword(changePasswordDTO.getNewPassword());
+        if (newHash.equals(user.getPasswordHash())) {
+            throw new BusinessException(MessageConstants.NEW_PASSWORD_SAME_AS_OLD);
+        }
+
+        user.setPasswordHash(newHash);
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+    }
+
+    @Override
+    public TwoFactorSetupVO initializeTwoFactorSetup(Long userId) {
+        return twoFactorAuthService.initializeSetup(getUserRequired(userId));
+    }
+
+    @Override
+    @Transactional
+    public void enableTwoFactor(Long userId, TwoFactorEnableDTO twoFactorEnableDTO) {
+        String code = twoFactorEnableDTO.getCode() == null ? "" : twoFactorEnableDTO.getCode().trim();
+        if (code.isEmpty()) {
+            throw new BusinessException(MessageConstants.TWO_FACTOR_CODE_REQUIRED);
+        }
+        twoFactorAuthService.enable(getUserRequired(userId), code);
+    }
+
+    @Override
+    @Transactional
+    public void disableTwoFactor(Long userId, TwoFactorDisableDTO twoFactorDisableDTO) {
+        User user = getUserRequired(userId);
+        String currentPassword = twoFactorDisableDTO.getCurrentPassword() == null ? "" : twoFactorDisableDTO.getCurrentPassword().trim();
+        if (currentPassword.isEmpty()) {
+            throw new BusinessException(MessageConstants.TWO_FACTOR_DISABLE_PASSWORD_REQUIRED);
+        }
+        String currentHash = hashPassword(currentPassword);
+        if (!currentHash.equals(user.getPasswordHash())) {
+            throw new BusinessException(MessageConstants.INCORRECT_OLD_PASSWORD);
+        }
+        twoFactorAuthService.disable(user);
+    }
+
+    private User getUserRequired(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException(MessageConstants.USER_NOT_FOUND));
+    }
+
+    private String hashPassword(String password) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(password.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hashBytes);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("Unable to hash password", ex);
+        }
+    }
+
+    private void validateEmailForUser(User user, String email) {
+        String trimmedEmail = email == null ? "" : email.trim();
+        if (!EMAIL_PATTERN.matcher(trimmedEmail).matches()) {
+            throw new BusinessException(MessageConstants.EMAIL_FORMAT_INVALID);
+        }
+        if (userRepository.existsByEmailIgnoreCaseAndUserIdNot(trimmedEmail, user.getUserId())) {
+            throw new BusinessException(MessageConstants.EMAIL_EXISTS);
+        }
     }
 }

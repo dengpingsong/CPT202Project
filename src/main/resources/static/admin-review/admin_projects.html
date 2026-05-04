@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>管理员 · 项目概览</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --bg: #f4f3f7;
+            --deep: #5a2b98;
+            --mid: #7b4fbd;
+            --panel: #ffffff;
+            --text: #1c1b33;
+            --muted: #6b6b82;
+            --border: rgba(28,27,51,0.08);
+        }
+        * { box-sizing: border-box; margin:0; padding:0; }
+        body { margin:0; font-family: "Segoe UI", Arial, sans-serif; background:var(--bg); color:var(--text); height:100vh; display:flex; overflow:hidden; }
+        .layout { display:grid; grid-template-columns:260px 1fr; min-height:100vh; transition:.3s ease; width:100%; }
+        .layout.collapsed { grid-template-columns:80px 1fr; }
+        .sidebar { background:linear-gradient(180deg,#3d1566,#631e97); padding:24px 16px; color:white; display:flex; flex-direction:column; gap:20px; position:relative; overflow:hidden; }
+        .sidebar::after { content:""; position:absolute; inset:0; background:radial-gradient(circle at top, rgba(255,255,255,0.2), transparent 60%); pointer-events:none; }
+        .toggle-wrap { width:48px; height:48px; border-radius:16px; margin-bottom:4px; }
+        .toggle { width:100%; height:100%; border-radius:16px; border:none; background:rgba(255,255,255,0.18); display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative; }
+        .toggle span, .toggle span::before, .toggle span::after { display:block; width:22px; height:2px; background:white; transition:all .3s ease; position:absolute; }
+        .toggle span { background:transparent; }
+        .toggle span::before { content:""; top:0; transform:rotate(45deg); }
+        .toggle span::after { content:""; top:0; transform:rotate(-45deg); }
+        .layout.collapsed .toggle span { background:white; }
+        .layout.collapsed .toggle span::before { top:-8px; transform:none; }
+        .layout.collapsed .toggle span::after { top:8px; transform:none; }
+        .nav-group { display:flex; flex-direction:column; gap:12px; margin-top:8px; }
+        .nav-group a { border:none; background:transparent; color:white; font-size:0.95rem; padding:10px 14px; border-radius:12px; cursor:pointer; display:flex; align-items:center; gap:10px; text-decoration:none; }
+        .nav-group a.active, .nav-group a:hover { background:rgba(255,255,255,0.2); }
+        .nav-icon { font-size:1.2rem; width:28px; text-align:center; }
+        .nav-label { transition:opacity .3s ease; white-space:nowrap; }
+        .layout.collapsed .nav-group a { justify-content:center; padding:12px; }
+        .layout.collapsed .nav-label { opacity:0; width:0; overflow:hidden; }
+        .main-content { flex:1; overflow-y:auto; padding:32px 40px; background:#f8fafc; }
+        .dashboard-card { background:white; border-radius:28px; box-shadow:0 12px 30px rgba(0,0,0,0.05); padding:28px 32px; border:1px solid #f0eef2; }
+        .card-header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:24px; border-bottom:2px solid #f1f5f9; padding-bottom:16px; }
+        .card-header h2 { font-size:1.65rem; font-weight:600; background:linear-gradient(135deg,#1e293b,#2d3a4b); background-clip:text; -webkit-background-clip:text; color:transparent; }
+        .badge-sub { background:#ede9fe; color:#5b21b6; border-radius:40px; padding:6px 14px; font-size:0.8rem; }
+        .data-table { width:100%; border-collapse:collapse; font-size:0.9rem; }
+        .data-table th { text-align:left; padding:14px 8px; background:#f9f9fc; font-weight:600; border-bottom:1px solid #e2e8f0; }
+        .data-table td { padding:14px 8px; border-bottom:1px solid #edf2f7; vertical-align:middle; }
+        .tag-group { display:flex; flex-wrap:wrap; gap:6px; }
+        .tag-pill { background:#eef2ff; color:#1e40af; border-radius:30px; padding:4px 12px; font-size:0.75rem; font-weight:500; }
+        .project-demo-note { background:#f1f5f9; border-radius:20px; padding:14px 20px; font-size:0.8rem; color:#475569; margin-top:18px; }
+        .loading-text { color:#6b6b82; font-size:0.75rem; }
+        .error-message { color:#dc2626; background:#fee2e2; border-radius:20px; padding:12px 16px; margin:10px 0; display:inline-block; }
+        .btn-action { background:#eff6ff; color:#1d4ed8; border:none; padding:8px 14px; border-radius:999px; cursor:pointer; font-weight:600; }
+        .btn-action:hover { background:#dbeafe; }
+        .modal-overlay { display:none; position:fixed; inset:0; background:rgba(15,23,42,0.35); align-items:center; justify-content:center; padding:20px; z-index:1000; }
+        .modal-overlay.open { display:flex; }
+        .modal-card { width:min(720px, 100%); background:#fff; border-radius:24px; padding:24px; box-shadow:0 24px 60px rgba(15,23,42,0.18); }
+        .modal-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+        .modal-header h3 { margin:0; flex:1; font-size:1.3rem; }
+        .icon-btn { border:none; background:transparent; font-size:1.4rem; color:#64748b; cursor:pointer; }
+        .detail-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:14px; margin-bottom:18px; }
+        .detail-item { background:#f8fafc; border:1px solid #e2e8f0; border-radius:16px; padding:14px 16px; }
+        .detail-label { display:block; font-size:0.76rem; color:#64748b; text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px; }
+        .detail-value { color:#0f172a; font-weight:600; }
+        .detail-block { background:#f8fafc; border:1px solid #e2e8f0; border-radius:18px; padding:18px; }
+        .detail-block h4 { margin:0 0 10px; font-size:1rem; }
+    </style>
+</head>
+<body>
+<div class="layout" id="layout">
+    <aside class="sidebar">
+        <div class="toggle-wrap"><button class="toggle" id="toggleSidebar"><span></span></button></div>
+        <div class="nav-group">
+            <a href="admin_projects.html" class="active"><i class="bi bi-kanban nav-icon"></i><span class="nav-label">项目列表</span></a>
+            <a href="admin_categories.html"><i class="bi bi-tags nav-icon"></i><span class="nav-label">Category 列表</span></a>
+            <a href="admin_tags.html"><i class="bi bi-bookmark nav-icon"></i><span class="nav-label">Tag 列表</span></a>
+            <a href="admin_settings.html"><i class="bi bi-person-gear nav-icon"></i><span class="nav-label">个人设置</span></a>
+        </div>
+    </aside>
+    <main class="main-content">
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h2>所有项目概览</h2>
+                <div class="badge-sub" id="projectCountBadge">加载中...</div>
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="data-table">
+                    <thead>
+                    <tr>
+                        <th>项目ID</th>
+                        <th>项目名称</th>
+                        <th>发布教师</th>
+                        <th>所属类别</th>
+                        <th>标签列表</th>
+                        <th>操作</th>
+                    </tr>
+                    </thead>
+                    <tbody id="projectTableBody">
+                    <tr><td colspan="6">正在加载数据...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="project-demo-note">
+                项目数据来源于后端 <code>/api/admin/records/projects</code> 与 <code>/api/admin/projects/{id}/tags</code>。
+            </div>
+        </div>
+    </main>
+</div>
+
+<div class="modal-overlay" id="projectDetailModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="projectDetailTitle">
+        <div class="modal-header">
+            <h3 id="projectDetailTitle">项目详情</h3>
+            <button class="icon-btn" id="closeProjectDetailBtn" type="button">×</button>
+        </div>
+        <div class="detail-grid" id="projectDetailGrid"></div>
+        <div class="detail-block">
+            <h4>Description</h4>
+            <div id="projectDetailDescription" style="white-space:pre-wrap; color:#334155; line-height:1.7;"></div>
+        </div>
+    </div>
+</div>
+
+<script src="../js/ui-feedback.js"></script>
+<script>
+    // ==================== 配置 ====================
+    const BASE_URL = '';      // 后端地址，根据实际情况修改
+    const TOKEN_KEY = 'token';
+    const LOGIN_PAGE = '/login/login.html';
+    const projectDetailModal = document.getElementById('projectDetailModal');
+    const projectDetailGrid = document.getElementById('projectDetailGrid');
+    const projectDetailDescription = document.getElementById('projectDetailDescription');
+    const projectDetailTitle = document.getElementById('projectDetailTitle');
+    const closeProjectDetailBtn = document.getElementById('closeProjectDetailBtn');
+
+    // 检查登录状态
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) {
+        UiFeedback.alert('请先登录').then(() => {
+            window.location.href = LOGIN_PAGE;
+        });
+    }
+
+    // ==================== 通用请求方法 ====================
+    async function api(method, url, body = null) {
+        const fullUrl = url.startsWith('http') ? url : BASE_URL + url;
+        const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+        const options = { method, headers };
+        if (body) options.body = JSON.stringify(body);
+        const response = await fetch(fullUrl, options);
+        if (response.status === 401) {
+            localStorage.removeItem(TOKEN_KEY);
+            UiFeedback.alert('登录已过期，请重新登录').then(() => {
+                window.location.href = LOGIN_PAGE;
+            });
+            throw new Error('Unauthorized');
+        }
+        const json = await response.json();
+        if (json.code !== 1) throw new Error(json.msg || '请求失败');
+        return json.data;
+    }
+
+    // ==================== 业务接口 ====================
+    async function loadProjects() {
+        // 调用项目记录接口（已实现）
+        return await api('GET', '/api/admin/records/projects');
+    }
+
+    async function loadCategories() {
+        // 获取全部分类，用于映射类别名称
+        return await api('GET', '/api/admin/categories');
+    }
+
+    // 尝试获取项目标签（后端尚未提供，但前端优雅降级）
+    async function tryLoadProjectTags(projectId) {
+        try {
+            // 注意：这个接口目前在后端并没有实现，会返回404或500
+            // 但前端捕获错误后不影响主流程，仅显示“暂未提供”
+            return await api('GET', `/api/admin/projects/${projectId}/tags`);
+        } catch (e) {
+            console.warn(`获取项目 ${projectId} 标签失败:`, e.message);
+            return null; // 返回 null 表示接口不可用
+        }
+    }
+
+    // ==================== 渲染主函数 ====================
+    async function renderProjects() {
+        const tbody = document.getElementById('projectTableBody');
+        const countBadge = document.getElementById('projectCountBadge');
+        if (!tbody) return;
+
+        tbody.innerHTML = '<tr><td colspan="6">加载项目数据...</td></tr>';
+        countBadge.innerText = '加载中...';
+
+        try {
+            // 1. 获取项目列表
+            const projects = await loadProjects();
+            // 2. 获取类别映射
+            const categories = await loadCategories();
+            const categoryMap = new Map(categories.map(c => [c.categoryId, c.categoryName]));
+
+            if (!projects.length) {
+                tbody.innerHTML = '<tr><td colspan="6">暂无项目数据</td></tr>';
+                countBadge.innerText = '0 个项目';
+                return;
+            }
+
+            let html = '';
+            for (const proj of projects) {
+                const projectId = proj.projectId;
+                const title = proj.title || '未命名';
+                // 类别名称：优先使用 categoryMap 映射，如果没有则用返回的 categoryName
+                const categoryName = categoryMap.get(proj.categoryId) || proj.categoryName || '未分类';
+
+                // 尝试获取标签（目前后端无此接口，会返回 null）
+                let tagsHtml = '<span class="loading-text">暂未提供标签接口</span>';
+                const tagData = await tryLoadProjectTags(projectId);
+                if (tagData && Array.isArray(tagData) && tagData.length > 0) {
+                    tagsHtml = tagData.map(t => `<span class="tag-pill">${escapeHtml(t.tagName || t.name || '未命名')}</span>`).join('');
+                } else if (tagData && Array.isArray(tagData) && tagData.length === 0) {
+                    tagsHtml = '<span class="loading-text">无标签</span>';
+                }
+
+                html += `
+                    <tr>
+                        <td>${escapeHtml(projectId)}</td>
+                        <td><strong>${escapeHtml(title)}</strong></td>
+                        <td>${escapeHtml(proj.teacherName || '-')}</td>
+                        <td><span class="tag-pill">${escapeHtml(categoryName)}</span></td>
+                        <td><div class="tag-group">${tagsHtml}</div></td>
+                        <td><button class="btn-action view-project-btn" type="button" data-project-id="${escapeHtml(projectId)}">查看详情</button></td>
+                    </tr>
+                `;
+            }
+            tbody.innerHTML = html;
+            countBadge.innerText = `${projects.length} 个项目`;
+            bindDetailButtons(projects);
+        } catch (err) {
+            console.error('渲染失败:', err);
+            tbody.innerHTML = `<tr><td colspan="6"><div class="error-message">加载失败：${escapeHtml(err.message)}</div></td></tr>`;
+            countBadge.innerText = '加载失败';
+        }
+    }
+
+    function openProjectDetail(project) {
+        projectDetailTitle.textContent = project.title || '项目详情';
+        projectDetailGrid.innerHTML = `
+            <div class="detail-item"><span class="detail-label">Project ID</span><span class="detail-value">${escapeHtml(project.projectId)}</span></div>
+            <div class="detail-item"><span class="detail-label">Teacher</span><span class="detail-value">${escapeHtml(project.teacherName || '-')}</span></div>
+            <div class="detail-item"><span class="detail-label">Category</span><span class="detail-value">${escapeHtml(project.categoryName || '-')}</span></div>
+            <div class="detail-item"><span class="detail-label">Topic Area</span><span class="detail-value">${escapeHtml(project.topicArea || '-')}</span></div>
+            <div class="detail-item"><span class="detail-label">Required Skills</span><span class="detail-value">${escapeHtml(project.requiredSkills || '-')}</span></div>
+            <div class="detail-item"><span class="detail-label">Quota</span><span class="detail-value">${escapeHtml(project.currentAgreedCount || 0)}/${escapeHtml(project.maxStudents || 0)}</span></div>
+            <div class="detail-item"><span class="detail-label">Status</span><span class="detail-value">${escapeHtml(project.projectStatus || '-')}</span></div>
+            <div class="detail-item"><span class="detail-label">Publish Date</span><span class="detail-value">${escapeHtml(project.publishDate || '-')}</span></div>
+        `;
+        projectDetailDescription.textContent = project.description || '-';
+        projectDetailModal.classList.add('open');
+        projectDetailModal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeProjectDetail() {
+        projectDetailModal.classList.remove('open');
+        projectDetailModal.setAttribute('aria-hidden', 'true');
+    }
+
+    function bindDetailButtons(projects) {
+        document.querySelectorAll('.view-project-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const projectId = btn.getAttribute('data-project-id');
+                const project = projects.find(item => String(item.projectId) === String(projectId));
+                if (project) {
+                    openProjectDetail(project);
+                }
+            });
+        });
+    }
+
+    // 简单的防XSS
+    function escapeHtml(str) {
+        if (str === undefined || str === null) return '';
+        return String(str).replace(/[&<>]/g, m => (m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;')));
+    }
+
+    // 启动渲染
+    renderProjects();
+    closeProjectDetailBtn.addEventListener('click', closeProjectDetail);
+    projectDetailModal.addEventListener('click', event => {
+        if (event.target === projectDetailModal) {
+            closeProjectDetail();
+        }
+    });
+
+    // 侧边栏折叠逻辑
+    const layout = document.getElementById('layout');
+    const toggle = document.getElementById('toggleSidebar');
+    let collapsed = false;
+    toggle.addEventListener('click', () => {
+        collapsed = !collapsed;
+        layout.classList.toggle('collapsed', collapsed);
+    });
+</script>
+</body>
+</html>

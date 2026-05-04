@@ -1,4 +1,4 @@
-INSERT INTO users (user_id, username, password_hash, email, full_name, role, account_status, created_at, updated_at) VALUES
+INSERT INTO users (user_id, username, password_hash, email, full_name, role, account_status, created_at, updated_at) VALUES -- password is "123456" hashed with SHA-256
     (1001, 'admin1',   '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', 'admin1@example.com',   'System Admin',   'ADMIN',   'ACTIVE', '2026-04-01 09:00:00', '2026-04-01 09:00:00'),
     (1002, 'teacher1', '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', 'teacher1@example.com', 'Alice Teacher',  'TEACHER', 'ACTIVE', '2026-04-01 09:05:00', '2026-04-01 09:05:00'),
     (1003, 'student1', '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92', 'student1@example.com', 'Bob Student',    'STUDENT', 'ACTIVE', '2026-04-01 09:10:00', '2026-04-01 09:10:00'),

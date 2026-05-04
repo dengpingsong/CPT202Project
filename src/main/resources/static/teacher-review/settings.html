@@ -32,7 +32,7 @@
             </a>
             <a href="notifications.html" class="">
                 <i class="bi bi-chat-dots nav-icon"></i>
-                <span class="nav-label">消息/通知</span>
+                <span class="nav-label">消息通知</span>
             </a>
             <a href="settings.html" class="active">
                 <i class="bi bi-person-gear nav-icon"></i>
@@ -74,19 +74,356 @@
                     <label class="form-label">办公地点</label>
                     <input type="text" class="form-control" id="office" value="">
                 </div>
+                <div class="mb-4 p-3 border rounded-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                        <div>
+                            <h3 class="h5 mb-1">双重验证（TOTP）</h3>
+                            <div class="text-muted small" id="twoFactorSummary">正在加载 2FA 状态...</div>
+                        </div>
+                    </div>
+                    <div class="text-muted small mb-3">可使用 Google Authenticator、Microsoft Authenticator 或 1Password 扫码登录。</div>
+                    <div id="twoFactorSetupBox" class="border rounded-4 p-3 bg-light mb-3" hidden>
+                        <canvas id="twoFactorQrCanvas" width="180" height="180" style="max-width:180px;"></canvas>
+                        <div class="small mt-3">手动输入密钥：</div>
+                        <div id="twoFactorManualKey" class="fw-semibold text-break mb-3"></div>
+                        <input type="text" class="form-control mb-2" id="twoFactorEnableCode" inputmode="numeric" maxlength="6" placeholder="输入 App 中的 6 位验证码">
+                        <button type="button" class="btn btn-primary px-4" style="border-radius:20px; background-color:#35b8e0; border:none;" id="enableTwoFactorBtn">确认开启 2FA</button>
+                    </div>
+                    <div id="twoFactorDisableBox" class="border rounded-4 p-3 bg-light mb-3" hidden>
+                        <input type="password" class="form-control mb-2" id="twoFactorDisablePassword" placeholder="输入当前密码以关闭 2FA">
+                        <button type="button" class="btn btn-outline-danger px-4" style="border-radius:20px;" id="disableTwoFactorBtn">关闭 2FA</button>
+                    </div>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button type="button" class="btn btn-outline-primary px-4" style="border-radius:20px;" id="setupTwoFactorBtn">开始设置 2FA</button>
+                    </div>
+                    <div id="twoFactorStatus" class="footnote" style="text-align:left; margin-top:12px;"></div>
+                </div>
                 <div class="d-flex gap-3">
                     <button type="submit" class="btn btn-primary px-4" style="border-radius:20px; background-color:#35b8e0; border:none;" id="saveBtn">保存修改</button>
-                    <button type="button" class="btn btn-outline-danger px-4" style="border-radius:20px;" onclick="handleLogout()">退出登录</button>
+                    <button type="button" class="btn btn-secondary px-4" style="border-radius:20px;" id="changePasswordBtn">修改密码</button>
+                    <button type="button" class="btn btn-outline-danger px-4" style="border-radius:20px;" id="logoutBtn">退出登录</button>
                 </div>
+                <div id="settingsStatus" class="footnote" style="text-align:left; margin-top:16px;">正在加载个人资料...</div>
             </form>
         </div>
     </main>
-    <script src="script.js"></script>
 </div>
 
+<div id="passwordModal" aria-hidden="true" style="display:none; position:fixed; inset:0; background:rgba(28,20,43,0.45); z-index:1000; align-items:center; justify-content:center; padding:20px;">
+    <div role="dialog" aria-modal="true" aria-labelledby="passwordModalTitle" style="width:min(460px, 100%); background:#fff; border-radius:16px; padding:24px; box-shadow:0 24px 60px rgba(28,20,43,0.22);">
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
+            <h2 id="passwordModalTitle" style="font-size:1.25rem; margin:0; flex:1;">修改密码</h2>
+            <button type="button" class="btn-secondary" id="closePasswordModalBtn" style="padding:6px 12px;">关闭</button>
+        </div>
+        <form id="passwordForm">
+            <div class="mb-3">
+                <label class="form-label">当前密码</label>
+                <input type="password" class="form-control" id="oldPassword" autocomplete="current-password" placeholder="请输入当前密码">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">新密码</label>
+                <input type="password" class="form-control" id="newPassword" autocomplete="new-password" placeholder="请输入新密码">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">确认新密码</label>
+                <input type="password" class="form-control" id="confirmPassword" autocomplete="new-password" placeholder="请再次输入新密码">
+            </div>
+            <div id="passwordStatus" class="footnote" style="text-align:left; margin-bottom:14px;"></div>
+            <div class="d-flex gap-3">
+                <button type="submit" class="btn btn-primary px-4" style="border-radius:20px; background-color:#35b8e0; border:none;">确认修改</button>
+                <button type="button" class="btn btn-light px-4" style="border-radius:20px;" id="cancelPasswordBtn">取消</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<script src="../js/api.js"></script>
 <script>
     (function() {
         "use strict";
+        const user = ApiClient.requireAuth("TEACHER");
+        if (!user) return;
+
+        const settingsForm = document.getElementById("settingsForm");
+        const saveBtn = document.getElementById("saveBtn");
+        const changePasswordBtn = document.getElementById("changePasswordBtn");
+        const logoutBtn = document.getElementById("logoutBtn");
+        const settingsStatus = document.getElementById("settingsStatus");
+        const passwordModal = document.getElementById("passwordModal");
+        const passwordForm = document.getElementById("passwordForm");
+        const oldPassword = document.getElementById("oldPassword");
+        const newPassword = document.getElementById("newPassword");
+        const confirmPassword = document.getElementById("confirmPassword");
+        const passwordStatus = document.getElementById("passwordStatus");
+        const closePasswordModalBtn = document.getElementById("closePasswordModalBtn");
+        const cancelPasswordBtn = document.getElementById("cancelPasswordBtn");
+        const twoFactorSummary = document.getElementById("twoFactorSummary");
+        const twoFactorStatus = document.getElementById("twoFactorStatus");
+        const twoFactorSetupBox = document.getElementById("twoFactorSetupBox");
+        const twoFactorDisableBox = document.getElementById("twoFactorDisableBox");
+        const twoFactorManualKey = document.getElementById("twoFactorManualKey");
+        const twoFactorEnableCode = document.getElementById("twoFactorEnableCode");
+        const twoFactorDisablePassword = document.getElementById("twoFactorDisablePassword");
+        const setupTwoFactorBtn = document.getElementById("setupTwoFactorBtn");
+        const enableTwoFactorBtn = document.getElementById("enableTwoFactorBtn");
+        const disableTwoFactorBtn = document.getElementById("disableTwoFactorBtn");
+        const twoFactorQrCanvas = document.getElementById("twoFactorQrCanvas");
+        const inputs = {
+            fullName: document.getElementById("fullName"),
+            email: document.getElementById("email"),
+            department: document.getElementById("department"),
+            title: document.getElementById("title"),
+            researchArea: document.getElementById("researchArea"),
+            office: document.getElementById("office")
+        };
+
+        //状态显示
+        function setStatus(message, type) {
+            if (!settingsStatus) return;
+            settingsStatus.textContent = message;
+            settingsStatus.style.color = type === "error" ? "#c74545" : type === "success" ? "var(--green)" : "var(--muted)";
+        }
+
+        function setPasswordStatus(message, type) {
+            if (!passwordStatus) return;
+            passwordStatus.textContent = message || "";
+            passwordStatus.style.color = type === "error" ? "#c74545" : type === "success" ? "var(--green)" : "var(--muted)";
+        }
+
+        function setTwoFactorStatus(message, type) {
+            if (!twoFactorStatus) return;
+            twoFactorStatus.textContent = message || "";
+            twoFactorStatus.style.color = type === "error" ? "#c74545" : type === "success" ? "var(--green)" : "var(--muted)";
+        }
+
+        function renderTwoFactorState(enabled) {
+            twoFactorSummary.textContent = enabled ? "当前状态：已开启" : "当前状态：未开启";
+            twoFactorSetupBox.hidden = true;
+            twoFactorDisableBox.hidden = !enabled;
+            setupTwoFactorBtn.textContent = enabled ? "重新生成设置二维码" : "开始设置 2FA";
+            if (!enabled) {
+                twoFactorDisablePassword.value = "";
+            }
+        }
+
+        function openPasswordModal() {
+            passwordModal.style.display = "flex";
+            passwordModal.setAttribute("aria-hidden", "false");
+            passwordForm.reset();
+            setPasswordStatus("", "");
+            oldPassword.focus();
+        }
+
+        function closePasswordModal() {
+            passwordModal.style.display = "none";
+            passwordModal.setAttribute("aria-hidden", "true");
+            passwordForm.reset();
+            setPasswordStatus("", "");
+        }
+
+        //填充表单数据
+        function fillProfile(profile) {
+            inputs.fullName.value = profile.fullName || "";
+            inputs.email.value = profile.email || "";
+            inputs.department.value = profile.department || "";
+            inputs.title.value = profile.title || "";
+            inputs.researchArea.value = profile.researchArea || "";
+            inputs.office.value = profile.office || "";
+            renderTwoFactorState(Boolean(profile.twoFactorEnabled));
+        }
+
+        //连接后端获取个人资料
+        async function fetchProfile() {
+            setStatus("正在加载个人资料...", "");
+            try {
+                const profile = await ApiClient.teacher.getProfile();
+                fillProfile(profile || {});
+                if (profile?.fullName) {
+                    localStorage.setItem("fullName", profile.fullName);
+                }
+                setStatus("个人资料已同步。", "success");
+            } catch (error) {
+                console.error(error);
+                setStatus(error.message || "个人资料加载失败，请稍后重试。", "error");
+            }
+        }
+
+        async function initializeTwoFactorSetup() {
+            setupTwoFactorBtn.disabled = true;
+            setTwoFactorStatus("正在生成二维码...", "");
+            try {
+                const setup = await ApiClient.teacher.initializeTwoFactorSetup();
+                if (setup.enabled) {
+                    renderTwoFactorState(true);
+                    setTwoFactorStatus("当前账号已开启 2FA。", "success");
+                    return;
+                }
+                renderTwoFactorState(false);
+                twoFactorSetupBox.hidden = false;
+                twoFactorManualKey.textContent = setup.manualEntryKey || "";
+                twoFactorEnableCode.value = "";
+                await QRCode.toCanvas(twoFactorQrCanvas, setup.otpAuthUri || "", { width: 180, margin: 1 });
+                setTwoFactorStatus("请使用验证器扫码后输入 6 位验证码确认开启。", "success");
+            } catch (error) {
+                console.error(error);
+                setTwoFactorStatus(error.message || "二维码生成失败，请稍后重试。", "error");
+            } finally {
+                setupTwoFactorBtn.disabled = false;
+            }
+        }
+
+        async function enableTwoFactor() {
+            const code = twoFactorEnableCode.value.trim();
+            if (!/^\d{6}$/.test(code)) {
+                setTwoFactorStatus("请输入 6 位数字验证码。", "error");
+                twoFactorEnableCode.focus();
+                return;
+            }
+            enableTwoFactorBtn.disabled = true;
+            setTwoFactorStatus("正在开启 2FA...", "");
+            try {
+                await ApiClient.teacher.enableTwoFactor(code);
+                renderTwoFactorState(true);
+                twoFactorSetupBox.hidden = true;
+                setTwoFactorStatus("2FA 已开启，后续密码登录将要求输入验证器验证码。", "success");
+                await fetchProfile();
+            } catch (error) {
+                console.error(error);
+                setTwoFactorStatus(error.message || "开启 2FA 失败，请稍后重试。", "error");
+            } finally {
+                enableTwoFactorBtn.disabled = false;
+            }
+        }
+
+        async function disableTwoFactor() {
+            const currentPassword = twoFactorDisablePassword.value.trim();
+            if (!currentPassword) {
+                setTwoFactorStatus("关闭 2FA 前请输入当前密码。", "error");
+                twoFactorDisablePassword.focus();
+                return;
+            }
+            disableTwoFactorBtn.disabled = true;
+            setTwoFactorStatus("正在关闭 2FA...", "");
+            try {
+                await ApiClient.teacher.disableTwoFactor(currentPassword);
+                renderTwoFactorState(false);
+                setTwoFactorStatus("2FA 已关闭。", "success");
+                await fetchProfile();
+            } catch (error) {
+                console.error(error);
+                setTwoFactorStatus(error.message || "关闭 2FA 失败，请稍后重试。", "error");
+            } finally {
+                disableTwoFactorBtn.disabled = false;
+            }
+        }
+
+        //连接后端修改个人资料（保存）
+        async function saveProfile(event) {
+            event.preventDefault();
+
+            const fullName = inputs.fullName.value.trim();
+            const email = inputs.email.value.trim();
+            if (!fullName) {
+                setStatus("姓名不能为空，请填写。", "error");
+                inputs.fullName.focus();
+                return;
+            }
+            if (!email) {
+                setStatus("邮箱不能为空，请填写。", "error");
+                inputs.email.focus();
+                return;
+            }
+
+            const payload = {
+                fullName,
+                email,
+                department: inputs.department.value.trim(),
+                title: inputs.title.value.trim(),
+                researchArea: inputs.researchArea.value.trim(),
+                office: inputs.office.value.trim()
+            };
+
+            const originalText = saveBtn.textContent;
+            saveBtn.disabled = true;
+            saveBtn.textContent = "保存中...";
+            setStatus("正在保存个人资料...", "");
+
+            try {
+                await ApiClient.teacher.updateProfile(payload);
+                localStorage.setItem("fullName", payload.fullName);
+                setStatus("个人设置已保存。", "success");
+            } catch (error) {
+                console.error(error);
+                setStatus(error.message || "保存失败，请稍后重试。", "error");
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = originalText;
+            }
+        }
+
+        fetchProfile();
+        settingsForm.addEventListener("submit", saveProfile);
+        changePasswordBtn.addEventListener("click", openPasswordModal);
+        closePasswordModalBtn.addEventListener("click", closePasswordModal);
+        cancelPasswordBtn.addEventListener("click", closePasswordModal);
+        setupTwoFactorBtn.addEventListener("click", initializeTwoFactorSetup);
+        enableTwoFactorBtn.addEventListener("click", enableTwoFactor);
+        disableTwoFactorBtn.addEventListener("click", disableTwoFactor);
+        passwordModal.addEventListener("click", event => {
+            if (event.target === passwordModal) {
+                closePasswordModal();
+            }
+        });
+        document.addEventListener("keydown", event => {
+            if (event.key === "Escape" && passwordModal.style.display === "flex") {
+                closePasswordModal();
+            }
+        });
+        passwordForm.addEventListener("submit", async event => {
+            event.preventDefault();
+            const oldPasswordValue = oldPassword.value.trim();
+            const newPasswordValue = newPassword.value.trim();
+            const confirmPasswordValue = confirmPassword.value.trim();
+
+            if (!oldPasswordValue) {
+                setPasswordStatus("请输入当前密码。", "error");
+                oldPassword.focus();
+                return;
+            }
+            if (!newPasswordValue) {
+                setPasswordStatus("请输入新密码。", "error");
+                newPassword.focus();
+                return;
+            }
+            if (newPasswordValue !== confirmPasswordValue) {
+                setPasswordStatus("两次输入的新密码不一致。", "error");
+                confirmPassword.focus();
+                return;
+            }
+
+            const submitBtn = passwordForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = "修改中...";
+            setPasswordStatus("正在提交密码修改...", "");
+
+            try {
+                await ApiClient.teacher.changePassword(oldPasswordValue, newPasswordValue);
+                setPasswordStatus("密码修改成功。", "success");
+                setStatus("密码修改成功。", "success");
+                setTimeout(closePasswordModal, 700);
+            } catch (error) {
+                console.error(error);
+                setPasswordStatus(error.message || "密码修改失败，请稍后重试。", "error");
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
+        });
+        logoutBtn.addEventListener("click", () => ApiClient.logout());
+
+        //default sidebar
         const layout = document.getElementById("layout");
         const toggle = document.getElementById("toggleSidebar");
         if(layout && toggle) {
@@ -96,94 +433,7 @@
                 layout.classList.toggle("collapsed", isCollapsed);
             });
         }
-
-        const token = localStorage.getItem("token");
-        if (!token) {
-            window.location.href = "../login/login.html";
-            return;
-        }
-
-        const API_BASE = "http://localhost:8080/api/teacher/profile/me";
-
-        // 获取当前信息
-        async function fetchProfile() {
-            try {
-                const res = await fetch(API_BASE, {
-                    method: "GET",
-                    headers: {
-                        "Authorization": `Bearer ${token}`
-                    }
-                });
-                const data = await res.json();
-                if (data.code === 1 && data.data) {
-                    document.getElementById("fullName").value = data.data.fullName || "";
-                    document.getElementById("email").value = data.data.email || "";
-                    document.getElementById("department").value = data.data.department || "";
-                    document.getElementById("title").value = data.data.title || "";
-                    document.getElementById("researchArea").value = data.data.researchArea || "";
-                    document.getElementById("office").value = data.data.office || "";
-                } else if (data.code === 401) {
-                    handleLogout();
-                } else {
-                    alert("获取信息失败: " + (data.message || "未知错误"));
-                }
-            } catch (err) {
-                console.error(err);
-                alert("网络错误");
-            }
-        }
-
-        fetchProfile();
-
-        // 提交修改
-        document.getElementById("settingsForm").addEventListener("submit", async function(e) {
-            e.preventDefault();
-            const btn = document.getElementById("saveBtn");
-            btn.disabled = true;
-            btn.textContent = "保存中...";
-
-            const payload = {
-                fullName: document.getElementById("fullName").value.trim(),
-                email: document.getElementById("email").value.trim(),
-                department: document.getElementById("department").value.trim(),
-                title: document.getElementById("title").value.trim(),
-                researchArea: document.getElementById("researchArea").value.trim(),
-                office: document.getElementById("office").value.trim()
-            };
-
-            try {
-                const res = await fetch(API_BASE, {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${token}`
-                    },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
-                if (data.code === 1) {
-                    alert("保存成功！");
-                    // Update localStorage dynamically just in case
-                    localStorage.setItem("fullName", payload.fullName);
-                } else if (data.code === 401) {
-                    handleLogout();
-                } else {
-                    alert("保存失败: " + (data.message || "未知错误"));
-                }
-            } catch (err) {
-                console.error(err);
-                alert("网络错误");
-            } finally {
-                btn.disabled = false;
-                btn.textContent = "保存修改";
-            }
-        });
     })();
-
-    function handleLogout() {
-        localStorage.clear();
-        window.location.href = "../login/login.html";
-    }
 </script>
 </body>
 </html>

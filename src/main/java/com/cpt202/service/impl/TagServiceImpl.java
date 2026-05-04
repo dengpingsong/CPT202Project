@@ -1,18 +1,23 @@
 package com.cpt202.service.impl;
 
+import com.cpt202.constant.RedisKeyConstants;
 import com.cpt202.constant.MessageConstants;
 import com.cpt202.dto.TagDTO;
 import com.cpt202.exception.NotFoundException;
+import com.cpt202.exception.RuleViolationException;
 import com.cpt202.model.entity.Tag;
 import com.cpt202.repository.TagRepository;
+import com.cpt202.service.RedisCacheService;
 import com.cpt202.service.TagService;
 import com.cpt202.vo.TagVO;
+import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.time.LocalDateTime;
+import java.time.Duration;
 import java.util.List;
 
 /**
@@ -23,7 +28,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TagServiceImpl implements TagService {
 
+    private static final Duration TAG_CACHE_TTL = Duration.ofMinutes(30);
+
     private final TagRepository tagRepository;
+    private final RedisCacheService redisCacheService;
 
     /**
      * 查询全部标签列表。
@@ -32,12 +40,16 @@ public class TagServiceImpl implements TagService {
      */
     @Override
     public List<TagVO> listAll() {
-        List<Tag> tags = tagRepository.findAll();
-        List<TagVO> tagVos = new ArrayList<>(tags.size());
-        for (Tag tag : tags) {
-            tagVos.add(toTagVO(tag));
-        }
-        return tagVos;
+        return redisCacheService.get(RedisKeyConstants.TAG_LIST, new TypeReference<List<TagVO>>() { })
+                .orElseGet(() -> {
+                    List<Tag> tags = tagRepository.findAll();
+                    List<TagVO> tagVos = new ArrayList<>(tags.size());
+                    for (Tag tag : tags) {
+                        tagVos.add(toTagVO(tag));
+                    }
+                    redisCacheService.set(RedisKeyConstants.TAG_LIST, tagVos, TAG_CACHE_TTL);
+                    return tagVos;
+                });
     }
 
     /**
@@ -60,12 +72,19 @@ public class TagServiceImpl implements TagService {
      */
     @Override
     public void create(TagDTO tagDTO) {
+        String tagName = tagDTO.getTagName().trim();
+        if (tagRepository.existsByTagNameIgnoreCase(tagName)) {
+            throw new RuleViolationException(MessageConstants.TAG_NAME_EXISTS);
+        }
+
         LocalDateTime now = LocalDateTime.now();
         Tag tag = new Tag();
         BeanUtils.copyProperties(tagDTO, tag);
+        tag.setTagName(tagName);
         tag.setCreatedAt(now);
         tag.setUpdatedAt(now);
         tagRepository.save(tag);
+        redisCacheService.delete(RedisKeyConstants.TAG_LIST);
     }
 
     /**
@@ -79,11 +98,17 @@ public class TagServiceImpl implements TagService {
         Tag tag = tagRepository.findById(tagId)
                 .orElseThrow(() -> new NotFoundException(MessageConstants.TAG_TO_UPDATE_NOT_FOUND));
 
-        tag.setTagName(tagDTO.getTagName());
+        String tagName = tagDTO.getTagName().trim();
+        if (tagRepository.existsByTagNameIgnoreCaseAndTagIdNot(tagName, tagId)) {
+            throw new RuleViolationException(MessageConstants.TAG_NAME_EXISTS);
+        }
+
+        tag.setTagName(tagName);
         tag.setDescription(tagDTO.getDescription());
         tag.setUpdatedAt(LocalDateTime.now());
 
         tagRepository.save(tag);
+        redisCacheService.delete(RedisKeyConstants.TAG_LIST);
     }
 
     /**
@@ -97,6 +122,7 @@ public class TagServiceImpl implements TagService {
             throw new NotFoundException(MessageConstants.TAG_TO_DELETE_NOT_FOUND);
         }
         tagRepository.deleteById(tagId);
+        redisCacheService.delete(RedisKeyConstants.TAG_LIST);
     }
 
     private TagVO toTagVO(Tag tag) {

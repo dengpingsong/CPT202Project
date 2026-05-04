@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>管理员 · 标签管理</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --bg: #f4f3f7;
+            --deep: #5a2b98;
+            --mid: #7b4fbd;
+            --panel: #ffffff;
+            --text: #1c1b33;
+            --muted: #6b6b82;
+            --border: rgba(28,27,51,0.08);
+        }
+        * { box-sizing: border-box; margin:0; padding:0; }
+        body { margin:0; font-family: "Segoe UI", Arial, sans-serif; background:var(--bg); color:var(--text); height:100vh; display:flex; overflow:hidden; }
+        .layout { display:grid; grid-template-columns:260px 1fr; min-height:100vh; transition:.3s ease; width:100%; }
+        .layout.collapsed { grid-template-columns:80px 1fr; }
+        .sidebar { background:linear-gradient(180deg,#3d1566,#631e97); padding:24px 16px; color:white; display:flex; flex-direction:column; gap:20px; position:relative; overflow:hidden; }
+        .sidebar::after { content:""; position:absolute; inset:0; background:radial-gradient(circle at top, rgba(255,255,255,0.2), transparent 60%); pointer-events:none; }
+        .toggle-wrap { width:48px; height:48px; border-radius:16px; margin-bottom:4px; }
+        .toggle { width:100%; height:100%; border-radius:16px; border:none; background:rgba(255,255,255,0.18); display:flex; align-items:center; justify-content:center; cursor:pointer; position:relative; }
+        .toggle span, .toggle span::before, .toggle span::after { display:block; width:22px; height:2px; background:white; transition:all .3s ease; position:absolute; }
+        .toggle span { background:transparent; }
+        .toggle span::before { content:""; top:0; transform:rotate(45deg); }
+        .toggle span::after { content:""; top:0; transform:rotate(-45deg); }
+        .layout.collapsed .toggle span { background:white; }
+        .layout.collapsed .toggle span::before { top:-8px; transform:none; }
+        .layout.collapsed .toggle span::after { top:8px; transform:none; }
+        .nav-group { display:flex; flex-direction:column; gap:12px; margin-top:8px; }
+        .nav-group a { border:none; background:transparent; color:white; font-size:0.95rem; padding:10px 14px; border-radius:12px; cursor:pointer; display:flex; align-items:center; gap:10px; text-decoration:none; }
+        .nav-group a.active, .nav-group a:hover { background:rgba(255,255,255,0.2); }
+        .nav-icon { font-size:1.2rem; width:28px; text-align:center; }
+        .nav-label { transition:opacity .3s ease; white-space:nowrap; }
+        .layout.collapsed .nav-group a { justify-content:center; padding:12px; }
+        .layout.collapsed .nav-label { opacity:0; width:0; overflow:hidden; }
+        .main-content { flex:1; overflow-y:auto; padding:32px 40px; background:#f8fafc; }
+        .dashboard-card { background:white; border-radius:28px; box-shadow:0 12px 30px rgba(0,0,0,0.05); padding:28px 32px; border:1px solid #f0eef2; }
+        .card-header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:24px; border-bottom:2px solid #f1f5f9; padding-bottom:16px; }
+        .card-header h2 { font-size:1.65rem; font-weight:600; background:linear-gradient(135deg,#1e293b,#2d3a4b); background-clip:text; -webkit-background-clip:text; color:transparent; }
+        .badge-sub { background:#ede9fe; color:#5b21b6; border-radius:40px; padding:6px 14px; font-size:0.8rem; }
+        .data-table { width:100%; border-collapse:collapse; }
+        .data-table th, .data-table td { padding:14px 8px; text-align:left; border-bottom:1px solid #edf2f7; }
+        .btn-icon { background:none; border:none; cursor:pointer; margin:0 4px; padding:6px 12px; border-radius:30px; font-weight:500; }
+        .btn-edit { color:#3b82f6; background:#eff6ff; }
+        .btn-delete { color:#dc2626; background:#fef2f2; }
+        .add-section { margin-top:30px; background:#fefdf7; border-radius:20px; padding:20px; border:1px dashed #cbd5e1; display:flex; flex-direction:column; gap:12px; }
+        .add-input-group { display:flex; gap:14px; align-items:flex-end; }
+        .add-input-group input { flex:2; padding:12px 16px; border-radius:30px; border:1px solid #cbd5e1; outline:none; }
+        .add-input-group input:focus { border-color:#8b5cf6; box-shadow:0 0 0 3px rgba(139,92,246,0.2); }
+        .btn-primary { background:#7c3aed; border:none; padding:10px 24px; border-radius:40px; color:white; font-weight:600; cursor:pointer; }
+        .btn-primary:hover { background:#5b21b6; }
+        .project-demo-note { background:#f1f5f9; border-radius:20px; padding:14px 20px; font-size:0.8rem; margin-top:18px; color:#475569; }
+        .error-message { color:#dc2626; background:#fee2e2; border-radius:20px; padding:12px 16px; margin:10px 0; }
+        @media (max-width: 960px) { .data-table { min-width: 600px; } }
+    </style>
+</head>
+<body>
+<div class="layout" id="layout">
+    <aside class="sidebar">
+        <div class="toggle-wrap"><button class="toggle" id="toggleSidebar"><span></span></button></div>
+        <div class="nav-group">
+            <a href="admin_projects.html"><i class="bi bi-kanban nav-icon"></i><span class="nav-label">项目列表</span></a>
+            <a href="admin_categories.html"><i class="bi bi-tags nav-icon"></i><span class="nav-label">Category 列表</span></a>
+            <a href="admin_tags.html" class="active"><i class="bi bi-bookmark nav-icon"></i><span class="nav-label">Tag 列表</span></a>
+            <a href="admin_settings.html"><i class="bi bi-person-gear nav-icon"></i><span class="nav-label">个人设置</span></a>
+        </div>
+    </aside>
+    <main class="main-content">
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h2>标签管理</h2>
+                <div class="badge-sub">唯一名称 · 项目多对多</div>
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>标签名称</th>
+                            <th>项目介绍</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tagTableBody"><tr><td colspan="4">加载中...</td></tr></tbody>
+                </table>
+            </div>
+            <div class="add-section">
+                <div class="add-input-group">
+                    <input type="text" id="newTagName" placeholder="标签名称 *" autocomplete="off">
+                    <input type="text" id="newTagDesc" placeholder="项目介绍（可选）" autocomplete="off">
+                </div>
+                <div style="display:flex; gap:12px; align-items:center;">
+                    <button class="btn-primary" id="saveTagBtn">添加标签</button>
+                    <button class="btn-primary" id="cancelTagEditBtn" type="button" style="display:none; background:#64748b;">取消编辑</button>
+                    <span id="tagFormStatus" style="font-size:0.9rem; color:#475569;"></span>
+                </div>
+            </div>
+            <div class="project-demo-note">编辑标签时可同时修改名称和介绍。<br>删除仅当标签未被任何项目使用时才可删除（后端校验）。</div>
+        </div>
+    </main>
+</div>
+
+<script src="../js/ui-feedback.js"></script>
+<script>
+    const BASE_URL = '';      // 后端地址，根据实际情况修改
+    const TOKEN_KEY = 'token';
+    const LOGIN_PAGE = '/login/login.html';
+
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) {
+        UiFeedback.alert('请先登录').then(() => {
+            window.location.href = LOGIN_PAGE;
+        });
+    }
+
+    async function api(method, url, body = null) {
+        const fullUrl = url.startsWith('http') ? url : BASE_URL + url;
+        const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+        const options = { method, headers };
+        if (body) options.body = JSON.stringify(body);
+        const response = await fetch(fullUrl, options);
+        if (response.status === 401) {
+            localStorage.removeItem(TOKEN_KEY);
+            UiFeedback.alert('登录已过期，请重新登录').then(() => {
+                window.location.href = LOGIN_PAGE;
+            });
+            throw new Error('Unauthorized');
+        }
+        const json = await response.json();
+        if (json.code !== 1) throw new Error(json.msg || '操作失败');
+        return json.data;
+    }
+
+    async function loadTags() { return api('GET', '/api/admin/tags'); }
+    async function createTag(name, description) { return api('POST', '/api/admin/tags', { tagName: name, description: description || '' }); }
+    async function updateTag(id, name, description) { return api('PUT', `/api/admin/tags/${id}`, { tagName: name, description: description || '' }); }
+    async function deleteTag(id) { return api('DELETE', `/api/admin/tags/${id}`); }
+    const nameInput = document.getElementById('newTagName');
+    const descInput = document.getElementById('newTagDesc');
+    const saveBtn = document.getElementById('saveTagBtn');
+    const cancelEditBtn = document.getElementById('cancelTagEditBtn');
+    const formStatus = document.getElementById('tagFormStatus');
+    let editingTagId = null;
+
+    function setFormStatus(message, isError = false) {
+        if (!formStatus) return;
+        formStatus.textContent = message || '';
+        formStatus.style.color = isError ? '#dc2626' : '#475569';
+    }
+
+    function resetForm() {
+        editingTagId = null;
+        nameInput.value = '';
+        descInput.value = '';
+        saveBtn.textContent = '添加标签';
+        cancelEditBtn.style.display = 'none';
+        setFormStatus('');
+    }
+
+    function startEdit(tag) {
+        editingTagId = tag.tagId;
+        nameInput.value = tag.tagName || '';
+        descInput.value = tag.description || '';
+        saveBtn.textContent = '保存修改';
+        cancelEditBtn.style.display = 'inline-flex';
+        setFormStatus(`正在编辑 ID ${tag.tagId} 的标签`);
+        nameInput.focus();
+    }
+
+    async function render() {
+        const tbody = document.getElementById('tagTableBody');
+        if (!tbody) return;
+        tbody.innerHTML = '<tr><td colspan="4">加载中...</td></tr>';
+        try {
+            const tags = await loadTags();
+            if (!tags.length) {
+                tbody.innerHTML = '<tr><td colspan="4">暂无标签数据</td></tr>';
+                return;
+            }
+            let html = '';
+            for (const tag of tags) {
+                const desc = tag.description || '—';
+                html += `<tr>
+                            <td>${escapeHtml(tag.tagId)}</td>
+                            <td><strong>${escapeHtml(tag.tagName)}</strong></td>
+                            <td>${escapeHtml(desc)}</td>
+                            <td>
+                                <button class="btn-icon btn-edit" data-id="${tag.tagId}" data-name="${escapeHtml(tag.tagName)}" data-desc="${escapeHtml(tag.description || '')}">编辑</button>
+                                <button class="btn-icon btn-delete" data-id="${tag.tagId}">删除</button>
+                            </td>
+                          </tr>`;
+            }
+            tbody.innerHTML = html;
+
+            // 编辑按钮
+            document.querySelectorAll('.btn-edit').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    startEdit({
+                        tagId: btn.getAttribute('data-id'),
+                        tagName: btn.getAttribute('data-name'),
+                        description: btn.getAttribute('data-desc')
+                    });
+                });
+            });
+
+            // 删除按钮
+            document.querySelectorAll('.btn-delete').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const confirmed = await UiFeedback.confirm('确认删除该标签？如果该标签被任何项目使用，删除将失败。', '删除标签');
+                    if (!confirmed) return;
+                    const id = btn.getAttribute('data-id');
+                    try {
+                        await deleteTag(id);
+                        setFormStatus('标签已删除');
+                        UiFeedback.success('标签已删除');
+                        if (String(editingTagId) === String(id)) {
+                            resetForm();
+                        }
+                        render();
+                    } catch (e) {
+                        setFormStatus(`删除失败：${e.message}`, true);
+                    }
+                });
+            });
+        } catch (err) {
+            tbody.innerHTML = `<tr><td colspan="4"><div class="error-message">加载失败：${escapeHtml(err.message)}</div></td></tr>`;
+        }
+    }
+
+    saveBtn?.addEventListener('click', async () => {
+        const name = nameInput.value.trim();
+        const desc = descInput.value.trim();
+        if (!name) {
+            setFormStatus('请输入标签名称', true);
+            nameInput.focus();
+            return;
+        }
+        try {
+            const isEditing = Boolean(editingTagId);
+            if (editingTagId) {
+                await updateTag(editingTagId, name, desc);
+            } else {
+                await createTag(name, desc);
+            }
+            resetForm();
+            setFormStatus(isEditing ? '标签修改已保存' : '标签添加成功');
+            render();
+        } catch (e) {
+            setFormStatus(`保存失败：${e.message}`, true);
+        }
+    });
+
+    cancelEditBtn?.addEventListener('click', resetForm);
+
+    function escapeHtml(str) {
+        if (str === undefined || str === null) return '';
+        return String(str).replace(/[&<>]/g, m => (m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;')));
+    }
+
+    render();
+
+    const layout = document.getElementById('layout');
+    const toggle = document.getElementById('toggleSidebar');
+    let collapsed = false;
+    toggle.addEventListener('click', () => {
+        collapsed = !collapsed;
+        layout.classList.toggle('collapsed', collapsed);
+    });
+</script>
+</body>
+</html>

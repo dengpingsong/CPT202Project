@@ -206,6 +206,7 @@ body {
 .status-available { background: rgba(47,197,168,0.12); color: var(--green); }
 .status-requested { background: rgba(246,166,61,0.12); color: var(--orange); }
 .status-agreed { background: rgba(36,179,255,0.15); color: var(--accent); }
+.status-rejected { background: rgba(199,69,69,0.12); color: #c74545; }
 .status-unavailable { background: rgba(156,156,178,0.2); color: rgba(28,27,51,0.65); }
 .card button, .btn-primary {
     margin-top: auto;
@@ -309,6 +310,99 @@ body {
     background: var(--deep);
     color: white;
 }
+
+.pagination-bar {
+    margin-top: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    flex-wrap: nowrap;
+    padding: 14px 18px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(90, 43, 152, 0.12), rgba(123, 79, 189, 0.08));
+    border: 1px solid rgba(90, 43, 152, 0.14);
+    box-shadow: 0 10px 28px rgba(90, 43, 152, 0.08);
+}
+
+.pagination-pages {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: nowrap;
+    flex: 0 1 auto;
+}
+
+.pagination-btn,
+.pagination-number {
+    min-width: 50px;
+    height: 46px;
+    padding: 0 18px;
+    border-radius: 14px;
+    border: 1px solid rgba(90, 43, 152, 0.16);
+    background: linear-gradient(180deg, #ffffff, #f7f2ff);
+    color: var(--deep);
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 8px 20px rgba(90, 43, 152, 0.08);
+}
+
+.pagination-btn:hover,
+.pagination-number:hover {
+    background: linear-gradient(180deg, #ffffff, #efe4ff);
+    border-color: rgba(123, 79, 189, 0.28);
+    color: #4d2388;
+    transform: translateY(-1px);
+    box-shadow: 0 12px 24px rgba(90, 43, 152, 0.14);
+}
+
+.pagination-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    background: linear-gradient(180deg, #fbf9ff, #f3eefb);
+    color: rgba(90, 43, 152, 0.45);
+    box-shadow: none;
+    transform: none;
+}
+
+.pagination-number.active {
+    background: linear-gradient(135deg, #5a2b98, #7b4fbd);
+    color: white;
+    border-color: #5a2b98;
+    box-shadow: 0 14px 28px rgba(90, 43, 152, 0.22);
+}
+
+.pagination-nav {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    background: linear-gradient(135deg, #5a2b98, #7b4fbd);
+    color: white;
+    border-color: rgba(90, 43, 152, 0.24);
+}
+
+.pagination-nav:hover {
+    background: linear-gradient(135deg, #4a2280, #6d43b0);
+    color: white;
+}
+
+.pagination-nav i {
+    font-size: 0.92rem;
+}
+
+.pagination-summary {
+    margin-top: 10px;
+    color: #6c5a8f;
+    font-size: 0.9rem;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+}
+
 /* 详情页元数据网格 */
 .meta-grid {
     display: grid;
@@ -370,10 +464,30 @@ body {
     font-size: 0.8rem;
     text-align: right;
 }
+
 @media (max-width: 960px) {
     .layout { grid-template-columns: 1fr; }
     .sidebar { flex-direction: row; gap: 8px; padding: 12px; }
     .sidebar::after { display: none; }
     .hero { flex-direction: column; align-items: flex-start; }
     .layout.collapsed { grid-template-columns: 1fr; }
+
+    .pagination-bar {
+        justify-content: center;
+        gap: 12px;
+        padding: 14px;
+        flex-wrap: nowrap;
+    }
+
+    .pagination-pages {
+        width: auto;
+        order: 0;
+        justify-content: center;
+        flex-wrap: nowrap;
+    }
+
+    .pagination-summary {
+        justify-content: center;
+        text-align: center;
+    }
 }

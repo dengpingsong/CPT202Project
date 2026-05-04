@@ -23,22 +23,41 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProjectRequestValidationServiceImpl implements ProjectRequestValidationService {
 
+    private static final List<RequestStatus> ACTIVE_REQUEST_STATUSES = List.of(
+            RequestStatus.PENDING,
+            RequestStatus.ACCEPTED
+    );
     private final ProjectRequestRepository requestRepository;
     private final ProjectRepository projectRepository;
     private final RequestStatusHistoryRepository requestStatusHistoryRepository;
 
     @Override
-    public void validateRequest(Long studentId) {
+    public void validateRequest(Long studentId, Project project) {
         // 1. 截止日期校验
         LocalDateTime deadline = LocalDateTime.of(2026, 5, 29, 23, 59);
         if (LocalDateTime.now().isAfter(deadline)) {
             throw new RuleViolationException(MessageConstants.REQUEST_DEADLINE_PASSED);
         }
 
-        // 2. 校验：只要有“待处理”或者“已通过”的申请，就直接弹开！
+        // 2. 已关闭或已归档的项目不能接收新申请。
+        if (project == null
+                || project.getProjectStatus() == Project.ProjectStatus.CLOSED
+                || project.getProjectStatus() == Project.ProjectStatus.ARCHIVED) {
+            throw new RuleViolationException(MessageConstants.PROJECT_NOT_ACCEPTING_REQUESTS);
+        }
+
+        if (requestRepository.existsByStudent_StudentIdAndProject_ProjectIdAndRequestStatusIn(
+                studentId,
+                project.getProjectId(),
+                ACTIVE_REQUEST_STATUSES
+        )) {
+            throw new RuleViolationException(MessageConstants.PROJECT_REQUEST_ALREADY_EXISTS);
+        }
+
+        // 3. 只限制已经持有 agreed 项目的学生继续申请。
         boolean alreadyHasRequest = requestRepository.existsByStudent_StudentIdAndRequestStatusIn(
                 studentId,
-                List.of(RequestStatus.PENDING, RequestStatus.ACCEPTED)
+                List.of(RequestStatus.ACCEPTED)
         );
 
         if (alreadyHasRequest) {
@@ -80,11 +99,15 @@ public class ProjectRequestValidationServiceImpl implements ProjectRequestValida
 
         Project project = projectRepository.findById(projectId).orElseThrow();
         long currentCount = requestRepository.countByProject_ProjectIdAndRequestStatus(projectId, RequestStatus.ACCEPTED);
+        project.setCurrentAgreedCount((int) currentCount);
+        project.setUpdatedAt(LocalDateTime.now());
 
         if (currentCount >= project.getMaxStudents()) {
-            // 这里确保 Project 实体类里有 setProjectStatus 方法和 CLOSED 枚举
             project.setProjectStatus(Project.ProjectStatus.CLOSED);
-            projectRepository.save(project);
+            project.setCloseDate(LocalDateTime.now());
+        } else {
+            project.setProjectStatus(Project.ProjectStatus.AGREED);
         }
+        projectRepository.save(project);
     }
 }

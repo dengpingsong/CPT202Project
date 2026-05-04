@@ -101,6 +101,7 @@
     </div>
 </div>
 
+<script src="../js/ui-feedback.js"></script>
 <script>
     const BASE_URL = "/api/common/auth";
     const registerForm = document.getElementById("registerForm");
@@ -109,6 +110,7 @@
     const studentSection = document.getElementById("studentSection");
     const teacherSection = document.getElementById("teacherSection");
     const generalError = document.getElementById("generalError");
+    const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     const helperMap = {
         username: document.getElementById("usernameHelper"),
@@ -142,6 +144,14 @@
         if (!helper) return;
         helper.textContent = message || "";
         helper.className = message ? `helper ${type}`.trim() : "helper";
+    }
+
+    function isFutureDate(value) {
+        if (!value) return false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const target = new Date(`${value}T00:00:00`);
+        return target.getTime() > today.getTime();
     }
 
     roleSelect.addEventListener("change", () => {
@@ -189,6 +199,19 @@
             // payload.office = document.getElementById("office").value.trim();
         }
 
+        if (!EMAIL_PATTERN.test(payload.email)) {
+            showHelper("email", "邮箱格式不正确。", "error");
+            generalError.textContent = "邮箱格式不正确。";
+            submitBtn.disabled = false;
+            return;
+        }
+        if (payload.role === "STUDENT" && isFutureDate(payload.enrollmentDate)) {
+            showHelper("entryDate", "入学日期不能晚于今天。", "error");
+            generalError.textContent = "入学日期不能晚于今天。";
+            submitBtn.disabled = false;
+            return;
+        }
+
         try {
             const res = await fetch(`${BASE_URL}/register`, {
                 method: "POST",
@@ -199,14 +222,15 @@
             const data = await res.json();
 
             if (data.code === 1) {
-                alert("Register success");
+                UiFeedback.success("Register success");
                 window.location.href = "login.html";
             } else {
-                generalError.textContent = data.message || "Register failed";
-                if (data.message?.includes("用户名")) showHelper("username", data.message, "error");
-                else if (data.message?.includes("邮箱")) showHelper("email", data.message, "error");
-                else if (data.message?.includes("学号")) showHelper("studentNo", data.message, "error");
-                else if (data.message?.includes("工号")) showHelper("staffNo", data.message, "error");
+                const errorMessage = data.msg || data.message || "Register failed";
+                generalError.textContent = errorMessage;
+                if (errorMessage.includes("用户名")) showHelper("username", errorMessage, "error");
+                else if (errorMessage.includes("邮箱")) showHelper("email", errorMessage, "error");
+                else if (errorMessage.includes("学号")) showHelper("studentNo", errorMessage, "error");
+                else if (errorMessage.includes("工号")) showHelper("staffNo", errorMessage, "error");
             }
         } catch (err) {
             console.error(err);

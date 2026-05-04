@@ -36,6 +36,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProjectRequestServiceImpl implements ProjectRequestService {
 
+    private static final List<ProjectRequest.RequestStatus> ACTIVE_REQUEST_STATUSES = List.of(
+            ProjectRequest.RequestStatus.PENDING,
+            ProjectRequest.RequestStatus.ACCEPTED
+    );
     private final ProjectRequestRepository requestRepository;
     private final ProjectRepository projectRepository;
     private final StudentProfileRepository studentRepository;
@@ -49,14 +53,15 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
     @Override
     @Transactional
     public void create(Long studentId, ProjectRequestCreateDTO dto) {
-        // 1. 检查截止日期和“一人一选”限制
-        projectRequestValidationService.validateRequest(studentId);
-
-        // 2. 查找关联实体
+        // 1. 查找关联实体
         StudentProfile student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuleViolationException(MessageConstants.STUDENT_RECORD_NOT_FOUND));
         Project project = projectRepository.findById(dto.getProjectId())
                 .orElseThrow(() -> new RuleViolationException(MessageConstants.PROJECT_RECORD_NOT_FOUND));
+
+        // 2. 检查截止日期、项目状态和分配限制
+        projectRequestValidationService.validateRequest(studentId, project);
+        validatePreferenceRank(studentId, dto.getPreferenceRank());
 
         // 3. 构建并保存申请记录
         LocalDateTime now = LocalDateTime.now();
@@ -69,6 +74,7 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
         request.setProject(project);
 
         request = requestRepository.save(request);
+        syncProjectStatusAfterRequestChange(project.getProjectId());
         saveHistory(request, null, ProjectRequest.RequestStatus.PENDING, student, "学生提交申请。");
     }
 
@@ -92,6 +98,18 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
                 .orElseThrow(() -> new NotFoundException(MessageConstants.TEACHER_NOT_FOUND));
 
         ProjectRequest.RequestStatus oldStatus = request.getRequestStatus();
+        if (oldStatus != ProjectRequest.RequestStatus.PENDING) {
+            throw new RuleViolationException("该申请当前不是待审核状态，不能重复审批。");
+        }
+        if (dto.getRequestStatus() == ProjectRequest.RequestStatus.ACCEPTED) {
+            long currentAccepted = requestRepository.countByProject_ProjectIdAndRequestStatus(
+                    request.getProject().getProjectId(),
+                    ProjectRequest.RequestStatus.ACCEPTED
+            );
+            if (currentAccepted >= request.getProject().getMaxStudents()) {
+                throw new RuleViolationException(MessageConstants.PROJECT_CAPACITY_EXCEEDED);
+            }
+        }
         request.setRequestStatus(dto.getRequestStatus());
         request.setDecisionComment(dto.getDecisionComment());
         request.setReviewedBy(teacher);
@@ -103,6 +121,8 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
 
         if (dto.getRequestStatus() == ProjectRequest.RequestStatus.ACCEPTED) {
             projectRequestValidationService.onApprovalSuccess(requestId);
+        } else {
+            syncProjectStatusAfterRequestChange(request.getProject().getProjectId());
         }
     }
 
@@ -133,6 +153,7 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
         request.setUpdatedAt(LocalDateTime.now());
 
         requestRepository.save(request);
+        syncProjectStatusAfterRequestChange(request.getProject().getProjectId());
         saveHistory(request, oldStatus, ProjectRequest.RequestStatus.WITHDRAWN, request.getStudent(), "学生撤回申请。");
     }
 
@@ -169,5 +190,49 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
         history.setRemark(remark);
         history.setChangedAt(LocalDateTime.now());
         requestStatusHistoryRepository.save(history);
+    }
+
+    private void validatePreferenceRank(Long studentId, Integer preferenceRank) {
+        if (preferenceRank == null) {
+            return;
+        }
+        if (requestRepository.existsByStudent_StudentIdAndPreferenceRankAndRequestStatusIn(
+                studentId,
+                preferenceRank,
+                ACTIVE_REQUEST_STATUSES
+        )) {
+            throw new RuleViolationException(MessageConstants.PROJECT_PREFERENCE_RANK_DUPLICATED);
+        }
+    }
+
+    private void syncProjectStatusAfterRequestChange(Long projectId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new NotFoundException(MessageConstants.PROJECT_RECORD_NOT_FOUND));
+
+        long acceptedCount = requestRepository.countByProject_ProjectIdAndRequestStatus(
+                projectId,
+                ProjectRequest.RequestStatus.ACCEPTED
+        );
+        long pendingCount = requestRepository.countByProject_ProjectIdAndRequestStatus(
+                projectId,
+                ProjectRequest.RequestStatus.PENDING
+        );
+
+        project.setCurrentAgreedCount((int) acceptedCount);
+        if (acceptedCount >= project.getMaxStudents()) {
+            project.setProjectStatus(Project.ProjectStatus.CLOSED);
+            project.setCloseDate(LocalDateTime.now());
+        } else if (acceptedCount > 0) {
+            project.setProjectStatus(Project.ProjectStatus.AGREED);
+            project.setCloseDate(null);
+        } else if (pendingCount > 0) {
+            project.setProjectStatus(Project.ProjectStatus.REQUESTED);
+            project.setCloseDate(null);
+        } else if (project.getProjectStatus() != Project.ProjectStatus.CLOSED) {
+            project.setProjectStatus(Project.ProjectStatus.AVAILABLE);
+            project.setCloseDate(null);
+        }
+        project.setUpdatedAt(LocalDateTime.now());
+        projectRepository.save(project);
     }
 }

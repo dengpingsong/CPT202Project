@@ -32,7 +32,7 @@
             </a>
             <a href="notifications.html" class="">
                 <i class="bi bi-chat-dots nav-icon"></i>
-                <span class="nav-label">消息/通知</span>
+                <span class="nav-label">消息通知</span>
             </a>
             <a href="settings.html" class="">
                 <i class="bi bi-person-gear nav-icon"></i>
@@ -49,31 +49,166 @@
         </header>
 
         <div class="panel">
-            <div class="timeline-vertical">
+            <div id="historyStatus" class="footnote" style="text-align:left;">正在加载历史记录...</div>
+            <div class="timeline-vertical" id="historyTimeline">
                 <div class="item">
-                    <div class="timeline-date">2026-04-10 10:30 AM</div>
-                    <div class="timeline-title" style="color: var(--deep);">审批操作 - 同意</div>
-                    <div class="timeline-desc">您同意了学生 张三 (ID: 21) 对项目 "Campus Navigation App" 的申请。</div>
-                </div>
-                <div class="item">
-                    <div class="timeline-date">2026-04-09 14:15 PM</div>
-                    <div class="timeline-title" style="color: var(--orange);">审批操作 - 拒绝</div>
-                    <div class="timeline-desc">您拒绝了学生 李四 (ID: 35) 对项目 "An online project selection system" 的申请。</div>
-                </div>
-                <div class="item">
-                    <div class="timeline-date">2026-04-02 09:00 AM</div>
-                    <div class="timeline-title" style="color: var(--green);">项目管理 - 发布新项目</div>
-                    <div class="timeline-desc">您成功发布了新项目 "AI Chatbot for Education"。</div>
+                    <div class="timeline-title">正在加载历史记录</div>
+                    <div class="timeline-desc">请稍候</div>
                 </div>
             </div>
         </div>
     </main>
-    <script src="script.js"></script>
 </div>
 
+<script src="../js/api.js"></script>
 <script>
     (function() {
         "use strict";
+        const user = ApiClient.requireAuth("TEACHER");
+        if (!user) return;
+
+        const historyTimeline = document.getElementById("historyTimeline");
+        const historyStatus = document.getElementById("historyStatus");
+
+        function esc(value) {
+            if (value === null || value === undefined) return "";
+            return String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function formatDate(value) {
+            if (!value) return "-";
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return String(value).replace("T", " ").slice(0, 16);
+            return date.toLocaleString("zh-CN", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+        }
+
+        //统一大写
+        function normalizeStatus(status) {
+            return String(status || "UNKNOWN").toUpperCase();
+        }
+
+        function statusText(status) {
+            const map = {
+                ACCEPTED: "同意",
+                REJECTED: "拒绝",
+                WITHDRAWN: "已撤回",
+                PENDING: "待审批"
+            };
+            const normalized = normalizeStatus(status);
+            return map[normalized] || normalized;
+        }
+
+        //设置css颜色
+        function statusColor(status) {
+            const normalized = normalizeStatus(status);
+            if (normalized === "ACCEPTED") return "color: var(--green);";
+            if (normalized === "REJECTED") return "color: var(--orange);";
+            if (normalized === "WITHDRAWN") return "color: var(--muted);";
+            return "color: var(--deep);";
+        }
+
+        //时间优先级
+        function historyTime(request) {
+            return request.reviewedAt || request.withdrawnAt || request.submittedAt;
+        }
+
+        //提示词（error: 红色）
+        function setStatus(message, type) {
+            if (!historyStatus) return;
+            historyStatus.textContent = message;
+            historyStatus.style.color = type === "error" ? "#c74545" : "var(--muted)";
+        }
+
+        //构建历史记录项（申请后自动构建）
+        function buildHistoryItems(requests) {
+            return requests
+                .filter(request => normalizeStatus(request.requestStatus) !== "PENDING")//过滤掉待审批申请
+                .map(request => ({
+                    requestId: request.requestId,
+                    studentName: request.studentName || "-",
+                    studentId: request.studentId || "-",
+                    projectTitle: request.projectTitle || "未命名项目",
+                    status: normalizeStatus(request.requestStatus),
+                    notes: request.notes || "",
+                    decisionComment: request.decisionComment || "",
+                    changedAt: historyTime(request)
+                }))
+                .sort((a, b) => new Date(b.changedAt || 0) - new Date(a.changedAt || 0));//按时间倒序排序
+        }
+
+        function renderHistory(items) {
+            if (!historyTimeline) return;
+
+            if (!items.length) {
+                historyTimeline.innerHTML = `
+                    <div class="item">
+                        <div class="timeline-title">暂无历史记录</div>
+                        <div class="timeline-desc">完成审批后，历史记录会显示在这里。</div>
+                    </div>
+                `;
+                setStatus("当前没有历史记录。", "");
+                return;
+            }
+
+            historyTimeline.innerHTML = items.map(item => {
+                const parts = [
+                    `学生：${esc(item.studentName)} (ID: ${esc(item.studentId)})`,
+                    `项目：${esc(item.projectTitle)}`
+                ];
+                if (item.notes) parts.push(`申请备注：${esc(item.notes)}`);
+                if (item.decisionComment) parts.push(`审核反馈：${esc(item.decisionComment)}`);
+
+                return `
+                    <div class="item">
+                        <div class="timeline-date">${esc(formatDate(item.changedAt))}</div>
+                        <div class="timeline-title" style="${statusColor(item.status)}">审批操作 - ${esc(statusText(item.status))}</div>
+                        <div class="timeline-desc">${parts.join("<br>")}</div>
+                    </div>
+                `;
+            }).join("");
+
+            setStatus(`共 ${items.length} 条历史记录。`, "");
+        }
+
+        async function loadHistory() {
+            if (!historyTimeline) return;
+            historyTimeline.innerHTML = `
+                <div class="item">
+                    <div class="timeline-title">正在加载历史记录</div>
+                    <div class="timeline-desc">请稍候</div>
+                </div>
+            `;
+            setStatus("正在加载历史记录...", "");
+
+            try {
+                const requests = await ApiClient.teacher.listHistory();
+                renderHistory(buildHistoryItems(Array.isArray(requests) ? requests : []));
+            } catch (error) {
+                console.error(error);
+                historyTimeline.innerHTML = `
+                    <div class="item">
+                        <div class="timeline-title" style="color: #c74545;">历史记录加载失败</div>
+                        <div class="timeline-desc">${esc(error.message || "请稍后重试")}</div>
+                    </div>
+                `;
+                setStatus(error.message || "历史记录加载失败。", "error");
+            }
+        }
+
+        loadHistory();
+
+        //default sidebar
         const layout = document.getElementById("layout");
         const toggle = document.getElementById("toggleSidebar");
         if(layout && toggle) {
