@@ -93,6 +93,11 @@ function onTwoFactorPaste(e: ClipboardEvent) {
   }
 }
 
+function resetTwoFactorDigits() {
+  twoFactorDigits.value = ['', '', '', '', '', '']
+  twoFactorCode.value = ''
+}
+
 // Register
 const regUsername = ref('')
 const regPassword = ref('')
@@ -137,6 +142,15 @@ function showPanel(id: PanelId) {
   if (id === 'login') {
     loginError.value = ''
   }
+  if (id === 'emailOtp') {
+    resetOtpDigits()
+    otpRequestMessage.value = ''
+    otpLoginMessage.value = ''
+  }
+  if (id === 'twoFactor') {
+    resetTwoFactorDigits()
+    twoFactorMessage.value = ''
+  }
 }
 
 function redirectByRole(role: string) {
@@ -167,7 +181,7 @@ async function handleLogin() {
       if (data.twoFactorRequired) {
         twoFactorChallengeToken.value = data.twoFactorChallengeToken || ''
         twoFactorUsername.value = data.username || ''
-        twoFactorCode.value = ''
+        resetTwoFactorDigits()
         twoFactorMessage.value = ''
         showPanel('twoFactor')
         return

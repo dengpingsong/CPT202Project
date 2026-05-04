@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import QRCode from 'qrcode'
 import { teacherApi, clearAuth } from '../../utils/api'
 import { toast } from '../../utils/ui-feedback'
 
@@ -24,6 +25,8 @@ const office = ref('')
 const twoFactorEnabled = ref(false)
 const twoFactorSetupBox = ref(false)
 const twoFactorManualKey = ref('')
+const twoFactorOtpAuthUri = ref('')
+const twoFactorQrCanvas = ref<HTMLCanvasElement | null>(null)
 const twoFactorEnableCode = ref('')
 const twoFactorDisablePassword = ref('')
 const twoFactorStatus = ref('')
@@ -123,9 +126,16 @@ async function setupTwoFactor() {
     }
     twoFactorSetupBox.value = true
     twoFactorManualKey.value = setup?.manualEntryKey || ''
+    twoFactorOtpAuthUri.value = setup?.otpAuthUri || ''
     twoFactorEnableCode.value = ''
     twoFactorStatus.value = 'Scan the QR code, then enter the 6-digit code.'
     twoFactorStatusType.value = 'success'
+    // Render QR code after DOM update
+    setTimeout(() => {
+      if (twoFactorQrCanvas.value && twoFactorOtpAuthUri.value) {
+        QRCode.toCanvas(twoFactorQrCanvas.value, twoFactorOtpAuthUri.value, { width: 180, margin: 1 })
+      }
+    }, 0)
   } catch (e: any) {
     twoFactorStatus.value = e.message || 'Failed to setup 2FA'
     twoFactorStatusType.value = 'error'
@@ -270,6 +280,7 @@ onMounted(fetchProfile)
           </div>
 
           <div v-if="twoFactorSetupBox" class="tfa-box">
+            <canvas ref="twoFactorQrCanvas" style="max-width: 180px; display: block; margin: 0 auto 12px;"></canvas>
             <p style="font-size: 0.9rem; color: var(--muted); margin: 0 0 8px;">Manual key: <strong>{{ twoFactorManualKey }}</strong></p>
             <input v-model="twoFactorEnableCode" type="text" inputmode="numeric" maxlength="6" class="form-control" placeholder="6-digit code">
             <button type="button" class="btn-primary" style="margin-top: 12px;" :disabled="setupLoading" @click="enableTwoFactor">
