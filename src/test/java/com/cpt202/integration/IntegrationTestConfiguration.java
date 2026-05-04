@@ -1,0 +1,72 @@
+package com.cpt202.integration;
+
+import com.cpt202.service.RedisCacheService;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+@TestConfiguration
+class IntegrationTestConfiguration {
+
+    @Bean
+    @Primary
+    RedisCacheService redisCacheService(ObjectMapper objectMapper) {
+        return new InMemoryRedisCacheService(objectMapper);
+    }
+
+    private record CacheEntry(Object value, Instant expiresAt) {
+    }
+
+    private static final class InMemoryRedisCacheService implements RedisCacheService {
+
+        private final ObjectMapper objectMapper;
+        private final ConcurrentMap<String, CacheEntry> entries = new ConcurrentHashMap<>();
+
+        private InMemoryRedisCacheService(ObjectMapper objectMapper) {
+            this.objectMapper = objectMapper;
+        }
+
+        @Override
+        public <T> Optional<T> get(String key, Class<T> clazz) {
+            return readEntry(key).map(value -> clazz.isInstance(value)
+                    ? clazz.cast(value)
+                    : objectMapper.convertValue(value, clazz));
+        }
+
+        @Override
+        public <T> Optional<T> get(String key, TypeReference<T> typeReference) {
+            return readEntry(key).map(value -> objectMapper.convertValue(value, typeReference));
+        }
+
+        @Override
+        public void set(String key, Object value, Duration ttl) {
+            Instant expiresAt = ttl == null ? null : Instant.now().plus(ttl);
+            entries.put(key, new CacheEntry(value, expiresAt));
+        }
+
+        @Override
+        public void delete(String key) {
+            entries.remove(key);
+        }
+
+        private Optional<Object> readEntry(String key) {
+            CacheEntry cacheEntry = entries.get(key);
+            if (cacheEntry == null) {
+                return Optional.empty();
+            }
+            if (cacheEntry.expiresAt() != null && cacheEntry.expiresAt().isBefore(Instant.now())) {
+                entries.remove(key);
+                return Optional.empty();
+            }
+            return Optional.ofNullable(cacheEntry.value());
+        }
+    }
+}
