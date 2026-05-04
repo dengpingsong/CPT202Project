@@ -256,9 +256,9 @@ onMounted(async () => {
         </label>
       </div>
 
-      <div v-if="loading" style="color: #6b6b82; text-align: center; padding: 24px;">Loading...</div>
+      <div v-if="loading" style="color: var(--muted); text-align: center; padding: 24px;">Loading...</div>
 
-      <div v-else-if="projects.length === 0" style="color: #6b6b82; text-align: center; padding: 24px;">
+      <div v-else-if="projects.length === 0" style="color: var(--muted); text-align: center; padding: 24px;">
         No projects found. Create a new project to get started.
       </div>
 
@@ -361,7 +361,7 @@ onMounted(async () => {
             >
             <span>{{ tag.tagName }}</span>
           </label>
-          <span v-if="tags.length === 0" style="color: #6b6b82; font-size: 0.9rem;">No tags available</span>
+          <span v-if="tags.length === 0" style="color: var(--muted); font-size: 0.9rem;">No tags available</span>
         </div>
       </div>
 
@@ -382,7 +382,7 @@ onMounted(async () => {
               <i class="bi bi-x-lg"></i>
             </button>
           </div>
-          <p style="margin: 0 0 18px; color: #1c1b33; line-height: 1.6;">{{ statusConfirmMessage }}</p>
+          <p style="margin: 0 0 18px; color: var(--text); line-height: 1.6;">{{ statusConfirmMessage }}</p>
           <div class="modal-actions">
             <button class="btn-secondary" @click="showStatusConfirm = false">Cancel</button>
             <button class="btn-primary" @click="confirmStatusAction">Confirm</button>
@@ -410,7 +410,7 @@ onMounted(async () => {
   margin: 0;
   font-size: 1.8rem;
   font-weight: 600;
-  color: #1c1b33;
+  color: var(--text);
 }
 
 .panel {
@@ -422,7 +422,7 @@ onMounted(async () => {
 
 .status-line {
   font-size: 0.9rem;
-  color: #6b6b82;
+  color: var(--muted);
   margin-bottom: 12px;
 }
 
@@ -438,7 +438,7 @@ onMounted(async () => {
   flex-direction: column;
   gap: 6px;
   font-size: 0.9rem;
-  color: #6b6b82;
+  color: var(--muted);
 }
 
 .filter-field select {
@@ -452,7 +452,7 @@ onMounted(async () => {
 }
 
 .filter-field select:focus {
-  border-color: #5a2b98;
+  border-color: var(--deep);
   box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.14);
 }
 
@@ -480,13 +480,13 @@ onMounted(async () => {
 .outline-card h4 {
   margin: 0;
   font-size: 1.1rem;
-  color: #1c1b33;
+  color: var(--text);
 }
 
 .outline-card .meta {
   margin: 0;
   font-size: 0.85rem;
-  color: #6b6b82;
+  color: var(--muted);
   line-height: 1.5;
 }
 
@@ -501,7 +501,7 @@ onMounted(async () => {
   border-radius: 12px;
   border: 1px solid rgba(90, 43, 152, 0.16);
   background: #fff;
-  color: #5a2b98;
+  color: var(--deep);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
@@ -511,7 +511,7 @@ onMounted(async () => {
 
 .btn-card:hover {
   background: #f7f2ff;
-  border-color: #5a2b98;
+  border-color: var(--deep);
 }
 
 .status-pill {
@@ -522,9 +522,9 @@ onMounted(async () => {
   font-weight: 600;
 }
 
-.status-available { background: rgba(47, 197, 168, 0.12); color: #2fc5a8; }
-.status-requested { background: rgba(246, 166, 61, 0.12); color: #f6a63d; }
-.status-agreed { background: rgba(36, 179, 255, 0.15); color: #24b3ff; }
+.status-available { background: rgba(47, 197, 168, 0.12); color: var(--green); }
+.status-requested { background: rgba(246, 166, 61, 0.12); color: var(--orange); }
+.status-agreed { background: rgba(36, 179, 255, 0.15); color: var(--accent); }
 .status-unavailable { background: rgba(156, 156, 178, 0.2); color: rgba(28, 27, 51, 0.65); }
 
 /* Edit Panel */
@@ -544,7 +544,7 @@ onMounted(async () => {
   margin: 0;
   flex: 1;
   font-size: 1.2rem;
-  color: #1c1b33;
+  color: var(--text);
 }
 
 .btn-close-panel {
@@ -552,7 +552,7 @@ onMounted(async () => {
   border-radius: 12px;
   border: 1px solid rgba(90, 43, 152, 0.16);
   background: #fff;
-  color: #5a2b98;
+  color: var(--deep);
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
@@ -567,7 +567,7 @@ onMounted(async () => {
   font-size: 0.9rem;
   margin-bottom: 16px;
   min-height: 22px;
-  color: #6b6b82;
+  color: var(--muted);
 }
 
 .edit-status.success { color: #167d68; }
@@ -589,7 +589,7 @@ onMounted(async () => {
 
 .form-group label {
   font-weight: 600;
-  color: #1c1b33;
+  color: var(--text);
   font-size: 0.9rem;
 }
 
@@ -604,7 +604,7 @@ onMounted(async () => {
 }
 
 .form-control:focus {
-  border-color: #5a2b98;
+  border-color: var(--deep);
   box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.1);
 }
 
@@ -633,9 +633,9 @@ onMounted(async () => {
 }
 
 .tag-checkbox:has(input:checked) {
-  background: #5a2b98;
+  background: var(--deep);
   color: #fff;
-  border-color: #5a2b98;
+  border-color: var(--deep);
 }
 
 .tag-checkbox input {
@@ -643,7 +643,7 @@ onMounted(async () => {
 }
 
 .btn-primary {
-  background: #5a2b98;
+  background: var(--deep);
   border: none;
   color: white;
   padding: 12px 28px;
@@ -657,13 +657,13 @@ onMounted(async () => {
   gap: 8px;
 }
 
-.btn-primary:hover { background: #4a2380; }
+.btn-primary:hover { background: var(--deep); }
 .btn-primary:disabled { background: #c4c4e0; cursor: not-allowed; }
 
 .btn-secondary {
   background: transparent;
-  border: 1.5px solid #6b6b82;
-  color: #1c1b33;
+  border: 1.5px solid var(--muted);
+  color: var(--text);
   padding: 12px 24px;
   border-radius: 40px;
   font-weight: 500;
@@ -671,7 +671,7 @@ onMounted(async () => {
   font-family: inherit;
 }
 
-.btn-secondary:hover { border-color: #5a2b98; color: #5a2b98; }
+.btn-secondary:hover { border-color: var(--deep); color: var(--deep); }
 
 /* Modal */
 .modal-overlay {
@@ -704,7 +704,7 @@ onMounted(async () => {
 
 .modal-header h2 {
   margin: 0;
-  color: #1c1b33;
+  color: var(--text);
   font-size: 1.35rem;
   font-weight: 600;
 }
@@ -715,7 +715,7 @@ onMounted(async () => {
   border-radius: 50%;
   border: 1px solid rgba(90, 43, 152, 0.16);
   background: rgba(90, 43, 152, 0.06);
-  color: #5a2b98;
+  color: var(--deep);
   cursor: pointer;
   display: inline-flex;
   align-items: center;

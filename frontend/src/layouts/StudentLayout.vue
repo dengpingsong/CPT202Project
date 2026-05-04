@@ -215,7 +215,7 @@ function logout() {
   display: flex;
   flex-direction: column;
   gap: 32px;
-  background: #f4f3f7;
+  background: var(--bg);
   min-height: 100vh;
 }
 

@@ -13,11 +13,11 @@ function normalizeStatus(status: string | null | undefined): string {
 
 function statusColor(status: string): string {
   const s = normalizeStatus(status)
-  if (s === 'PENDING') return '#f6a63d'
-  if (s === 'ACCEPTED') return '#2fc5a8'
-  if (s === 'REJECTED') return '#c74545'
-  if (s === 'WITHDRAWN') return '#6b6b82'
-  return '#5a2b98'
+  if (s === 'PENDING') return 'var(--orange)'
+  if (s === 'ACCEPTED') return 'var(--green)'
+  if (s === 'REJECTED') return 'var(--red)'
+  if (s === 'WITHDRAWN') return 'var(--muted)'
+  return 'var(--deep)'
 }
 
 function statusText(status: string): string {
@@ -158,7 +158,7 @@ onMounted(init)
             <div v-if="entry.changedByStudentName">By: {{ entry.changedByStudentName }}</div>
             <router-link
               :to="`/student/projects/${entry.projectId}`"
-              style="color: #5a2b98; font-weight: 600; text-decoration: none; display: inline-block; margin-top: 6px;"
+              style="color: var(--deep); font-weight: 600; text-decoration: none; display: inline-block; margin-top: 6px;"
             >
               View Project Details
             </router-link>
@@ -180,7 +180,7 @@ onMounted(init)
   margin: 0;
   font-size: 1.8rem;
   font-weight: 600;
-  color: #1c1b33;
+  color: var(--text);
 }
 
 .panel {
@@ -223,12 +223,12 @@ onMounted(init)
   width: 13px;
   height: 13px;
   border-radius: 50%;
-  background: #7b4fbd;
+  background: var(--mid);
 }
 
 .timeline-date {
   font-size: 0.85rem;
-  color: #6b6b82;
+  color: var(--muted);
   margin-bottom: 6px;
 }
 

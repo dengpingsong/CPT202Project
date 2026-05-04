@@ -91,9 +91,9 @@ function iconBg(type: string): string {
 }
 
 function iconColor(type: string): string {
-  if (type === 'withdrawn' || type === 'rejected') return '#f6a63d'
-  if (type === 'accepted') return '#2fc5a8'
-  return '#5a2b98'
+  if (type === 'withdrawn' || type === 'rejected') return 'var(--orange)'
+  if (type === 'accepted') return 'var(--green)'
+  return 'var(--deep)'
 }
 
 interface NotificationItem {
@@ -179,11 +179,11 @@ onMounted(loadNotifications)
       </button>
     </div>
 
-    <div v-if="loading" class="panel" style="text-align: center; padding: 40px; color: #6b6b82;">
+    <div v-if="loading" class="panel" style="text-align: center; padding: 40px; color: var(--muted);">
       Loading...
     </div>
 
-    <div v-else-if="notifications.length === 0" class="panel" style="text-align: center; padding: 40px; color: #6b6b82;">
+    <div v-else-if="notifications.length === 0" class="panel" style="text-align: center; padding: 40px; color: var(--muted);">
       No notifications yet.
     </div>
 
@@ -231,7 +231,7 @@ onMounted(loadNotifications)
   margin: 0;
   font-size: 1.8rem;
   font-weight: 600;
-  color: #1c1b33;
+  color: var(--text);
 }
 
 .toolbar {
@@ -242,7 +242,7 @@ onMounted(loadNotifications)
 
 .status-text {
   font-size: 0.9rem;
-  color: #6b6b82;
+  color: var(--muted);
 }
 
 .btn-mark-all {
@@ -250,7 +250,7 @@ onMounted(loadNotifications)
   border-radius: 12px;
   border: 1px solid rgba(90, 43, 152, 0.16);
   background: linear-gradient(180deg, #fff, #f7f2ff);
-  color: #5a2b98;
+  color: var(--deep);
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
@@ -315,7 +315,7 @@ onMounted(loadNotifications)
   margin-bottom: 6px;
   font-size: 1rem;
   font-weight: 700;
-  color: #1c1b33;
+  color: var(--text);
 }
 
 .notification-message {
@@ -329,7 +329,7 @@ onMounted(loadNotifications)
   gap: 16px;
   flex-wrap: wrap;
   margin-top: 10px;
-  color: #6b6b82;
+  color: var(--muted);
   font-size: 0.84rem;
 }
 
@@ -363,22 +363,22 @@ onMounted(loadNotifications)
 }
 
 .btn-read {
-  border-color: #5a2b98;
-  color: #5a2b98;
+  border-color: var(--deep);
+  color: var(--deep);
 }
 
 .btn-read:hover {
-  background: #5a2b98;
+  background: var(--deep);
   color: #fff;
 }
 
 .btn-detail {
-  border-color: #6b6b82;
-  color: #6b6b82;
+  border-color: var(--muted);
+  color: var(--muted);
 }
 
 .btn-detail:hover {
-  background: #6b6b82;
+  background: var(--muted);
   color: #fff;
 }
 </style>

@@ -241,7 +241,7 @@ onMounted(fetchProfile)
           </div>
           <div class="form-row">
             <span class="form-label"><i class="bi bi-shield"></i> Role</span>
-            <div style="color: #6b6b82;">System Administrator</div>
+            <div style="color: var(--muted);">System Administrator</div>
           </div>
         </div>
 
@@ -273,11 +273,11 @@ onMounted(fetchProfile)
           <div class="section-title">Two-Factor Authentication (TOTP)</div>
           <div class="form-row">
             <span class="form-label"><i class="bi bi-shield-lock"></i> Status</span>
-            <div style="color: #6b6b82;">{{ twoFactorEnabled ? 'Enabled' : 'Disabled' }}</div>
+            <div style="color: var(--muted);">{{ twoFactorEnabled ? 'Enabled' : 'Disabled' }}</div>
           </div>
 
           <div v-if="twoFactorSetupBox" class="tfa-box">
-            <p style="font-size: 0.9rem; color: #6b6b82; margin: 0 0 8px;">Manual key: <strong>{{ twoFactorManualKey }}</strong></p>
+            <p style="font-size: 0.9rem; color: var(--muted); margin: 0 0 8px;">Manual key: <strong>{{ twoFactorManualKey }}</strong></p>
             <input v-model="twoFactorEnableCode" type="text" inputmode="numeric" maxlength="6" class="form-control" placeholder="6-digit code">
             <button type="button" class="btn-primary" style="margin-top: 12px;" :disabled="setupLoading" @click="enableTwoFactor">
               {{ setupLoading ? 'Enabling...' : 'Enable 2FA' }}
@@ -307,7 +307,7 @@ onMounted(fetchProfile)
           <button type="button" class="btn-logout" @click="handleLogout">
             Logout
           </button>
-          <span style="flex: 1; text-align: right; font-size: 0.8rem; color: #6b6b82;">
+          <span style="flex: 1; text-align: right; font-size: 0.8rem; color: var(--muted);">
             <i class="bi bi-shield-check"></i> Encrypted transmission
           </span>
           <div class="form-status" :class="profileStatusType">{{ profileStatus }}</div>
@@ -319,7 +319,7 @@ onMounted(fetchProfile)
 
 <style scoped>
 .settings-page { display: flex; flex-direction: column; gap: 20px; }
-.page-header h1 { margin: 0; font-size: 1.9rem; font-weight: 600; color: #1c1b33; }
+.page-header h1 { margin: 0; font-size: 1.9rem; font-weight: 600; color: var(--text); }
 
 .content-panel {
   background: #fff;
@@ -336,9 +336,9 @@ onMounted(fetchProfile)
 .section-title {
   font-weight: 600;
   font-size: 1.1rem;
-  color: #5a2b98;
+  color: var(--deep);
   margin-bottom: 4px;
-  border-left: 4px solid #5a2b98;
+  border-left: 4px solid var(--deep);
   padding-left: 14px;
 }
 
@@ -349,8 +349,8 @@ onMounted(fetchProfile)
   gap: 16px;
 }
 
-.form-label { font-weight: 500; color: #1c1b33; font-size: 0.95rem; }
-.form-label i { color: #6b6b82; margin-right: 6px; font-size: 1rem; }
+.form-label { font-weight: 500; color: var(--text); font-size: 0.95rem; }
+.form-label i { color: var(--muted); margin-right: 6px; font-size: 1rem; }
 
 .form-control {
   padding: 12px 16px;
@@ -365,8 +365,8 @@ onMounted(fetchProfile)
   outline: none;
 }
 
-.form-control:focus { border-color: #5a2b98; box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.1); }
-.form-control:disabled { background: #f4f3f7; color: #6b6b82; }
+.form-control:focus { border-color: var(--deep); box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.1); }
+.form-control:disabled { background: var(--bg); color: var(--muted); }
 
 .tfa-box {
   border: 1px solid rgba(90, 43, 152, 0.12);
@@ -385,12 +385,12 @@ onMounted(fetchProfile)
   flex-wrap: wrap;
 }
 
-.form-status { width: 100%; min-height: 22px; font-size: 0.9rem; color: #6b6b82; }
+.form-status { width: 100%; min-height: 22px; font-size: 0.9rem; color: var(--muted); }
 .form-status.success { color: #167d68; }
 .form-status.error { color: #b02a37; }
 
 .btn-primary {
-  background: #5a2b98;
+  background: var(--deep);
   border: none;
   color: white;
   padding: 12px 30px;
@@ -400,20 +400,20 @@ onMounted(fetchProfile)
   cursor: pointer;
   font-family: inherit;
 }
-.btn-primary:hover { background: #4a2380; }
+.btn-primary:hover { background: var(--deep); }
 .btn-primary:disabled { background: #c4c4e0; cursor: not-allowed; }
 
 .btn-secondary {
   background: transparent;
-  border: 1.5px solid #6b6b82;
-  color: #1c1b33;
+  border: 1.5px solid var(--muted);
+  color: var(--text);
   padding: 12px 28px;
   border-radius: 40px;
   font-weight: 500;
   cursor: pointer;
   font-family: inherit;
 }
-.btn-secondary:hover { border-color: #5a2b98; color: #5a2b98; }
+.btn-secondary:hover { border-color: var(--deep); color: var(--deep); }
 
 .btn-logout {
   background: transparent;

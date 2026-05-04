@@ -22,11 +22,11 @@ function normalizeStatus(status: string | null | undefined): string {
 
 function statusColor(status: string): string {
   const s = normalizeStatus(status)
-  if (s === 'PENDING') return '#f6a63d'
-  if (s === 'ACCEPTED') return '#2fc5a8'
-  if (s === 'REJECTED') return '#c74545'
-  if (s === 'WITHDRAWN') return '#6b6b82'
-  return '#5a2b98'
+  if (s === 'PENDING') return 'var(--orange)'
+  if (s === 'ACCEPTED') return 'var(--green)'
+  if (s === 'REJECTED') return 'var(--red)'
+  if (s === 'WITHDRAWN') return 'var(--muted)'
+  return 'var(--deep)'
 }
 
 function statusText(status: string): string {
@@ -117,7 +117,7 @@ onMounted(loadData)
       <h1>Request Details</h1>
     </div>
 
-    <div v-if="loading" class="panel-card" style="text-align: center; padding: 40px; color: #6b6b82;">
+    <div v-if="loading" class="panel-card" style="text-align: center; padding: 40px; color: var(--muted);">
       Loading...
     </div>
 
@@ -268,11 +268,11 @@ onMounted(loadData)
   margin: 0;
   font-size: 1.8rem;
   font-weight: 600;
-  color: #1c1b33;
+  color: var(--text);
 }
 
 .back-link {
-  color: #5a2b98;
+  color: var(--deep);
   text-decoration: none;
   font-weight: 500;
   display: inline-flex;
@@ -302,9 +302,9 @@ onMounted(loadData)
   gap: 10px;
   font-weight: 600;
   font-size: 1.1rem;
-  color: #5a2b98;
+  color: var(--deep);
   margin: 0 0 18px;
-  border-left: 4px solid #5a2b98;
+  border-left: 4px solid var(--deep);
   padding-left: 14px;
 }
 
@@ -330,13 +330,13 @@ onMounted(loadData)
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #6b6b82;
+  color: var(--muted);
   font-weight: 600;
 }
 
 .meta-value {
   font-weight: 600;
-  color: #1c1b33;
+  color: var(--text);
   margin-top: 2px;
 }
 
@@ -348,8 +348,8 @@ onMounted(loadData)
   font-weight: 600;
   font-size: 1rem;
   margin-bottom: 10px;
-  color: #5a2b98;
-  border-left: 4px solid #5a2b98;
+  color: var(--deep);
+  border-left: 4px solid var(--deep);
   padding-left: 14px;
 }
 
@@ -358,7 +358,7 @@ onMounted(loadData)
   padding: 16px 20px;
   border-radius: 18px;
   line-height: 1.7;
-  color: #1c1b33;
+  color: var(--text);
   border: 1px solid rgba(90, 43, 152, 0.15);
 }
 
@@ -380,7 +380,7 @@ onMounted(loadData)
 }
 
 .btn-accept {
-  background: #2fc5a8;
+  background: var(--green);
   color: white;
   border: none;
   padding: 14px 32px;
@@ -405,7 +405,7 @@ onMounted(loadData)
 }
 
 .btn-reject {
-  background: #c74545;
+  background: var(--red);
   color: white;
   border: none;
   padding: 14px 32px;
@@ -431,8 +431,8 @@ onMounted(loadData)
 
 .btn-secondary {
   background: transparent;
-  border: 1.5px solid #6b6b82;
-  color: #1c1b33;
+  border: 1.5px solid var(--muted);
+  color: var(--text);
   padding: 12px 24px;
   border-radius: 40px;
   font-weight: 500;
@@ -441,8 +441,8 @@ onMounted(loadData)
 }
 
 .btn-secondary:hover {
-  border-color: #5a2b98;
-  color: #5a2b98;
+  border-color: var(--deep);
+  color: var(--deep);
 }
 
 /* Reject Modal */
@@ -476,7 +476,7 @@ onMounted(loadData)
 
 .modal-header h2 {
   margin: 0;
-  color: #1c1b33;
+  color: var(--text);
   font-size: 1.35rem;
   font-weight: 600;
 }
@@ -487,7 +487,7 @@ onMounted(loadData)
   border-radius: 50%;
   border: 1px solid rgba(90, 43, 152, 0.16);
   background: rgba(90, 43, 152, 0.06);
-  color: #5a2b98;
+  color: var(--deep);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -503,7 +503,7 @@ onMounted(loadData)
   display: block;
   font-weight: 600;
   margin-bottom: 8px;
-  color: #1c1b33;
+  color: var(--text);
   font-size: 0.9rem;
 }
 
@@ -519,7 +519,7 @@ onMounted(loadData)
 }
 
 .reject-textarea:focus {
-  border-color: #5a2b98;
+  border-color: var(--deep);
   box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.14);
 }
 

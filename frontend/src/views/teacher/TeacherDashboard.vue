@@ -15,11 +15,11 @@ function normalizeStatus(status: string | null | undefined): string {
 
 function statusColor(status: string): string {
   const s = normalizeStatus(status)
-  if (s === 'PENDING') return '#f6a63d'
-  if (s === 'ACCEPTED') return '#2fc5a8'
-  if (s === 'REJECTED') return '#c74545'
-  if (s === 'WITHDRAWN') return '#6b6b82'
-  return '#5a2b98'
+  if (s === 'PENDING') return 'var(--orange)'
+  if (s === 'ACCEPTED') return 'var(--green)'
+  if (s === 'REJECTED') return 'var(--red)'
+  if (s === 'WITHDRAWN') return 'var(--muted)'
+  return 'var(--deep)'
 }
 
 function statusText(status: string): string {
@@ -186,7 +186,7 @@ onMounted(loadRequests)
   margin: 0;
   font-size: 1.8rem;
   font-weight: 600;
-  color: #1c1b33;
+  color: var(--text);
 }
 
 .panel {
@@ -208,7 +208,7 @@ onMounted(loadRequests)
   flex-direction: column;
   gap: 6px;
   font-size: 0.9rem;
-  color: #6b6b82;
+  color: var(--muted);
 }
 
 .filter-field select {
@@ -221,7 +221,7 @@ onMounted(loadRequests)
 }
 
 .filter-field select:focus {
-  border-color: #5a2b98;
+  border-color: var(--deep);
   box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.14);
 }
 
@@ -230,7 +230,7 @@ onMounted(loadRequests)
   border-radius: 12px;
   border: 1px solid rgba(90, 43, 152, 0.16);
   background: linear-gradient(180deg, #fff, #f7f2ff);
-  color: #5a2b98;
+  color: var(--deep);
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
@@ -258,7 +258,7 @@ onMounted(loadRequests)
   padding: 16px;
   background: #f8f5ff;
   font-weight: 600;
-  color: #5a2b98;
+  color: var(--deep);
   border-bottom: 2px solid rgba(90, 43, 152, 0.2);
 }
 
@@ -278,12 +278,12 @@ onMounted(loadRequests)
 
 .student-name {
   font-weight: 600;
-  color: #1c1b33;
+  color: var(--text);
 }
 
 .student-id {
   font-size: 0.8rem;
-  color: #6b6b82;
+  color: var(--muted);
 }
 
 .status-pill {
@@ -315,41 +315,41 @@ onMounted(loadRequests)
 }
 
 .btn-detail {
-  border-color: #5a2b98;
-  color: #5a2b98;
+  border-color: var(--deep);
+  color: var(--deep);
   background: transparent;
 }
 
 .btn-detail:hover {
-  background: #5a2b98;
+  background: var(--deep);
   color: #fff;
 }
 
 .btn-accept {
-  border-color: #2fc5a8;
-  color: #2fc5a8;
+  border-color: var(--green);
+  color: var(--green);
   background: transparent;
 }
 
 .btn-accept:hover {
-  background: #2fc5a8;
+  background: var(--green);
   color: #fff;
 }
 
 .btn-reject {
-  border-color: #c74545;
-  color: #c74545;
+  border-color: var(--red);
+  color: var(--red);
   background: transparent;
 }
 
 .btn-reject:hover {
-  background: #c74545;
+  background: var(--red);
   color: #fff;
 }
 
 .summary {
   margin-top: 16px;
   font-size: 0.9rem;
-  color: #6b6b82;
+  color: var(--muted);
 }
 </style>

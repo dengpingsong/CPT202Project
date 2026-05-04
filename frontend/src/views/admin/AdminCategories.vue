@@ -163,36 +163,36 @@ onMounted(loadCategories)
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 20px; }
 .page-header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-.page-header h1 { margin: 0; font-size: 1.8rem; font-weight: 600; color: #1c1b33; }
-.hint { font-size: 0.85rem; color: #6b6b82; }
+.page-header h1 { margin: 0; font-size: 1.8rem; font-weight: 600; color: var(--text); }
+.hint { font-size: 0.85rem; color: var(--muted); }
 .panel { background: #fff; border-radius: 28px; box-shadow: 0 20px 60px rgba(21, 16, 45, 0.15); padding: 24px 28px; }
 .table-wrapper { overflow-x: auto; border-radius: 18px; }
 .data-table { width: 100%; border-collapse: collapse; min-width: 500px; font-size: 0.9rem; }
-.data-table th { text-align: left; padding: 16px; background: #f8f5ff; font-weight: 600; color: #5a2b98; border-bottom: 2px solid rgba(90, 43, 152, 0.2); }
+.data-table th { text-align: left; padding: 16px; background: #f8f5ff; font-weight: 600; color: var(--deep); border-bottom: 2px solid rgba(90, 43, 152, 0.2); }
 .data-table td { padding: 16px; border-bottom: 1px solid rgba(156, 156, 178, 0.2); }
 .data-table tbody tr:hover { background: rgba(90, 43, 152, 0.03); }
 .action-btns { display: flex; gap: 8px; }
 .btn-sm { padding: 6px 14px; border-radius: 20px; border: 1.5px solid; font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s; background: transparent; }
-.btn-edit { border-color: #5a2b98; color: #5a2b98; }
-.btn-edit:hover { background: #5a2b98; color: #fff; }
-.btn-delete { border-color: #c74545; color: #c74545; }
-.btn-delete:hover { background: #c74545; color: #fff; }
+.btn-edit { border-color: var(--deep); color: var(--deep); }
+.btn-edit:hover { background: var(--deep); color: #fff; }
+.btn-delete { border-color: var(--red); color: var(--red); }
+.btn-delete:hover { background: var(--red); color: #fff; }
 
 .add-section { margin-top: 24px; padding-top: 24px; border-top: 1px solid rgba(156, 156, 178, 0.25); }
-.add-section h3 { margin: 0 0 16px; font-size: 1.1rem; color: #5a2b98; }
+.add-section h3 { margin: 0 0 16px; font-size: 1.1rem; color: var(--deep); }
 .inline-form { display: flex; gap: 16px; align-items: end; flex-wrap: wrap; }
 .form-field { display: flex; flex-direction: column; gap: 6px; }
-.form-field label { font-weight: 600; color: #1c1b33; font-size: 0.9rem; }
-.required { color: #c74545; }
+.form-field label { font-weight: 600; color: var(--text); font-size: 0.9rem; }
+.required { color: var(--red); }
 .form-control { padding: 10px 14px; border: 1.5px solid rgba(90, 43, 152, 0.18); border-radius: 12px; font-size: 0.95rem; font-family: inherit; outline: none; background: #fff; min-width: 200px; }
-.form-control:focus { border-color: #5a2b98; box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.1); }
+.form-control:focus { border-color: var(--deep); box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.1); }
 .form-actions { display: flex; gap: 10px; }
-.form-status { margin-top: 12px; font-size: 0.9rem; min-height: 22px; color: #6b6b82; }
+.form-status { margin-top: 12px; font-size: 0.9rem; min-height: 22px; color: var(--muted); }
 .form-status.success { color: #167d68; }
 .form-status.error { color: #b02a37; }
-.btn-primary { background: #5a2b98; border: none; color: white; padding: 10px 24px; border-radius: 40px; font-weight: 600; font-size: 0.95rem; cursor: pointer; font-family: inherit; }
-.btn-primary:hover { background: #4a2380; }
+.btn-primary { background: var(--deep); border: none; color: white; padding: 10px 24px; border-radius: 40px; font-weight: 600; font-size: 0.95rem; cursor: pointer; font-family: inherit; }
+.btn-primary:hover { background: var(--deep); }
 .btn-primary:disabled { background: #c4c4e0; cursor: not-allowed; }
-.btn-secondary { background: transparent; border: 1.5px solid #6b6b82; color: #1c1b33; padding: 10px 20px; border-radius: 40px; font-weight: 500; cursor: pointer; font-family: inherit; }
-.btn-secondary:hover { border-color: #5a2b98; color: #5a2b98; }
+.btn-secondary { background: transparent; border: 1.5px solid var(--muted); color: var(--text); padding: 10px 20px; border-radius: 40px; font-weight: 500; cursor: pointer; font-family: inherit; }
+.btn-secondary:hover { border-color: var(--deep); color: var(--deep); }
 </style>

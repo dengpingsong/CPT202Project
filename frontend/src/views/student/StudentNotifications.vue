@@ -26,10 +26,10 @@ function getIcon(status: string): string {
 
 function getIconColor(status: string): string {
   const s = String(status || '').toUpperCase()
-  if (s === 'ACCEPTED') return '#2fc5a8'
-  if (s === 'REJECTED') return '#c74545'
-  if (s === 'WITHDRAWN') return '#6b6b82'
-  return '#5a2b98'
+  if (s === 'ACCEPTED') return 'var(--green)'
+  if (s === 'REJECTED') return 'var(--red)'
+  if (s === 'WITHDRAWN') return 'var(--muted)'
+  return 'var(--deep)'
 }
 
 async function init() {
@@ -57,11 +57,11 @@ onMounted(init)
       <h1>Notifications</h1>
     </header>
 
-    <div v-if="loading" class="panel" style="text-align: center; padding: 40px; color: #6b6b82;">
+    <div v-if="loading" class="panel" style="text-align: center; padding: 40px; color: var(--muted);">
       Loading...
     </div>
 
-    <div v-else-if="notifications.length === 0" class="panel" style="text-align: center; padding: 40px; color: #6b6b82;">
+    <div v-else-if="notifications.length === 0" class="panel" style="text-align: center; padding: 40px; color: var(--muted);">
       No notifications yet.
     </div>
 
@@ -101,7 +101,7 @@ onMounted(init)
   margin: 0;
   font-size: 1.8rem;
   font-weight: 600;
-  color: #1c1b33;
+  color: var(--text);
 }
 
 .panel {
@@ -156,11 +156,11 @@ onMounted(init)
   margin-bottom: 6px;
   font-size: 1rem;
   font-weight: 700;
-  color: #1c1b33;
+  color: var(--text);
 }
 
 .notification-message {
-  color: #1c1b33;
+  color: var(--text);
   line-height: 1.65;
   font-size: 0.9rem;
 }
@@ -170,7 +170,7 @@ onMounted(init)
   gap: 16px;
   flex-wrap: wrap;
   margin-top: 10px;
-  color: #6b6b82;
+  color: var(--muted);
   font-size: 0.84rem;
 }
 
@@ -183,7 +183,7 @@ onMounted(init)
 }
 
 .detail-link {
-  color: #5a2b98;
+  color: var(--deep);
   font-weight: 600;
   text-decoration: none;
   font-size: 0.85rem;

@@ -242,7 +242,7 @@ onMounted(loadData)
 }
 
 .hero h1 { margin: 0; font-size: 1.9rem; }
-.hero-info { max-width: 520px; color: #6b6b82; line-height: 1.6; }
+.hero-info { max-width: 520px; color: var(--muted); line-height: 1.6; }
 
 .badge {
   display: inline-flex;
@@ -252,7 +252,7 @@ onMounted(loadData)
   border-radius: 999px;
   font-size: 0.85rem;
   background: rgba(36, 179, 255, 0.15);
-  color: #24b3ff;
+  color: var(--accent);
 }
 
 .cta {
@@ -262,7 +262,7 @@ onMounted(loadData)
   border: none;
   border-radius: 18px;
   padding: 14px 24px;
-  background: linear-gradient(135deg, #24b3ff, #0c76e3);
+  background: linear-gradient(135deg, var(--accent), #0c76e3);
   color: white;
   font-weight: 600;
   cursor: pointer;
@@ -287,13 +287,13 @@ onMounted(loadData)
 .panel h3 {
   margin: 0 0 12px;
   font-size: 0.95rem;
-  color: #6b6b82;
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 
 .panel strong { font-size: 2rem; display: block; margin-bottom: 6px; }
-.panel .rule { font-size: 0.8rem; color: #6b6b82; }
+.panel .rule { font-size: 0.8rem; color: var(--muted); }
 
 .grid {
   display: grid;
@@ -311,7 +311,7 @@ onMounted(loadData)
 }
 
 .card h4 { margin: 0; font-size: 1.2rem; }
-.card .meta { font-size: 0.85rem; color: #6b6b82; line-height: 1.5; }
+.card .meta { font-size: 0.85rem; color: var(--muted); line-height: 1.5; }
 
 .status-pill {
   align-self: flex-start;
@@ -321,10 +321,10 @@ onMounted(loadData)
   font-weight: 600;
 }
 
-.status-available { background: rgba(47, 197, 168, 0.12); color: #2fc5a8; }
-.status-requested { background: rgba(246, 166, 61, 0.12); color: #f6a63d; }
-.status-agreed { background: rgba(36, 179, 255, 0.15); color: #24b3ff; }
-.status-rejected { background: rgba(199, 69, 69, 0.12); color: #c74545; }
+.status-available { background: rgba(47, 197, 168, 0.12); color: var(--green); }
+.status-requested { background: rgba(246, 166, 61, 0.12); color: var(--orange); }
+.status-agreed { background: rgba(36, 179, 255, 0.15); color: var(--accent); }
+.status-rejected { background: rgba(199, 69, 69, 0.12); color: var(--red); }
 .status-unavailable { background: rgba(156, 156, 178, 0.2); color: rgba(28, 27, 51, 0.65); }
 
 .card button {
@@ -332,7 +332,7 @@ onMounted(loadData)
   border: none;
   border-radius: 12px;
   padding: 12px 18px;
-  background: #5a2b98;
+  background: var(--deep);
   color: white;
   cursor: pointer;
   font-weight: 600;
@@ -347,8 +347,8 @@ onMounted(loadData)
 
 .card button:active { transform: translateY(1px); }
 
-h2 { margin: 0 0 8px; font-size: 1.4rem; color: #1c1b33; }
-h3 { margin: 0 0 16px; font-size: 1.1rem; color: #1c1b33; }
+h2 { margin: 0 0 8px; font-size: 1.4rem; color: var(--text); }
+h3 { margin: 0 0 16px; font-size: 1.1rem; color: var(--text); }
 
 .timeline .item {
   display: grid;
@@ -365,7 +365,7 @@ h3 { margin: 0 0 16px; font-size: 1.1rem; color: #1c1b33; }
   gap: 16px;
   flex-wrap: wrap;
   font-size: 0.85rem;
-  color: #6b6b82;
+  color: var(--muted);
 }
 
 .timeline .status {
@@ -375,7 +375,7 @@ h3 { margin: 0 0 16px; font-size: 1.1rem; color: #1c1b33; }
   font-size: 0.85rem;
 }
 
-.timeline .meta { font-size: 0.85rem; color: #6b6b82; }
+.timeline .meta { font-size: 0.85rem; color: var(--muted); }
 
 .withdraw-btn {
   padding: 8px 14px;

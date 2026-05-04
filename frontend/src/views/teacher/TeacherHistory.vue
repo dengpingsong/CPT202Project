@@ -32,10 +32,10 @@ function statusText(status: string): string {
 
 function statusColor(status: string): string {
   const s = normalizeStatus(status)
-  if (s === 'ACCEPTED') return '#2fc5a8'
-  if (s === 'REJECTED') return '#c74545'
-  if (s === 'WITHDRAWN') return '#6b6b82'
-  return '#1c1b33'
+  if (s === 'ACCEPTED') return 'var(--green)'
+  if (s === 'REJECTED') return 'var(--red)'
+  if (s === 'WITHDRAWN') return 'var(--muted)'
+  return 'var(--text)'
 }
 
 function historyTime(r: any): string {
@@ -120,7 +120,7 @@ onMounted(loadHistory)
   margin: 0;
   font-size: 1.8rem;
   font-weight: 600;
-  color: #1c1b33;
+  color: var(--text);
 }
 
 .panel {
@@ -163,12 +163,12 @@ onMounted(loadHistory)
   width: 13px;
   height: 13px;
   border-radius: 50%;
-  background: #7b4fbd;
+  background: var(--mid);
 }
 
 .timeline-date {
   font-size: 0.85rem;
-  color: #6b6b82;
+  color: var(--muted);
   margin-bottom: 6px;
 }
 

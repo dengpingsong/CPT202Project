@@ -173,7 +173,7 @@ onMounted(loadData)
       <h1>Project Details</h1>
     </div>
 
-    <div v-if="loading" class="panel-card" style="text-align: center; padding: 40px; color: #6b6b82;">
+    <div v-if="loading" class="panel-card" style="text-align: center; padding: 40px; color: var(--muted);">
       Loading...
     </div>
 
@@ -291,11 +291,11 @@ onMounted(loadData)
   margin: 0;
   font-size: 1.8rem;
   font-weight: 600;
-  color: #1c1b33;
+  color: var(--text);
 }
 
 .back-link {
-  color: #5a2b98;
+  color: var(--deep);
   text-decoration: none;
   font-weight: 500;
   display: inline-flex;
@@ -326,7 +326,7 @@ onMounted(loadData)
 .detail-header h2 {
   margin: 0;
   font-size: 1.6rem;
-  color: #1c1b33;
+  color: var(--text);
 }
 
 .surf-badge {
@@ -335,7 +335,7 @@ onMounted(loadData)
   font-size: 0.85rem;
   font-weight: 600;
   background: rgba(36, 179, 255, 0.15);
-  color: #24b3ff;
+  color: var(--accent);
 }
 
 .meta-grid {
@@ -357,13 +357,13 @@ onMounted(loadData)
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #6b6b82;
+  color: var(--muted);
   font-weight: 600;
 }
 
 .meta-value {
   font-weight: 600;
-  color: #1c1b33;
+  color: var(--text);
   margin-top: 2px;
 }
 
@@ -375,8 +375,8 @@ onMounted(loadData)
   font-weight: 600;
   font-size: 1.2rem;
   margin-bottom: 12px;
-  color: #5a2b98;
-  border-left: 5px solid #5a2b98;
+  color: var(--deep);
+  border-left: 5px solid var(--deep);
   padding-left: 18px;
 }
 
@@ -385,7 +385,7 @@ onMounted(loadData)
   padding: 18px 22px;
   border-radius: 18px;
   line-height: 1.7;
-  color: #1c1b33;
+  color: var(--text);
   border: 1px solid rgba(90, 43, 152, 0.15);
 }
 
@@ -393,7 +393,7 @@ onMounted(loadData)
   display: block;
   font-weight: 600;
   margin-bottom: 8px;
-  color: #1c1b33;
+  color: var(--text);
   font-size: 0.9rem;
 }
 
@@ -410,7 +410,7 @@ onMounted(loadData)
 }
 
 .rank-select:focus {
-  border-color: #5a2b98;
+  border-color: var(--deep);
   box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.14);
 }
 
@@ -426,7 +426,7 @@ onMounted(loadData)
 }
 
 .notes-textarea:focus {
-  border-color: #5a2b98;
+  border-color: var(--deep);
   box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.14);
 }
 
@@ -438,10 +438,10 @@ onMounted(loadData)
   font-weight: 600;
 }
 
-.status-available { background: rgba(47, 197, 168, 0.12); color: #2fc5a8; }
-.status-requested { background: rgba(246, 166, 61, 0.12); color: #f6a63d; }
-.status-agreed { background: rgba(36, 179, 255, 0.15); color: #24b3ff; }
-.status-rejected { background: rgba(199, 69, 69, 0.12); color: #c74545; }
+.status-available { background: rgba(47, 197, 168, 0.12); color: var(--green); }
+.status-requested { background: rgba(246, 166, 61, 0.12); color: var(--orange); }
+.status-agreed { background: rgba(36, 179, 255, 0.15); color: var(--accent); }
+.status-rejected { background: rgba(199, 69, 69, 0.12); color: var(--red); }
 .status-unavailable { background: rgba(156, 156, 178, 0.2); color: rgba(28, 27, 51, 0.65); }
 
 .action-buttons {
@@ -453,7 +453,7 @@ onMounted(loadData)
 }
 
 .btn-primary {
-  background: #5a2b98;
+  background: var(--deep);
   color: white;
   border: none;
   padding: 12px 28px;
@@ -470,8 +470,8 @@ onMounted(loadData)
 
 .btn-secondary {
   background: transparent;
-  border: 1.5px solid #6b6b82;
-  color: #1c1b33;
+  border: 1.5px solid var(--muted);
+  color: var(--text);
   padding: 12px 24px;
   border-radius: 40px;
   font-weight: 500;
@@ -482,7 +482,7 @@ onMounted(loadData)
   align-items: center;
 }
 
-.btn-secondary:hover { background: #f4f3f7; text-decoration: none; }
+.btn-secondary:hover { background: var(--bg); text-decoration: none; }
 
 .btn-withdraw {
   background: transparent;
@@ -507,7 +507,7 @@ onMounted(loadData)
 
 .footnote {
   margin-top: 16px;
-  color: #6b6b82;
+  color: var(--muted);
   font-size: 0.8rem;
 }
 </style>

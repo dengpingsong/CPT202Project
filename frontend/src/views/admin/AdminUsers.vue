@@ -10,7 +10,7 @@ const statusFilter = ref('')
 
 function statusColor(status: string): string {
   const s = String(status || '').toUpperCase()
-  return s === 'ACTIVE' ? '#2fc5a8' : '#c74545'
+  return s === 'ACTIVE' ? 'var(--green)' : 'var(--red)'
 }
 
 async function loadUsers() {
@@ -119,24 +119,24 @@ onMounted(loadUsers)
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 20px; }
-.page-header h1 { margin: 0; font-size: 1.8rem; font-weight: 600; color: #1c1b33; }
+.page-header h1 { margin: 0; font-size: 1.8rem; font-weight: 600; color: var(--text); }
 .panel { background: #fff; border-radius: 28px; box-shadow: 0 20px 60px rgba(21, 16, 45, 0.15); padding: 24px 28px; }
 .filters-row { display: flex; gap: 10px; align-items: end; margin-bottom: 16px; flex-wrap: wrap; }
-.filter-field { display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; color: #6b6b82; }
+.filter-field { display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; color: var(--muted); }
 .filter-field select { padding: 10px 12px; border: 1px solid rgba(90, 43, 152, 0.18); border-radius: 12px; font: inherit; background: #fff; outline: none; min-width: 160px; }
-.filter-field select:focus { border-color: #5a2b98; box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.14); }
-.clear-btn { padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(90, 43, 152, 0.16); background: linear-gradient(180deg, #fff, #f7f2ff); color: #5a2b98; font-weight: 600; cursor: pointer; font-family: inherit; font-size: 0.9rem; }
+.filter-field select:focus { border-color: var(--deep); box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.14); }
+.clear-btn { padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(90, 43, 152, 0.16); background: linear-gradient(180deg, #fff, #f7f2ff); color: var(--deep); font-weight: 600; cursor: pointer; font-family: inherit; font-size: 0.9rem; }
 .clear-btn:hover { background: linear-gradient(180deg, #fff, #efe4ff); }
 .table-wrapper { overflow-x: auto; border-radius: 18px; }
 .data-table { width: 100%; border-collapse: collapse; min-width: 700px; font-size: 0.9rem; }
-.data-table th { text-align: left; padding: 16px; background: #f8f5ff; font-weight: 600; color: #5a2b98; border-bottom: 2px solid rgba(90, 43, 152, 0.2); }
+.data-table th { text-align: left; padding: 16px; background: #f8f5ff; font-weight: 600; color: var(--deep); border-bottom: 2px solid rgba(90, 43, 152, 0.2); }
 .data-table td { padding: 16px; border-bottom: 1px solid rgba(156, 156, 178, 0.2); }
 .data-table tbody tr:hover { background: rgba(90, 43, 152, 0.03); }
 .status-chip { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
 .btn-sm { padding: 6px 14px; border-radius: 20px; border: 1.5px solid; font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s; background: transparent; }
-.btn-disable { border-color: #c74545; color: #c74545; }
-.btn-disable:hover { background: #c74545; color: #fff; }
-.btn-enable { border-color: #2fc5a8; color: #2fc5a8; }
-.btn-enable:hover { background: #2fc5a8; color: #fff; }
-.summary { margin-top: 16px; font-size: 0.9rem; color: #6b6b82; }
+.btn-disable { border-color: var(--red); color: var(--red); }
+.btn-disable:hover { background: var(--red); color: #fff; }
+.btn-enable { border-color: var(--green); color: var(--green); }
+.btn-enable:hover { background: var(--green); color: #fff; }
+.summary { margin-top: 16px; font-size: 0.9rem; color: var(--muted); }
 </style>

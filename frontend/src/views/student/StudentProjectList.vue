@@ -122,11 +122,8 @@ async function loadProjects(page: number) {
 
 async function loadTags() {
   try {
-    const res = await fetch('/api/student/projects/tags', {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
-    })
-    const data = await res.json()
-    tags.value = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : [])
+    const res = await studentApi.listProjectTags()
+    tags.value = Array.isArray(res.data) ? res.data : []
   } catch {
     tags.value = []
   }
@@ -134,11 +131,8 @@ async function loadTags() {
 
 async function loadCategories() {
   try {
-    const res = await fetch('/api/student/projects/categories', {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` }
-    })
-    const data = await res.json()
-    categories.value = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : [])
+    const res = await studentApi.listProjectCategories()
+    categories.value = Array.isArray(res.data) ? res.data : []
   } catch {
     categories.value = []
   }
@@ -165,7 +159,7 @@ onMounted(init)
     </div>
 
     <div class="panel-card">
-      <p style="color: #6b6b82; margin-bottom: 10px;">Click View to see project details</p>
+      <p style="color: var(--muted); margin-bottom: 10px;">Click View to see project details</p>
 
       <!-- Filters -->
       <div class="filters-row">
@@ -312,7 +306,7 @@ onMounted(init)
   margin: 0;
   font-size: 1.8rem;
   font-weight: 600;
-  color: #1c1b33;
+  color: var(--text);
 }
 
 .panel-card {
@@ -335,7 +329,7 @@ onMounted(init)
   flex-direction: column;
   gap: 6px;
   font-size: 0.9rem;
-  color: #6b6b82;
+  color: var(--muted);
 }
 
 .filter-field input,
@@ -350,7 +344,7 @@ onMounted(init)
 
 .filter-field input:focus,
 .filter-field select:focus {
-  border-color: #5a2b98;
+  border-color: var(--deep);
   box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.14);
 }
 
@@ -359,7 +353,7 @@ onMounted(init)
   border-radius: 12px;
   border: 1px solid rgba(90, 43, 152, 0.16);
   background: linear-gradient(180deg, #fff, #f7f2ff);
-  color: #5a2b98;
+  color: var(--deep);
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
@@ -379,7 +373,7 @@ onMounted(init)
 }
 
 .tag-label {
-  color: #6b6b82;
+  color: var(--muted);
   font-size: 0.9rem;
 }
 
@@ -388,7 +382,7 @@ onMounted(init)
   border-radius: 999px;
   border: 1px solid rgba(90, 43, 152, 0.16);
   background: #fff;
-  color: #5a2b98;
+  color: var(--deep);
   font-size: 0.85rem;
   cursor: pointer;
   font-family: inherit;
@@ -401,9 +395,9 @@ onMounted(init)
 }
 
 .tag-btn.active {
-  background: #5a2b98;
+  background: var(--deep);
   color: #fff;
-  border-color: #5a2b98;
+  border-color: var(--deep);
 }
 
 .tag-btn:disabled {
@@ -428,7 +422,7 @@ onMounted(init)
   padding: 16px;
   background: #f8f5ff;
   font-weight: 600;
-  color: #5a2b98;
+  color: var(--deep);
   border-bottom: 2px solid rgba(90, 43, 152, 0.2);
 }
 
@@ -449,16 +443,16 @@ onMounted(init)
   font-weight: 600;
 }
 
-.status-available { background: rgba(47, 197, 168, 0.12); color: #2fc5a8; }
-.status-requested { background: rgba(246, 166, 61, 0.12); color: #f6a63d; }
-.status-agreed { background: rgba(36, 179, 255, 0.15); color: #24b3ff; }
-.status-rejected { background: rgba(199, 69, 69, 0.12); color: #c74545; }
+.status-available { background: rgba(47, 197, 168, 0.12); color: var(--green); }
+.status-requested { background: rgba(246, 166, 61, 0.12); color: var(--orange); }
+.status-agreed { background: rgba(36, 179, 255, 0.15); color: var(--accent); }
+.status-rejected { background: rgba(199, 69, 69, 0.12); color: var(--red); }
 .status-unavailable { background: rgba(156, 156, 178, 0.2); color: rgba(28, 27, 51, 0.65); }
 
 .view-btn {
   background: #fff;
-  border: 1.5px solid #5a2b98;
-  color: #5a2b98;
+  border: 1.5px solid var(--deep);
+  color: var(--deep);
   font-weight: 600;
   padding: 8px 18px;
   border-radius: 40px;
@@ -470,14 +464,14 @@ onMounted(init)
 }
 
 .view-btn:hover {
-  background: #5a2b98;
+  background: var(--deep);
   color: #fff;
 }
 
 .project-count {
   margin-top: 16px;
   font-size: 0.9rem;
-  color: #6b6b82;
+  color: var(--muted);
 }
 
 /* Pagination */
@@ -508,7 +502,7 @@ onMounted(init)
   border-radius: 14px;
   border: 1px solid rgba(90, 43, 152, 0.16);
   background: linear-gradient(180deg, #fff, #f7f2ff);
-  color: #5a2b98;
+  color: var(--deep);
   font-weight: 600;
   font-size: 0.95rem;
   cursor: pointer;
@@ -529,21 +523,21 @@ onMounted(init)
 }
 
 .pagination-number.active {
-  background: linear-gradient(135deg, #5a2b98, #7b4fbd);
+  background: linear-gradient(135deg, var(--deep), var(--mid));
   color: #fff;
-  border-color: #5a2b98;
+  border-color: var(--deep);
 }
 
 .pagination-nav {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: linear-gradient(135deg, #5a2b98, #7b4fbd);
+  background: linear-gradient(135deg, var(--deep), var(--mid));
   color: #fff;
 }
 
 .pagination-nav:hover {
-  background: linear-gradient(135deg, #4a2280, #6d43b0);
+  background: linear-gradient(135deg, var(--deep), #6d43b0);
   color: #fff;
 }
 

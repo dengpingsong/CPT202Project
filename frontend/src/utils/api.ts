@@ -1,3 +1,5 @@
+import axios from 'axios'
+
 const BASE_URL = '/api'
 
 function getToken(): string {
@@ -46,51 +48,64 @@ interface ApiResponse<T = any> {
   data?: T
 }
 
-async function request<T = any>(url: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+const client = axios.create({
+  baseURL: BASE_URL,
+  timeout: 15000,
+})
+
+client.interceptors.request.use((config) => {
   const token = getToken()
-  const headers = new Headers(options.headers || {})
-
-  if (!headers.has('Content-Type') && options.body !== undefined) {
-    headers.set('Content-Type', 'application/json')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
   }
-  if (token && !headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${token}`)
-  }
+  return config
+})
 
-  const response = await fetch(`${BASE_URL}${url}`, { ...options, headers })
-  const result: ApiResponse<T> = await response.json()
+client.interceptors.response.use(
+  (response) => {
+    return response
+  },
+  (error) => {
+    if (error.response?.status === 401) {
+      clearAuth()
+      window.location.href = '/login'
+    }
+    return Promise.reject(error)
+  },
+)
 
-  if (response.status === 401) {
-    clearAuth()
-    window.location.href = '/login'
-    throw new Error('Login expired')
-  }
-
-  return result
+async function request<T = any>(url: string, options: { method?: string; body?: any } = {}): Promise<ApiResponse<T>> {
+  const { method = 'GET', body } = options
+  const response = await client.request<ApiResponse<T>>({
+    url,
+    method: method.toLowerCase(),
+    data: body,
+  })
+  return response.data
 }
 
 // Auth APIs
 export const authApi = {
   login: (payload: { username: string; password: string }) =>
-    request('/common/auth/login', { method: 'POST', body: JSON.stringify(payload) }),
+    request('/common/auth/login', { method: 'POST', body: payload }),
 
   register: (payload: Record<string, string>) =>
-    request('/common/auth/register', { method: 'POST', body: JSON.stringify(payload) }),
+    request('/common/auth/register', { method: 'POST', body: payload }),
 
   sendEmailOtp: (email: string) =>
-    request('/common/auth/email-otp/send', { method: 'POST', body: JSON.stringify({ email }) }),
+    request('/common/auth/email-otp/send', { method: 'POST', body: { email } }),
 
   emailOtpLogin: (email: string, otp: string) =>
-    request('/common/auth/email-otp/login', { method: 'POST', body: JSON.stringify({ email, otp }) }),
+    request('/common/auth/email-otp/login', { method: 'POST', body: { email, otp } }),
 
   verifyTwoFactor: (challengeToken: string, code: string) =>
-    request('/common/auth/2fa/verify-login', { method: 'POST', body: JSON.stringify({ challengeToken, code }) }),
+    request('/common/auth/2fa/verify-login', { method: 'POST', body: { challengeToken, code } }),
 
   forgotPassword: (email: string) =>
-    request('/common/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+    request('/common/auth/forgot-password', { method: 'POST', body: { email } }),
 
   resetPassword: (token: string, newPassword: string) =>
-    request('/common/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, newPassword }) }),
+    request('/common/auth/reset-password', { method: 'POST', body: { token, newPassword } }),
 }
 
 // Student APIs
@@ -100,11 +115,19 @@ export const studentApi = {
     request(`/student/projects?pageNum=${pageNum}&pageSize=${pageSize}`),
   getProfile: () => request('/student/profile/me'),
   updateProfile: (payload: Record<string, any>) =>
-    request('/student/profile/me', { method: 'PUT', body: JSON.stringify(payload) }),
+    request('/student/profile/me', { method: 'PUT', body: payload }),
   changePassword: (oldPassword: string, newPassword: string) =>
-    request('/student/profile/me/password', { method: 'PUT', body: JSON.stringify({ oldPassword, newPassword }) }),
+    request('/student/profile/me/password', { method: 'PUT', body: { oldPassword, newPassword } }),
   withdrawRequest: (requestId: number | string) =>
     request(`/student/requests/${requestId}/withdraw`, { method: 'PUT' }),
+  listProjectTags: () => request('/student/projects/tags'),
+  listProjectCategories: () => request('/student/projects/categories'),
+  initializeTwoFactorSetup: () =>
+    request('/student/profile/me/2fa/setup', { method: 'POST', body: {} }),
+  enableTwoFactor: (code: string) =>
+    request('/student/profile/me/2fa/enable', { method: 'POST', body: { code } }),
+  disableTwoFactor: (currentPassword: string) =>
+    request('/student/profile/me/2fa/disable', { method: 'POST', body: { currentPassword } }),
 }
 
 // Teacher APIs
@@ -114,39 +137,39 @@ export const teacherApi = {
   getProject: (projectId: number | string) =>
     request(`/teacher/projects/${projectId}`),
   createProject: (payload: Record<string, any>) =>
-    request('/teacher/projects', { method: 'POST', body: JSON.stringify(payload) }),
+    request('/teacher/projects', { method: 'POST', body: payload }),
   updateProject: (projectId: number | string, payload: Record<string, any>) =>
-    request(`/teacher/projects/${projectId}`, { method: 'PUT', body: JSON.stringify(payload) }),
+    request(`/teacher/projects/${projectId}`, { method: 'PUT', body: payload }),
   changeProjectStatus: (projectId: number | string, projectStatus: string, remark?: string) =>
     request(`/teacher/projects/${projectId}/status`, {
       method: 'PUT',
-      body: JSON.stringify({ projectStatus, remark: remark || '' }),
+      body: { projectStatus, remark: remark || '' },
     }),
   listCategories: () => request('/teacher/categories'),
   listTags: () => request('/teacher/tags'),
   listProjectTags: (projectId: number | string) =>
     request(`/teacher/project-tags/${projectId}`),
   bindProjectTags: (projectId: number | string, tagIds: number[]) =>
-    request(`/teacher/project-tags/${projectId}`, { method: 'PUT', body: JSON.stringify({ tagIds }) }),
+    request(`/teacher/project-tags/${projectId}`, { method: 'PUT', body: { tagIds } }),
   listRequests: (status?: string) =>
     request(`/teacher/requests${status ? `?status=${status}` : ''}`),
   listHistory: () => request('/teacher/requests'),
   listNotifications: () => request('/teacher/requests'),
   getProfile: () => request('/teacher/profile/me'),
   updateProfile: (payload: Record<string, any>) =>
-    request('/teacher/profile/me', { method: 'PUT', body: JSON.stringify(payload) }),
+    request('/teacher/profile/me', { method: 'PUT', body: payload }),
   changePassword: (oldPassword: string, newPassword: string) =>
-    request('/teacher/profile/me/password', { method: 'PUT', body: JSON.stringify({ oldPassword, newPassword }) }),
+    request('/teacher/profile/me/password', { method: 'PUT', body: { oldPassword, newPassword } }),
   initializeTwoFactorSetup: () =>
-    request('/teacher/profile/me/2fa/setup', { method: 'POST', body: JSON.stringify({}) }),
+    request('/teacher/profile/me/2fa/setup', { method: 'POST', body: {} }),
   enableTwoFactor: (code: string) =>
-    request('/teacher/profile/me/2fa/enable', { method: 'POST', body: JSON.stringify({ code }) }),
+    request('/teacher/profile/me/2fa/enable', { method: 'POST', body: { code } }),
   disableTwoFactor: (currentPassword: string) =>
-    request('/teacher/profile/me/2fa/disable', { method: 'POST', body: JSON.stringify({ currentPassword }) }),
+    request('/teacher/profile/me/2fa/disable', { method: 'POST', body: { currentPassword } }),
   reviewRequest: (requestId: number | string, requestStatus: string, decisionComment?: string) =>
     request(`/teacher/requests/${requestId}/review`, {
       method: 'PUT',
-      body: JSON.stringify({ requestStatus, decisionComment: decisionComment || '' }),
+      body: { requestStatus, decisionComment: decisionComment || '' },
     }),
 }
 
@@ -180,44 +203,42 @@ export const adminApi = {
   // Categories
   listCategories: () => request('/admin/categories'),
   createCategory: (payload: { categoryName: string; description?: string }) =>
-    request('/admin/categories', { method: 'POST', body: JSON.stringify(payload) }),
+    request('/admin/categories', { method: 'POST', body: payload }),
   updateCategory: (categoryId: number | string, payload: { categoryName: string; description?: string }) =>
-    request(`/admin/categories/${categoryId}`, { method: 'PUT', body: JSON.stringify(payload) }),
+    request(`/admin/categories/${categoryId}`, { method: 'PUT', body: payload }),
   deleteCategory: (categoryId: number | string) =>
     request(`/admin/categories/${categoryId}`, { method: 'DELETE' }),
 
   // Tags
   listTags: () => request('/admin/tags'),
   createTag: (payload: { tagName: string; description?: string }) =>
-    request('/admin/tags', { method: 'POST', body: JSON.stringify(payload) }),
+    request('/admin/tags', { method: 'POST', body: payload }),
   updateTag: (tagId: number | string, payload: { tagName: string; description?: string }) =>
-    request(`/admin/tags/${tagId}`, { method: 'PUT', body: JSON.stringify(payload) }),
+    request(`/admin/tags/${tagId}`, { method: 'PUT', body: payload }),
   deleteTag: (tagId: number | string) =>
     request(`/admin/tags/${tagId}`, { method: 'DELETE' }),
 
   // Profile
   getProfile: () => request('/admin/profile/me'),
   updateProfile: (payload: Record<string, any>) =>
-    request('/admin/profile/me', { method: 'PUT', body: JSON.stringify(payload) }),
+    request('/admin/profile/me', { method: 'PUT', body: payload }),
   changePassword: (payload: { oldPassword: string; newPassword: string }) =>
-    request('/admin/profile/me/password', { method: 'PUT', body: JSON.stringify(payload) }),
+    request('/admin/profile/me/password', { method: 'PUT', body: payload }),
 
   // 2FA
   initializeTwoFactorSetup: () =>
-    request('/admin/profile/me/2fa/setup', { method: 'POST', body: JSON.stringify({}) }),
+    request('/admin/profile/me/2fa/setup', { method: 'POST', body: {} }),
   enableTwoFactor: (code: string) =>
-    request('/admin/profile/me/2fa/enable', { method: 'POST', body: JSON.stringify({ code }) }),
+    request('/admin/profile/me/2fa/enable', { method: 'POST', body: { code } }),
   disableTwoFactor: (currentPassword: string) =>
-    request('/admin/profile/me/2fa/disable', { method: 'POST', body: JSON.stringify({ currentPassword }) }),
+    request('/admin/profile/me/2fa/disable', { method: 'POST', body: { currentPassword } }),
 }
 
 // Generic request helpers
 export const api = {
   get: <T = any>(url: string) => request<T>(url),
-  post: <T = any>(url: string, body?: any) =>
-    request<T>(url, { method: 'POST', body: body ? JSON.stringify(body) : undefined }),
-  put: <T = any>(url: string, body?: any) =>
-    request<T>(url, { method: 'PUT', body: body ? JSON.stringify(body) : undefined }),
+  post: <T = any>(url: string, body?: any) => request<T>(url, { method: 'POST', body }),
+  put: <T = any>(url: string, body?: any) => request<T>(url, { method: 'PUT', body }),
   delete: <T = any>(url: string) => request<T>(url, { method: 'DELETE' }),
 }
 

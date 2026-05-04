@@ -169,7 +169,7 @@ onMounted(() => {
               >
               <span>{{ tag.tagName }}</span>
             </label>
-            <span v-if="tags.length === 0" style="color: #6b6b82; font-size: 0.9rem;">No tags available</span>
+            <span v-if="tags.length === 0" style="color: var(--muted); font-size: 0.9rem;">No tags available</span>
           </div>
         </div>
 
@@ -206,11 +206,11 @@ onMounted(() => {
   margin: 0;
   font-size: 1.8rem;
   font-weight: 600;
-  color: #1c1b33;
+  color: var(--text);
 }
 
 .back-link {
-  color: #5a2b98;
+  color: var(--deep);
   text-decoration: none;
   font-weight: 500;
   display: inline-flex;
@@ -256,12 +256,12 @@ onMounted(() => {
 
 .form-group label {
   font-weight: 600;
-  color: #1c1b33;
+  color: var(--text);
   font-size: 0.9rem;
 }
 
 .required {
-  color: #c74545;
+  color: var(--red);
 }
 
 .form-control {
@@ -276,7 +276,7 @@ onMounted(() => {
 }
 
 .form-control:focus {
-  border-color: #5a2b98;
+  border-color: var(--deep);
   box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.1);
 }
 
@@ -303,9 +303,9 @@ textarea.form-control {
 }
 
 .tag-checkbox:has(input:checked) {
-  background: #5a2b98;
+  background: var(--deep);
   color: #fff;
-  border-color: #5a2b98;
+  border-color: var(--deep);
 }
 
 .tag-checkbox input {
@@ -322,7 +322,7 @@ textarea.form-control {
   font-size: 0.9rem;
   min-height: 22px;
   margin-bottom: 12px;
-  color: #6b6b82;
+  color: var(--muted);
 }
 
 .form-status.success { color: #167d68; }
@@ -334,7 +334,7 @@ textarea.form-control {
 }
 
 .btn-primary {
-  background: #5a2b98;
+  background: var(--deep);
   border: none;
   color: white;
   padding: 12px 28px;
@@ -348,13 +348,13 @@ textarea.form-control {
   gap: 8px;
 }
 
-.btn-primary:hover { background: #4a2380; }
+.btn-primary:hover { background: var(--deep); }
 .btn-primary:disabled { background: #c4c4e0; cursor: not-allowed; }
 
 .btn-secondary {
   background: transparent;
-  border: 1.5px solid #6b6b82;
-  color: #1c1b33;
+  border: 1.5px solid var(--muted);
+  color: var(--text);
   padding: 12px 24px;
   border-radius: 40px;
   font-weight: 500;
@@ -365,7 +365,7 @@ textarea.form-control {
   align-items: center;
 }
 
-.btn-secondary:hover { border-color: #5a2b98; color: #5a2b98; }
+.btn-secondary:hover { border-color: var(--deep); color: var(--deep); }
 
 @media (max-width: 768px) {
   .form-grid-2 {

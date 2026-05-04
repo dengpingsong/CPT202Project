@@ -571,14 +571,14 @@ onMounted(async () => {
 }
 
 :root {
-  --bg: #f4f3f7;
-  --deep: #5a2b98;
-  --mid: #7b4fbd;
+  --bg: var(--bg);
+  --deep: var(--deep);
+  --mid: var(--mid);
   --panel: #ffffff;
-  --text: #1c1b33;
-  --muted: #6b6b82;
-  --accent: #24b3ff;
-  --green: #2fc5a8;
+  --text: var(--text);
+  --muted: var(--muted);
+  --accent: var(--accent);
+  --green: var(--green);
   --danger: #d93025;
   --border: rgba(28, 27, 51, 0.1);
 }
@@ -711,7 +711,7 @@ onMounted(async () => {
   margin-bottom: 16px;
   padding: 4px;
   border-radius: 12px;
-  background: #f4f3f7;
+  background: var(--bg);
 }
 
 .auth-tab {
