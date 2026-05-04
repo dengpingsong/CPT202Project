@@ -324,19 +324,6 @@ onMounted(async () => {
       loopDelay: 1000,
       loop: true,
     })
-
-    animate('.square', {
-      keyframes: [
-        { x: '24.2rem', y: 0, ease: 'inOut', duration: 800 },
-        { x: '24.2rem', y: '23rem', ease: 'inOut', duration: 800 },
-        { x: 0, y: '23rem', ease: 'inOut', duration: 800 },
-        { x: 0, y: 0, ease: 'inOut', duration: 850 },
-      ],
-      rotate: { to: 360, ease: 'linear' },
-      delay: stagger(320),
-      duration: 3250,
-      loop: true,
-    })
   } catch {
     // animejs not available, skip animations
   }
@@ -370,12 +357,6 @@ onMounted(async () => {
     </div>
 
     <div class="guide-visual">
-      <div class="auth-orbit" v-show="currentPanel === 'login'" aria-hidden="true">
-        <span class="square"></span>
-        <span class="square"></span>
-        <span class="square"></span>
-      </div>
-
       <div class="login-card auth-panel-card" :class="{ 'register-mode': currentPanel === 'register' }">
         <div class="auth-tabs" aria-label="Authentication options">
           <button
@@ -660,29 +641,6 @@ onMounted(async () => {
   transform: translateY(26px);
 }
 
-.auth-orbit {
-  position: absolute;
-  top: calc(50% - 11.7rem);
-  left: calc(50% - 12.5rem);
-  width: 26rem;
-  height: 17.7rem;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.square {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 0.62rem;
-  height: 0.62rem;
-  border-radius: 3px;
-  background: var(--deep);
-  opacity: 0.72;
-  box-shadow: 0 0 18px rgba(90, 43, 152, 0.42);
-  will-change: transform;
-}
-
 .login-card {
   width: min(100%, 336px);
   padding: 22px 20px;
@@ -893,10 +851,6 @@ button:disabled {
   .guide-visual {
     justify-content: center;
     transform: none;
-  }
-
-  .auth-orbit {
-    display: none;
   }
 
   .auth-panel-card {
