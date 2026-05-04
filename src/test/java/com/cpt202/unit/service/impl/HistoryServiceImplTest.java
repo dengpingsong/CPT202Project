@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
+/** Unit tests for student-visible request history access rules. */
 @ExtendWith(MockitoExtension.class)
 class HistoryServiceImplTest {
 
@@ -37,6 +38,7 @@ class HistoryServiceImplTest {
     @InjectMocks
     private HistoryServiceImpl historyService;
 
+    /** Rejects history lookups for requests owned by another student. */
     @Test
     void getRequestHistoryShouldRejectOtherStudentsRequest() {
         StudentProfile owner = student(1L, "Owner Student");
@@ -50,6 +52,7 @@ class HistoryServiceImplTest {
         assertThat(exception.getMessage()).isEqualTo(MessageConstants.CANNOT_VIEW_OTHER_STUDENT_HISTORY);
     }
 
+    /** Maps request history entries with student identity and status changes. */
     @Test
     void getRequestHistoryShouldMapStudentIdentityAndStatuses() {
         StudentProfile student = student(2L, "Student Two");

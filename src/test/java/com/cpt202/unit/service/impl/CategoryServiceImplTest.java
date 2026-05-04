@@ -31,6 +31,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/** Unit tests for category caching, lookup, validation, and deletion rules. */
 @ExtendWith(MockitoExtension.class)
 class CategoryServiceImplTest {
 
@@ -43,6 +44,7 @@ class CategoryServiceImplTest {
     @InjectMocks
     private CategoryServiceImpl categoryService;
 
+    /** Returns cached category values without querying the repository. */
     @Test
     void listAllShouldReturnCachedValuesWithoutRepositoryLookup() {
         CategoryVO cached = new CategoryVO();
@@ -59,6 +61,7 @@ class CategoryServiceImplTest {
         verify(categoryRepository, never()).findAll();
     }
 
+    /** Loads categories from the repository and populates the cache on a miss. */
     @Test
     void listAllShouldLoadRepositoryValuesAndPopulateCache() {
         Category ai = category(2L, "AI");
@@ -76,6 +79,7 @@ class CategoryServiceImplTest {
         verify(redisCacheService).set(eq(RedisKeyConstants.CATEGORY_LIST), any(List.class), eq(Duration.ofMinutes(30)));
     }
 
+    /** Maps a persisted category entity to the public view object. */
     @Test
     void getByIdShouldMapCategoryVo() {
         Category category = category(4L, "Cloud Computing");
@@ -90,6 +94,7 @@ class CategoryServiceImplTest {
         assertThat(result.getDescription()).isEqualTo("Cloud description");
     }
 
+    /** Rejects lookup when the category id does not exist. */
     @Test
     void getByIdShouldRejectMissingCategory() {
         when(categoryRepository.findById(5L)).thenReturn(Optional.empty());
@@ -100,6 +105,7 @@ class CategoryServiceImplTest {
         assertThat(exception.getMessage()).isEqualTo(MessageConstants.CATEGORY_NOT_FOUND);
     }
 
+    /** Trims the name, persists the category, and evicts the list cache. */
     @Test
     void createShouldTrimNamePersistAndEvictCache() {
         CategoryDTO dto = categoryDTO("  AI  ", "Artificial Intelligence");
@@ -119,6 +125,7 @@ class CategoryServiceImplTest {
         assertThat(saved.getUpdatedAt()).isNotNull();
     }
 
+    /** Rejects category updates that would create a duplicate trimmed name. */
     @Test
     void updateShouldRejectDuplicateCategoryName() {
         Category existing = category(3L, "Distributed Systems");
@@ -134,6 +141,7 @@ class CategoryServiceImplTest {
         verify(categoryRepository, never()).save(any(Category.class));
     }
 
+    /** Persists trimmed category updates and evicts the list cache. */
     @Test
     void updateShouldTrimNamePersistAndEvictCache() {
         Category existing = category(6L, "Legacy");
@@ -151,6 +159,7 @@ class CategoryServiceImplTest {
         assertThat(existing.getUpdatedAt()).isNotNull();
     }
 
+    /** Rejects delete requests for categories that do not exist. */
     @Test
     void deleteShouldRejectMissingCategory() {
         when(categoryRepository.existsById(9L)).thenReturn(false);
@@ -162,6 +171,7 @@ class CategoryServiceImplTest {
         verify(redisCacheService, never()).delete(RedisKeyConstants.CATEGORY_LIST);
     }
 
+    /** Deletes an existing category and evicts the cached list. */
     @Test
     void deleteShouldDeleteExistingCategoryAndEvictCache() {
         when(categoryRepository.existsById(10L)).thenReturn(true);

@@ -34,6 +34,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/** Unit tests for request-validation and approval-side synchronization rules. */
 @ExtendWith(MockitoExtension.class)
 class ProjectRequestValidationServiceImplTest {
 
@@ -49,6 +50,7 @@ class ProjectRequestValidationServiceImplTest {
     @InjectMocks
     private ProjectRequestValidationServiceImpl validationService;
 
+    /** Rejects new requests for projects that are already closed. */
     @Test
     void validateRequestShouldRejectClosedProject() {
         Project project = project(1L, 2, Project.ProjectStatus.CLOSED);
@@ -65,6 +67,7 @@ class ProjectRequestValidationServiceImplTest {
         }
     }
 
+    /** Rejects a second active request for the same student and project. */
     @Test
     void validateRequestShouldRejectDuplicatedRequestForSameProject() {
         Project project = project(2L, 2, Project.ProjectStatus.AVAILABLE);
@@ -84,6 +87,7 @@ class ProjectRequestValidationServiceImplTest {
         }
     }
 
+    /** Rejects students who already hold an accepted project elsewhere. */
     @Test
     void validateRequestShouldRejectStudentWhoAlreadyHasAcceptedProject() {
         Project project = project(3L, 2, Project.ProjectStatus.AVAILABLE);
@@ -104,6 +108,7 @@ class ProjectRequestValidationServiceImplTest {
         }
     }
 
+    /** Rejects other pending requests and closes the project when capacity is full. */
     @Test
     @SuppressWarnings("unchecked")
     void onApprovalSuccessShouldRejectOtherPendingRequestsAndCloseFullProject() {
@@ -144,6 +149,7 @@ class ProjectRequestValidationServiceImplTest {
         assertThat(savedProject.getCloseDate()).isNotNull();
     }
 
+    /** Marks the project as agreed when capacity still remains after approval. */
     @Test
     void onApprovalSuccessShouldMarkProjectAsAgreedWhenCapacityRemains() {
         Long requestId = 7L;

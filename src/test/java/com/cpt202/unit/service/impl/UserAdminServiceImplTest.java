@@ -23,6 +23,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/** Unit tests for administrator-owned user listing and status management. */
 @ExtendWith(MockitoExtension.class)
 class UserAdminServiceImplTest {
 
@@ -35,6 +36,7 @@ class UserAdminServiceImplTest {
     @InjectMocks
     private UserAdminServiceImpl userAdminService;
 
+    /** Trims the requested account status before repository lookup. */
     @Test
     void listUsersShouldTrimAccountStatusBeforeQueryingRepository() {
         UserVO userVO = UserVO.builder()
@@ -51,6 +53,7 @@ class UserAdminServiceImplTest {
         verify(userRepository).findUserVos(User.UserRole.STUDENT, "ACTIVE");
     }
 
+    /** Rejects status updates for users that do not exist. */
     @Test
     void updateStatusShouldRejectMissingUser() {
         when(userRepository.findById(2L)).thenReturn(Optional.empty());
@@ -63,6 +66,7 @@ class UserAdminServiceImplTest {
         verify(userAuthStateService, never()).evictUserAuthState(2L);
     }
 
+    /** Saves the new account status and evicts cached auth state. */
     @Test
     void updateStatusShouldSaveUserAndEvictAuthState() {
         User user = new User();

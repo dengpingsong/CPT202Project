@@ -40,6 +40,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/** Unit tests for project creation and status-transition service rules. */
 @ExtendWith(MockitoExtension.class)
 class ProjectServiceImplTest {
 
@@ -64,6 +65,7 @@ class ProjectServiceImplTest {
     @InjectMocks
     private ProjectServiceImpl projectService;
 
+    /** Initializes a new project as available with zero agreed students. */
     @Test
     void createShouldInitializeProjectAsAvailable() {
         Long teacherId = 10L;
@@ -94,6 +96,7 @@ class ProjectServiceImplTest {
         assertThat(saved.getTitle()).isEqualTo("New Project");
     }
 
+    /** Rejects manual transitions into the REQUESTED project state. */
     @Test
     void changeStatusShouldRejectManualRequestedTransition() {
         Project project = project(11L, teacherProfile(1L), Project.ProjectStatus.AVAILABLE);
@@ -106,6 +109,7 @@ class ProjectServiceImplTest {
         verify(projectRepository, never()).save(any(Project.class));
     }
 
+    /** Rejects manual transitions into the ARCHIVED project state. */
     @Test
     void changeStatusShouldRejectArchivedTransition() {
         Project project = project(12L, teacherProfile(2L), Project.ProjectStatus.AVAILABLE);
@@ -118,6 +122,7 @@ class ProjectServiceImplTest {
         verify(projectRepository, never()).save(any(Project.class));
     }
 
+    /** Rejects reopening a project that is already closed. */
     @Test
     void changeStatusShouldRejectReopenOfClosedProject() {
         Project project = project(13L, teacherProfile(3L), Project.ProjectStatus.CLOSED);
@@ -130,6 +135,7 @@ class ProjectServiceImplTest {
         verify(projectRepository, never()).save(any(Project.class));
     }
 
+    /** Closes the project and cancels active requests when manually closed. */
     @Test
     @SuppressWarnings("unchecked")
     void changeStatusShouldCloseProjectAndCancelActiveRequests() {

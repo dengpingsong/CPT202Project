@@ -13,9 +13,11 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+/** Test-only infrastructure overrides for integration and acceptance suites. */
 @TestConfiguration
 class IntegrationTestConfiguration {
 
+    /** Replaces Redis with an in-memory cache for deterministic test runs. */
     @Bean
     @Primary
     RedisCacheService redisCacheService(ObjectMapper objectMapper) {
