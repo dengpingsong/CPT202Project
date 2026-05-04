@@ -30,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Cpt202IntegrationTest
 class ProjectLifecycleIntegrationTest extends ProjectSelectionWorkflowSupport {
 
+    /** Creates one teacher-student-admin scenario fixture before each run. */
     @BeforeEach
     void setUp() {
         initializeProjectSelectionActors("Scenario");

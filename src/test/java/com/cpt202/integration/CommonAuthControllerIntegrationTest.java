@@ -54,6 +54,7 @@ class CommonAuthControllerIntegrationTest extends IntegrationTestSupport {
 
     private ConcurrentMap<String, Object> redisEntries;
 
+    /** Installs a deterministic in-memory Redis stub for transient auth state. */
     @BeforeEach
     void setUpRedisStub() {
         redisEntries = new ConcurrentHashMap<>();
@@ -195,10 +196,12 @@ class CommonAuthControllerIntegrationTest extends IntegrationTestSupport {
         assertThat(redisEntries).doesNotContainKey(challengeKey);
     }
 
+    /** Reads the wrapped data payload from a MockMvc response. */
     private JsonNode readData(MvcResult result) throws Exception {
         return objectMapper.readTree(result.getResponse().getContentAsString()).path("data");
     }
 
+    /** Generates a deterministic TOTP code for the supplied instant. */
     private String generateCodeForInstant(String secret, Instant instant) {
         long counter = instant.getEpochSecond() / 30;
         return ReflectionTestUtils.invokeMethod(TotpUtil.class, "generateCode", secret, counter);

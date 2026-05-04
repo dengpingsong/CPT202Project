@@ -31,11 +31,13 @@ class CPT202ApplicationTests {
     @Autowired
     private MockMvc mockMvc;
 
+    /** Confirms the Spring application context can boot in the test profile. */
     @Test
     void contextLoads() {
         // If the application context fails to start, this test will fail.
     }
 
+    /** Verifies friendly routes redirect to the expected static entry pages. */
     @ParameterizedTest
     @CsvSource({
             "/,/login/login.html",
@@ -50,6 +52,7 @@ class CPT202ApplicationTests {
                 .andExpect(redirectedUrl(redirectTarget));
     }
 
+            /** Verifies the main static pages and documentation UI are reachable. */
     @ParameterizedTest
     @ValueSource(strings = {
             "/login/login.html",
@@ -65,6 +68,7 @@ class CPT202ApplicationTests {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML));
     }
 
+    /** Verifies the OpenAPI JSON document is exposed for tooling and health checks. */
     @Test
     void openApiDefinitionIsReachable() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))

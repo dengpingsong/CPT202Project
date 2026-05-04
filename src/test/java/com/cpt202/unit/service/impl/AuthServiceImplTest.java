@@ -48,6 +48,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/** Unit tests for authentication, registration, OTP, and 2FA service rules. */
 @ExtendWith(MockitoExtension.class)
 class AuthServiceImplTest {
 
@@ -81,12 +82,14 @@ class AuthServiceImplTest {
     @InjectMocks
     private AuthServiceImpl authService;
 
+    /** Configures OTP timing properties used by the service under test. */
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(authService, "emailLoginOtpExpirationMinutes", 5L);
         ReflectionTestUtils.setField(authService, "emailLoginOtpCooldownSeconds", 60L);
     }
 
+    /** Rejects student registration when the enrollment date is in the future. */
     @Test
     void registerShouldRejectFutureEnrollmentDate() {
         RegisterUserDTO dto = validStudentRegisterDTO();
@@ -98,6 +101,7 @@ class AuthServiceImplTest {
         assertThat(exception.getMessage()).isEqualTo(MessageConstants.ENROLLMENT_DATE_CANNOT_BE_FUTURE); // Verify specific message for future enrollment date
     }
 
+    /** Rejects registration when the requested username already exists. */
     @Test
     void registerShouldRejectDuplicateUsername() {
         RegisterUserDTO dto = validAdminRegisterDTO();
@@ -111,6 +115,7 @@ class AuthServiceImplTest {
         verify(userRepository, never()).save(any(User.class));
     }
 
+    /** Creates a student profile and returns a login payload after registration. */
     @Test
     void registerStudentShouldCreateProfileAndReturnLoginVo() {
         RegisterUserDTO dto = validStudentRegisterDTO();
@@ -143,6 +148,7 @@ class AuthServiceImplTest {
         assertThat(result.getTwoFactorRequired()).isFalse();
     }
 
+    /** Rejects password login when the password does not match. */
     @Test
     void loginShouldRejectInvalidPassword() {
         LoginDTO dto = loginDTO("alice", "wrong-password");
@@ -156,6 +162,7 @@ class AuthServiceImplTest {
         assertThat(exception.getMessage()).isEqualTo(MessageConstants.INVALID_CREDENTIALS);
     }
 
+    /** Returns a two-factor challenge instead of a token when 2FA is enabled. */
     @Test
     void loginShouldReturnTwoFactorChallengeWhenEnabled() {
         LoginDTO dto = loginDTO("alice", "CorrectPassword");
@@ -173,6 +180,7 @@ class AuthServiceImplTest {
         assertThat(result.getTwoFactorChallengeToken()).isEqualTo("challenge-token");
     }
 
+    /** Rejects OTP requests that arrive before the cooldown expires. */
     @Test
     void sendEmailLoginOtpShouldRejectFrequentRequests() {
         EmailOtpRequestDTO dto = otpRequestDTO("alice@example.com");
@@ -187,6 +195,7 @@ class AuthServiceImplTest {
         verify(emailLoginOtpMailService, never()).sendLoginOtpMail(any(User.class), anyString());
     }
 
+    /** Stores an OTP and sends mail for an active user. */
     @Test
     void sendEmailLoginOtpShouldStoreOtpAndSendMailForActiveUser() {
         EmailOtpRequestDTO dto = otpRequestDTO("alice@example.com");
@@ -207,6 +216,7 @@ class AuthServiceImplTest {
         assertThat(otpCaptor.getValue()).matches("\\d{6}");
     }
 
+    /** Rejects email-OTP login when the cached OTP has expired. */
     @Test
     void loginWithEmailOtpShouldRejectExpiredOtp() {
         EmailOtpLoginDTO dto = otpLoginDTO("alice@example.com", "123456");
@@ -222,6 +232,7 @@ class AuthServiceImplTest {
         assertThat(exception.getMessage()).isEqualTo(MessageConstants.EMAIL_OTP_EXPIRED);
     }
 
+    /** Deletes the OTP and returns a login payload after successful OTP login. */
     @Test
     void loginWithEmailOtpShouldDeleteOtpAndReturnLoginVoOnSuccess() {
         EmailOtpLoginDTO dto = otpLoginDTO("alice@example.com", "123456");

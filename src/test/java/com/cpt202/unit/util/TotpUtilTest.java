@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Answers.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mockStatic;
 
+/** Unit tests for deterministic TOTP validation windows. */
 class TotpUtilTest {
 
     private static final String FIXED_SECRET = "JBSWY3DPEHPK3PXP";
@@ -51,12 +52,14 @@ class TotpUtilTest {
         }
     }
 
+    /** Rejects malformed TOTP values before any time-window comparison. */
     @Test
     void isValidCodeShouldRejectMalformedCode() {
         assertThat(TotpUtil.isValidCode(FIXED_SECRET, "12AB56")).isFalse();
         assertThat(TotpUtil.isValidCode(FIXED_SECRET, "12345")).isFalse();
     }
 
+    /** Generates a deterministic TOTP code for the supplied instant. */
     private String generateCodeForInstant(String secret, Instant instant) {
         long counter = instant.getEpochSecond() / 30;
         return ReflectionTestUtils.invokeMethod(TotpUtil.class, "generateCode", secret, counter);

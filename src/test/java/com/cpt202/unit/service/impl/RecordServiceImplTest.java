@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/** Unit tests for record-query service projections. */
 @ExtendWith(MockitoExtension.class)
 class RecordServiceImplTest {
 
@@ -36,6 +37,7 @@ class RecordServiceImplTest {
     @InjectMocks
     private RecordServiceImpl recordService;
 
+    /** Returns project records exactly as exposed by the repository projection. */
     @Test
     void listProjectRecordsShouldReturnRepositoryProjection() {
         ProjectVO project = ProjectVO.builder()
@@ -50,6 +52,7 @@ class RecordServiceImplTest {
         verify(projectRepository).findAllProjectVos();
     }
 
+    /** Passes the requested status filter through to the request repository. */
     @Test
     void listRequestRecordsShouldPassStatusToRepository() {
         ProjectRequestVO request = ProjectRequestVO.builder()
@@ -64,6 +67,7 @@ class RecordServiceImplTest {
         verify(projectRequestRepository).findRequestVos(ProjectRequest.RequestStatus.ACCEPTED);
     }
 
+    /** Returns ordered request-history projections from the repository. */
     @Test
     void listRequestHistoryRecordsShouldReturnOrderedHistoryProjection() {
         RequestStatusHistoryVO history = RequestStatusHistoryVO.builder()
