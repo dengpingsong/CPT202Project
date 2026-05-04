@@ -754,7 +754,6 @@ onMounted(async () => {
   border: 1px solid var(--border);
   border-radius: 18px;
   background: var(--panel);
-  box-shadow: 0 20px 60px rgba(21, 16, 45, 0.12);
 }
 
 .auth-panel-card {
@@ -799,7 +798,6 @@ onMounted(async () => {
 .auth-tab.active {
   background: var(--panel);
   color: var(--deep);
-  box-shadow: 0 6px 18px rgba(21, 16, 45, 0.08);
 }
 
 h2 {

@@ -116,7 +116,6 @@ onMounted(loadData)
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 20px; }
 .page-header h1 { margin: 0; font-size: 1.8rem; font-weight: 600; color: var(--text); }
-.panel { background: #fff; border-radius: 28px; box-shadow: 0 20px 60px rgba(21, 16, 45, 0.15); padding: 24px 28px; }
 .filters-row { display: flex; gap: 10px; align-items: end; margin-bottom: 16px; }
 .filter-field { display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; color: var(--muted); }
 .filter-field select { padding: 10px 12px; border: 1px solid rgba(90, 43, 152, 0.18); border-radius: 12px; font: inherit; background: #fff; outline: none; min-width: 180px; }

@@ -335,7 +335,6 @@ onMounted(fetchProfile)
 .content-panel {
   background: #fff;
   border-radius: 28px;
-  box-shadow: 0 20px 60px rgba(21, 16, 45, 0.12);
   padding: 32px 36px;
   border: 1px solid rgba(28, 27, 51, 0.08);
   max-width: 700px;

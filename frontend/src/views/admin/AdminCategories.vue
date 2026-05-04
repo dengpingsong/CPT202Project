@@ -165,7 +165,6 @@ onMounted(loadCategories)
 .page-header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .page-header h1 { margin: 0; font-size: 1.8rem; font-weight: 600; color: var(--text); }
 .hint { font-size: 0.85rem; color: var(--muted); }
-.panel { background: #fff; border-radius: 28px; box-shadow: 0 20px 60px rgba(21, 16, 45, 0.15); padding: 24px 28px; }
 .table-wrapper { overflow-x: auto; border-radius: 18px; }
 .data-table { width: 100%; border-collapse: collapse; min-width: 500px; font-size: 0.9rem; }
 .data-table th { text-align: left; padding: 16px; background: #f8f5ff; font-weight: 600; color: var(--deep); border-bottom: 2px solid rgba(90, 43, 152, 0.2); }

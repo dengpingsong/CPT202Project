@@ -192,7 +192,6 @@ onMounted(loadRequests)
 .panel {
   background: #fff;
   border-radius: 28px;
-  box-shadow: 0 20px 60px rgba(21, 16, 45, 0.15);
   padding: 24px 28px;
 }
 

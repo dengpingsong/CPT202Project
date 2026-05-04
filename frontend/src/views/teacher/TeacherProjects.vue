@@ -416,7 +416,6 @@ onMounted(async () => {
 .panel {
   background: #fff;
   border-radius: 28px;
-  box-shadow: 0 20px 60px rgba(21, 16, 45, 0.15);
   padding: 24px 28px;
 }
 
@@ -474,7 +473,6 @@ onMounted(async () => {
 
 .outline-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 30px rgba(21, 16, 45, 0.08);
 }
 
 .outline-card h4 {
@@ -690,7 +688,6 @@ onMounted(async () => {
   background: #fff;
   border-radius: 24px;
   border: 1px solid rgba(28, 27, 51, 0.08);
-  box-shadow: 0 24px 80px rgba(21, 16, 45, 0.22);
   padding: 28px;
 }
 

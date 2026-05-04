@@ -164,7 +164,6 @@ onMounted(loadProjects)
 .page-header { display: flex; align-items: center; gap: 12px; }
 .page-header h1 { margin: 0; font-size: 1.8rem; font-weight: 600; color: var(--text); }
 .badge { background: var(--deep); color: #fff; padding: 4px 12px; border-radius: 999px; font-size: 0.85rem; font-weight: 600; }
-.panel { background: #fff; border-radius: 28px; box-shadow: 0 20px 60px rgba(21, 16, 45, 0.15); padding: 24px 28px; }
 .table-wrapper { overflow-x: auto; border-radius: 18px; }
 .data-table { width: 100%; border-collapse: collapse; min-width: 800px; font-size: 0.9rem; }
 .data-table th { text-align: left; padding: 16px; background: #f8f5ff; font-weight: 600; color: var(--deep); border-bottom: 2px solid rgba(90, 43, 152, 0.2); }
@@ -182,7 +181,6 @@ onMounted(loadProjects)
 
 /* Modal */
 .modal-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(28, 27, 51, 0.45); z-index: 20; }
-.modal-dialog { width: min(600px, 100%); background: #fff; border-radius: 24px; border: 1px solid rgba(28, 27, 51, 0.08); box-shadow: 0 24px 80px rgba(21, 16, 45, 0.22); padding: 28px; max-height: 80vh; overflow-y: auto; }
 .modal-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
 .modal-header h2 { margin: 0; color: var(--text); font-size: 1.35rem; font-weight: 600; }
 .icon-button { width: 38px; height: 38px; border-radius: 50%; border: 1px solid rgba(90, 43, 152, 0.16); background: rgba(90, 43, 152, 0.06); color: var(--deep); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 1.1rem; }

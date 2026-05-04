@@ -287,7 +287,6 @@ onMounted(loadNotifications)
 
 .notification-item:hover {
   transform: translateY(-1px);
-  box-shadow: 0 12px 30px rgba(21, 16, 45, 0.08);
 }
 
 .notification-item.unread {
