@@ -37,6 +37,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/** Unit tests for request creation, review, and withdrawal service rules. */
 @ExtendWith(MockitoExtension.class)
 class ProjectRequestServiceImplTest {
 
@@ -61,6 +62,7 @@ class ProjectRequestServiceImplTest {
     @InjectMocks
     private ProjectRequestServiceImpl projectRequestService;
 
+    /** Rejects request creation when the student reuses an active preference rank. */
     @Test
     void createShouldRejectDuplicatedPreferenceRank() {
         Long studentId = 1L;
@@ -82,6 +84,7 @@ class ProjectRequestServiceImplTest {
         verify(requestRepository, never()).save(any(ProjectRequest.class));
     }
 
+    /** Rejects reviews attempted by a teacher who does not own the request. */
     @Test
     void reviewShouldRejectOtherTeacherRequest() {
         Long requestId = 30L;
@@ -102,6 +105,7 @@ class ProjectRequestServiceImplTest {
         verify(teacherProfileRepository, never()).findById(any());
     }
 
+    /** Rejects review when the request is no longer pending. */
     @Test
     void reviewShouldRejectWhenRequestIsNotPending() {
         Long teacherId = 7L;
@@ -123,6 +127,7 @@ class ProjectRequestServiceImplTest {
         verify(requestRepository, never()).save(any(ProjectRequest.class));
     }
 
+    /** Rejects acceptance when the project has already reached capacity. */
     @Test
     void reviewShouldRejectAcceptedWhenProjectIsFull() {
         Long teacherId = 8L;
@@ -144,6 +149,7 @@ class ProjectRequestServiceImplTest {
         verify(requestRepository, never()).save(any(ProjectRequest.class));
     }
 
+    /** Saves the reviewed request and delegates follow-up approval handling. */
     @Test
     void reviewShouldSaveAndDelegateOnApprovalSuccess() {
         Long teacherId = 9L;
@@ -173,6 +179,7 @@ class ProjectRequestServiceImplTest {
         assertThat(historyCaptor.getValue().getRemark()).isEqualTo("accepted");
     }
 
+    /** Rejects withdrawal when the request belongs to another student. */
     @Test
     void withdrawShouldRejectOtherStudentsRequest() {
         StudentProfile owner = studentProfile(3L, user(103L, User.UserRole.STUDENT));

@@ -40,6 +40,7 @@ class AdminControllerIntegrationTest extends IntegrationTestSupport {
     private ProjectRequest acceptedRequest;
     private String boundTagName;
 
+        /** Creates an admin fixture plus one completed teacher-student workflow. */
     @BeforeEach
     void setUp() {
         String suffix = uniqueSuffix();

@@ -41,6 +41,7 @@ class TeacherControllerIntegrationTest extends IntegrationTestSupport {
     private ProjectRequest request;
     private String teacherAuthorization;
 
+        /** Creates a teacher-owned workflow fixture before each test. */
     @BeforeEach
     void setUp() {
         String suffix = uniqueSuffix();

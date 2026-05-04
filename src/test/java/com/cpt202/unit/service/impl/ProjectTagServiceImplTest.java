@@ -32,6 +32,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/** Unit tests for project-tag listing and binding rules. */
 @ExtendWith(MockitoExtension.class)
 class ProjectTagServiceImplTest {
 
@@ -47,6 +48,7 @@ class ProjectTagServiceImplTest {
     @InjectMocks
     private ProjectTagServiceImpl projectTagService;
 
+    /** Maps project-tag relations to ordered view objects. */
     @Test
     void listProjectTagsShouldMapRelationsToVo() {
         Project project = project(10L, 2L);
@@ -63,6 +65,7 @@ class ProjectTagServiceImplTest {
         assertThat(result).extracting(ProjectTagVO::getTagName).containsExactly("Java", "Spring");
     }
 
+    /** Rejects tag binding when the teacher does not own the project. */
     @Test
     void bindProjectTagsShouldRejectWhenTeacherDoesNotOwnProject() {
         Project project = project(11L, 100L);
@@ -76,6 +79,7 @@ class ProjectTagServiceImplTest {
         verify(projectTagRepository, never()).deleteByProject_ProjectId(11L);
     }
 
+    /** Rejects tag binding when not all requested tag ids resolve. */
     @Test
     void bindProjectTagsShouldRejectWhenSomeTagsAreMissing() {
         Project project = project(12L, 300L);
@@ -91,6 +95,7 @@ class ProjectTagServiceImplTest {
         verify(projectTagRepository, never()).deleteByProject_ProjectId(12L);
     }
 
+    /** Replaces existing bindings with the resolved set of project tags. */
     @Test
     void bindProjectTagsShouldReplaceExistingBindingsWithResolvedTags() {
         Project project = project(13L, 400L);

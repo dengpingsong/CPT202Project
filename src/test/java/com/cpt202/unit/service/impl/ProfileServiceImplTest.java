@@ -36,6 +36,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/** Unit tests for profile updates and password-change validation rules. */
 @ExtendWith(MockitoExtension.class)
 class ProfileServiceImplTest {
 
@@ -54,6 +55,7 @@ class ProfileServiceImplTest {
     @InjectMocks
     private ProfileServiceImpl profileService;
 
+    /** Rejects student-profile updates when the profile is not owned by a student. */
     @Test
     void updateStudentProfileShouldRejectWhenRoleIsNotStudent() {
         User user = user(1L, User.UserRole.TEACHER, "teacher@example.com", hash("Password123"));
@@ -68,6 +70,7 @@ class ProfileServiceImplTest {
         verify(studentProfileRepository, never()).save(any(StudentProfile.class));
     }
 
+    /** Rejects admin-profile updates when the email format is invalid. */
     @Test
     void updateAdminProfileShouldRejectInvalidEmail() {
         User admin = user(2L, User.UserRole.ADMIN, "admin@example.com", hash("Password123"));
@@ -84,6 +87,7 @@ class ProfileServiceImplTest {
         verify(userRepository, never()).save(any(User.class));
     }
 
+    /** Rejects teacher-profile updates when the email already exists elsewhere. */
     @Test
     void updateTeacherProfileShouldRejectDuplicatedEmail() {
         User teacherUser = user(3L, User.UserRole.TEACHER, "teacher@example.com", hash("Password123"));
@@ -106,6 +110,7 @@ class ProfileServiceImplTest {
         verify(teacherProfileRepository, never()).save(any(TeacherProfile.class));
     }
 
+    /** Rejects password changes when the old password is incorrect. */
     @Test
     void changePasswordShouldRejectIncorrectOldPassword() {
         User user = user(4L, User.UserRole.ADMIN, "admin@example.com", hash("CorrectPass"));
@@ -120,6 +125,7 @@ class ProfileServiceImplTest {
         verify(userRepository, never()).save(any(User.class));
     }
 
+    /** Rejects password changes that reuse the existing password. */
     @Test
     void changePasswordShouldRejectSamePassword() {
         User user = user(5L, User.UserRole.ADMIN, "admin@example.com", hash("SamePass123"));
@@ -134,6 +140,7 @@ class ProfileServiceImplTest {
         verify(userRepository, never()).save(any(User.class));
     }
 
+    /** Persists the new password hash after a valid password change. */
     @Test
     void changePasswordShouldPersistNewHash() {
         User user = user(6L, User.UserRole.ADMIN, "admin@example.com", hash("OldPass123"));
@@ -149,6 +156,7 @@ class ProfileServiceImplTest {
         assertThat(userCaptor.getValue().getUpdatedAt()).isNotNull();
     }
 
+    /** Trims and saves the student's email during profile updates. */
     @Test
     void updateStudentProfileShouldTrimEmailAndSave() {
         User user = user(7L, User.UserRole.STUDENT, "student@example.com", hash("Password123"));

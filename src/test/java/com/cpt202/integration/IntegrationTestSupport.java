@@ -76,10 +76,12 @@ public abstract class IntegrationTestSupport {
     @Autowired
     protected ProjectTagService projectTagService;
 
+    /** Creates a user with the default test password. */
     protected User createUser(String username, String email, String fullName, User.UserRole role) {
         return createUser(username, DEFAULT_PASSWORD, email, fullName, role);
     }
 
+    /** Creates a user with an explicit raw password. */
     protected User createUser(String username, String rawPassword, String email, String fullName, User.UserRole role) {
         LocalDateTime now = LocalDateTime.now();
         return userRepository.save(User.builder()
@@ -94,10 +96,12 @@ public abstract class IntegrationTestSupport {
                 .build());
     }
 
+    /** Creates an administrator account for test setup. */
     protected User createAdminUser(String username, String email, String fullName) {
         return createUser(username, email, fullName, User.UserRole.ADMIN);
     }
 
+    /** Creates a teacher profile linked to the supplied user. */
     protected TeacherProfile createTeacherProfile(User user, String staffNo) {
         return teacherProfileRepository.save(TeacherProfile.builder()
                 .staffNo(staffNo)
@@ -110,6 +114,7 @@ public abstract class IntegrationTestSupport {
                 .build());
     }
 
+    /** Creates a student profile linked to the supplied user. */
     protected StudentProfile createStudentProfile(User user, String studentNo) {
         return studentProfileRepository.save(StudentProfile.builder()
                 .studentNo(studentNo)
@@ -122,6 +127,7 @@ public abstract class IntegrationTestSupport {
                 .build());
     }
 
+    /** Creates a category with deterministic default metadata. */
     protected Category createCategory(String categoryName) {
         return categoryRepository.save(Category.builder()
                 .categoryName(categoryName)
@@ -131,6 +137,7 @@ public abstract class IntegrationTestSupport {
                 .build());
     }
 
+    /** Creates a tag with deterministic default metadata. */
     protected Tag createTag(String tagName) {
         return tagRepository.save(Tag.builder()
                 .tagName(tagName)
@@ -140,6 +147,7 @@ public abstract class IntegrationTestSupport {
                 .build());
     }
 
+    /** Creates a published project for controller-level workflow tests. */
     protected Project createProject(TeacherProfile teacherProfile,
                                     Category category,
                                     String title,
@@ -161,6 +169,7 @@ public abstract class IntegrationTestSupport {
                 .build());
     }
 
+    /** Creates a pending request owned by the supplied student. */
     protected ProjectRequest createPendingRequest(Project project,
                                                   StudentProfile studentProfile,
                                                   int preferenceRank,
@@ -177,10 +186,12 @@ public abstract class IntegrationTestSupport {
                 .build());
     }
 
+    /** Builds a bearer token for the supplied user. */
     protected String authorizationFor(User user) {
         return "Bearer " + jwtTokenService.generateToken(user);
     }
 
+    /** Reads a Long field from the wrapped data payload. */
     protected Long readDataLong(MvcResult result, String fieldName) throws Exception {
         return objectMapper.readTree(result.getResponse().getContentAsString())
                 .path("data")
@@ -188,6 +199,7 @@ public abstract class IntegrationTestSupport {
                 .asLong();
     }
 
+    /** Generates a unique suffix for test-only identifiers. */
     protected String uniqueSuffix() {
         return Long.toString(System.nanoTime());
     }

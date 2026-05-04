@@ -38,6 +38,7 @@ class StudentControllerIntegrationTest extends IntegrationTestSupport {
     private String categoryName;
     private String tagName;
 
+        /** Creates a teacher, a student, and one published project for each test. */
     @BeforeEach
     void setUp() {
         String suffix = uniqueSuffix();
@@ -185,6 +186,7 @@ class StudentControllerIntegrationTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.data[1].newStatus").value("WITHDRAWN"));
     }
 
+        /** Submits a student request and returns the persisted request id. */
     private Long submitRequest(String notes) throws Exception {
         mockMvc.perform(post("/api/student/requests")
                         .header("Authorization", studentAuthorization)

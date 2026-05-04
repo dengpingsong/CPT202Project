@@ -31,6 +31,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/** Unit tests for tag caching, lookup, validation, and deletion rules. */
 @ExtendWith(MockitoExtension.class)
 class TagServiceImplTest {
 
@@ -43,6 +44,7 @@ class TagServiceImplTest {
     @InjectMocks
     private TagServiceImpl tagService;
 
+    /** Loads tag values from the repository and populates the cache on a miss. */
     @Test
     void listAllShouldLoadRepositoryValuesAndPopulateCache() {
         Tag java = tag(1L, "Java");
@@ -58,6 +60,7 @@ class TagServiceImplTest {
         verify(redisCacheService).set(eq(RedisKeyConstants.TAG_LIST), any(List.class), eq(Duration.ofMinutes(30)));
     }
 
+    /** Returns cached tags without querying the repository. */
     @Test
     void listAllShouldReturnCachedValuesWithoutRepositoryLookup() {
         TagVO cached = new TagVO(8L, "AI", "Artificial Intelligence");
@@ -71,6 +74,7 @@ class TagServiceImplTest {
         verify(tagRepository, never()).findAll();
     }
 
+    /** Maps a persisted tag entity to the public view object. */
     @Test
     void getByIdShouldMapTagVo() {
         Tag tag = tag(9L, "Security");
@@ -85,6 +89,7 @@ class TagServiceImplTest {
         assertThat(result.getDescription()).isEqualTo("Security description");
     }
 
+    /** Rejects lookup when the tag id does not exist. */
     @Test
     void getByIdShouldRejectMissingTag() {
         when(tagRepository.findById(10L)).thenReturn(Optional.empty());
@@ -95,6 +100,7 @@ class TagServiceImplTest {
         assertThat(exception.getMessage()).isEqualTo(MessageConstants.TAG_NOT_FOUND);
     }
 
+    /** Rejects tag creation when the trimmed name already exists. */
     @Test
     void createShouldRejectDuplicateTagName() {
         TagDTO dto = tagDTO("  Java  ", "dup");
@@ -108,6 +114,7 @@ class TagServiceImplTest {
         verify(tagRepository, never()).save(any(Tag.class));
     }
 
+    /** Trims the name, persists the tag, and evicts the list cache. */
     @Test
     void createShouldTrimNamePersistAndEvictCache() {
         TagDTO dto = tagDTO("  Cloud  ", "Cloud description");
@@ -127,6 +134,7 @@ class TagServiceImplTest {
         assertThat(saved.getUpdatedAt()).isNotNull();
     }
 
+    /** Persists trimmed tag updates and evicts the list cache. */
     @Test
     void updateShouldTrimNamePersistAndEvictCache() {
         Tag existing = tag(4L, "Legacy");
@@ -144,6 +152,7 @@ class TagServiceImplTest {
         assertThat(existing.getUpdatedAt()).isNotNull();
     }
 
+    /** Rejects delete requests for tags that do not exist. */
     @Test
     void deleteShouldRejectMissingTag() {
         when(tagRepository.existsById(12L)).thenReturn(false);
@@ -155,6 +164,7 @@ class TagServiceImplTest {
         verify(redisCacheService, never()).delete(RedisKeyConstants.TAG_LIST);
     }
 
+    /** Deletes an existing tag and evicts the cached list. */
     @Test
     void deleteShouldDeleteExistingTagAndEvictCache() {
         when(tagRepository.existsById(13L)).thenReturn(true);

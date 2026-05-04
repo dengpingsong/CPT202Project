@@ -32,6 +32,7 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/** Unit tests for TOTP setup, enablement, and login-challenge verification. */
 @ExtendWith(MockitoExtension.class)
 class TwoFactorAuthServiceImplTest {
 
@@ -46,6 +47,7 @@ class TwoFactorAuthServiceImplTest {
     @InjectMocks
     private TwoFactorAuthServiceImpl twoFactorAuthService;
 
+    /** Configures deterministic issuer and TTL values for two-factor tests. */
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(twoFactorAuthService, "issuer", "CPT202 Test");
@@ -98,6 +100,7 @@ class TwoFactorAuthServiceImplTest {
         assertThat(userCaptor.getValue().getUpdatedAt()).isNotNull();
     }
 
+    /** Rejects setup enablement when the provided TOTP code is invalid. */
     @Test
     void enableShouldRejectInvalidCodeAtFixedInstant() {
         User user = user(3L, "carol@example.com");
