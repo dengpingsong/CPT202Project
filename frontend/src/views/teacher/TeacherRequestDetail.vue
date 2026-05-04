@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { teacherApi, api } from '../../utils/api'
+import { teacherApi } from '../../utils/api'
 import { toast, confirm } from '../../utils/ui-feedback'
 
 const router = useRouter()
@@ -10,6 +10,7 @@ const route = useRoute()
 const loading = ref(true)
 const request = ref<any>(null)
 const studentProfile = ref<any>(null)
+const project = ref<any>(null)
 const showRejectModal = ref(false)
 const rejectComment = ref('')
 const processing = ref(false)
@@ -52,15 +53,26 @@ function formatDate(value: string | null | undefined): string {
 async function loadData() {
   loading.value = true
   try {
-    const res = await api.get(`/teacher/requests/${requestId}`)
-    request.value = res.data
+    const res = await teacherApi.listRequests()
+    const requests = Array.isArray(res.data) ? res.data : []
+    request.value = requests.find(r => String(r.requestId) === String(requestId)) || null
+    if (!request.value) {
+      project.value = null
+      studentProfile.value = null
+      return
+    }
 
-    if (request.value?.studentId) {
+    studentProfile.value = {
+      fullName: request.value.studentName,
+      studentNo: request.value.studentId,
+    }
+
+    if (request.value?.projectId) {
       try {
-        const studentRes = await api.get(`/teacher/students/${request.value.studentId}`)
-        studentProfile.value = studentRes.data
+        const projectRes = await teacherApi.getProject(request.value.projectId)
+        project.value = projectRes.data
       } catch {
-        studentProfile.value = null
+        project.value = null
       }
     }
   } catch (e: any) {
@@ -188,11 +200,11 @@ onMounted(loadData)
           </div>
           <div class="meta-item">
             <span class="meta-label">Topic Area</span>
-            <span class="meta-value">{{ request.topicArea || '-' }}</span>
+            <span class="meta-value">{{ project?.topicArea || '-' }}</span>
           </div>
           <div class="meta-item">
             <span class="meta-label">Required Skills</span>
-            <span class="meta-value">{{ request.requiredSkills || '-' }}</span>
+            <span class="meta-value">{{ project?.requiredSkills || '-' }}</span>
           </div>
         </div>
 

@@ -7,6 +7,62 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <link rel="stylesheet" href="../css/dashboard.css" />
     <link rel="stylesheet" href="../css/studentsp.css" />
+    <style>
+        .stats .panel {
+            border: 1px solid rgba(90, 43, 152, 0.18);
+            border-radius: 18px;
+            box-shadow: 0 12px 30px rgba(90, 43, 152, 0.06);
+        }
+        .grid .card {
+            border: 1px solid rgba(90, 43, 152, 0.16);
+            border-radius: 18px;
+            box-shadow: 0 12px 30px rgba(90, 43, 152, 0.05);
+        }
+        .status-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+        }
+        .status-chip {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid rgba(28, 27, 51, 0.1);
+            border-radius: 12px;
+            padding: 12px 14px;
+            background: #fff;
+        }
+        .status-chip::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--muted);
+        }
+        .status-chip strong {
+            display: inline;
+            font-size: 1.15rem;
+            margin: 0;
+            color: var(--text);
+            text-align: right;
+        }
+        .status-chip span {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+        .status-chip.tone-pending::before { background: var(--orange); }
+        .status-chip.tone-accepted::before { background: var(--green); }
+        .status-chip.tone-rejected::before { background: #c74545; }
+        .status-chip.tone-withdrawn::before,
+        .status-chip.tone-empty::before { background: var(--muted); }
+        .status-summary {
+            color: var(--text);
+            font-size: 2rem;
+            font-weight: 700;
+        }
+    </style>
 </head>
 <body>
 <div class="layout" id="layout">
@@ -63,18 +119,15 @@
         <section class="stats">
             <div class="panel">
                 <h3>当前状态</h3>
-                <strong id="currentStatus">加载中</strong>
-                <p class="rule" id="currentStatusRule">正在读取你的申请状态</p>
+                <div id="currentStatus" class="status-summary">加载中</div>
             </div>
             <div class="panel">
                 <h3>已获同意项目</h3>
                 <strong id="acceptedCount">0</strong>
-                <p class="rule">若已有 Accepted，会自动禁用申请按钮</p>
             </div>
             <div class="panel">
                 <h3>本学期申请次数</h3>
                 <strong id="requestCount">0</strong>
-                <p class="rule" id="requestCountRule">申请记录正在同步</p>
             </div>
         </section>
 
@@ -113,10 +166,8 @@
         const welcomeTitle = document.getElementById("welcomeTitle");
         const activeRequestBadge = document.getElementById("activeRequestBadge");
         const currentStatus = document.getElementById("currentStatus");
-        const currentStatusRule = document.getElementById("currentStatusRule");
         const acceptedCount = document.getElementById("acceptedCount");
         const requestCount = document.getElementById("requestCount");
-        const requestCountRule = document.getElementById("requestCountRule");
         const recommendedProjects = document.getElementById("recommendedProjects");
         const recentRequests = document.getElementById("recentRequests");
         const quickApplyBtn = document.getElementById("quickApplyBtn");
@@ -192,27 +243,24 @@
             acceptedCount.textContent = String(accepted);
             requestCount.textContent = String(requests.length);
 
-            const statusParts = [];
-            if (pending > 0) statusParts.push(`${pending}·pending`);
-            if (accepted > 0) statusParts.push(`${accepted}·accepted`);
-            if (rejected > 0) statusParts.push(`${rejected}·rejected`);
-            if (withdrawn > 0) statusParts.push(`${withdrawn}·withdrawn`);
-            currentStatus.textContent = statusParts.length ? statusParts.join("  ") : "0·request";
+            const statusParts = [
+                { label: "Pending", value: pending, className: "tone-pending" },
+                { label: "Accepted", value: accepted, className: "tone-accepted" },
+                { label: "Rejected", value: rejected, className: "tone-rejected" },
+                { label: "Withdrawn", value: withdrawn, className: "tone-withdrawn" }
+            ].filter(item => item.value > 0);
 
-            if (accepted > 0) {
-                currentStatusRule.textContent = `当前有 ${accepted} 个已通过项目，新的申请会受到限制`;
-                requestCountRule.textContent = "如项目被关闭或取消，状态会自动更新";
-                return;
-            }
+            const visibleStatuses = statusParts.length
+                ? statusParts
+                : [{ label: "Requests", value: 0, className: "tone-empty" }];
 
-            if (pending > 0 || rejected > 0) {
-                currentStatusRule.textContent = `当前待处理 ${pending} 个，未通过 ${rejected} 个`;
-                requestCountRule.textContent = "可以继续查看项目详情，重新安排志愿顺序";
-                return;
-            }
-
-            currentStatusRule.textContent = "当前没有待审批或已通过的申请";
-            requestCountRule.textContent = "可以从推荐项目或搜索项目开始申请";
+            currentStatus.className = "status-list";
+            currentStatus.innerHTML = visibleStatuses.map(item => `
+                <span class="status-chip ${item.className}">
+                    <strong>${esc(item.value)}</strong>
+                    <span>${esc(item.label)}</span>
+                </span>
+            `).join("");
         }
         //推荐项目
         function renderProjects(projectPage, requests) {//后端返回的项目列表数据
@@ -336,8 +384,8 @@
             } catch (error) {
                 console.error(error);
                 activeRequestBadge.textContent = "当前活跃申请：加载失败";
+                currentStatus.className = "status-summary";
                 currentStatus.textContent = "Load Failed";
-                currentStatusRule.textContent = error.message || "读取申请状态失败";
                 recommendedProjects.innerHTML = `
                     <article class="card">
                         <h4>推荐项目加载失败</h4>

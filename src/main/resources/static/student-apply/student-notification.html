@@ -8,60 +8,13 @@
     <link rel="stylesheet" href="../css/dashboard.css" />
     <link rel="stylesheet" href="../css/studentsp.css" />
     <style>
-        /* 微调操作栏样式以保持与整体一致 */
-        .action-bar {
+        .notification-toolbar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-top: 12px;
         }
-        .unread-badge {
-            background: var(--orange);
-            color: white;
-            border-radius: 999px;
-            padding: 4px 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            margin-left: 12px;
-        }
-        .mark-all-read {
-            background: transparent;
-            border: 1.5px solid var(--muted);
-            color: var(--muted);
-            padding: 8px 18px;
-            border-radius: 30px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .mark-all-read:hover {
-            border-color: var(--deep);
-            color: var(--deep);
-            background: rgba(90, 43, 152, 0.04);
-        }
-        .action-icon-btn {
-            background: transparent;
-            border: none;
-            color: var(--muted);
-            font-size: 0.9rem;
-            cursor: pointer;
-            padding: 4px 8px;
-            border-radius: 20px;
-            transition: all 0.2s;
-        }
-        .action-icon-btn:hover {
-            background: rgba(90, 43, 152, 0.08);
-            color: var(--deep);
-        }
-        .empty-state {
-            text-align: center;
-            padding: 48px 24px;
-            color: var(--muted);
-        }
+        .notification-actions { display: flex; gap: 8px; align-items: center; }
     </style>
 </head>
 <body>
@@ -101,29 +54,24 @@
     <!-- 主内容区域（结构与教师端统一） -->
     <main class="main">
         <header class="page-header">
-            <h1 class="mb-0">消息与通知</h1>
+            <h1 class="mb-0">消息与系统通知</h1>
         </header>
 
-        <!-- 操作栏：未读计数 + 全部已读 -->
-        <div class="action-bar">
-            <div>
-                <span style="font-weight: 600; color: var(--text);">
-                    <i class="bi bi-bell"></i> 通知中心
-                </span>
-                <span class="unread-badge" id="unreadCountDisplay">加载中</span>
+        <div class="notification-toolbar">
+            <div id="notificationStatus" class="footnote" style="text-align:left;">正在加载通知...</div>
+            <button class="btn-secondary" id="markAllReadBtn" type="button" style="padding: 8px 14px;">全部已读</button>
+        </div>
+
+        <div class="notification-list" id="notificationList" style="margin-top: 16px;">
+            <div class="notification-item">
+                <div class="notification-icon">
+                    <i class="bi bi-hourglass-split"></i>
+                </div>
+                <div class="msg-body">
+                    <div class="notification-title">正在加载通知</div>
+                    <div class="notification-message">请稍候</div>
+                </div>
             </div>
-            <button class="mark-all-read" id="markAllReadBtn">
-                <i class="bi bi-check-all"></i> 全部标为已读
-            </button>
-        </div>
-
-        <!-- 通知列表（动态渲染，结构与教师端一致） -->
-        <div class="notification-list mt-3" id="notificationList">
-            <!-- 动态渲染 -->
-        </div>
-
-        <div class="footnote">
-            <i class="bi bi-info-circle"></i> 点击消息可查看详情，重要通知请及时处理
         </div>
     </main>
 </div>
@@ -140,7 +88,7 @@
         const readStorageKey = `studentNotificationRead:${user.userId || user.username || "current"}`;//记录哪些通知已经读过
 
         const notificationListEl = document.getElementById('notificationList');
-        const unreadCountDisplay = document.getElementById('unreadCountDisplay');
+        const notificationStatus = document.getElementById('notificationStatus');
         const markAllReadBtn = document.getElementById('markAllReadBtn');
 
         function esc(value) {
@@ -190,17 +138,18 @@
         }
 
         function notificationType(status) {
-            if (status === "ACCEPTED") return "approval";
-            if (status === "REJECTED") return "feedback";
-            if (status === "WITHDRAWN") return "system";
-            return "application";
+            if (status === "PENDING") return "new";
+            if (status === "WITHDRAWN") return "withdrawn";
+            if (status === "ACCEPTED") return "accepted";
+            if (status === "REJECTED") return "rejected";
+            return "system";
         }
 
         function notificationTitle(status) {
-            if (status === "ACCEPTED") return "项目申请通过";
-            if (status === "REJECTED") return "项目申请未通过";
-            if (status === "WITHDRAWN") return "申请已撤回";
             if (status === "PENDING") return "申请已提交";
+            if (status === "WITHDRAWN") return "申请已撤回";
+            if (status === "ACCEPTED") return "申请已同意";
+            if (status === "REJECTED") return "申请已拒绝";
             return "申请状态更新";
         }
 
@@ -222,6 +171,23 @@
             return `“${projectTitle}”项目申请状态已更新为 ${status}。`;
         }
 
+        function iconClass(type) {
+            const map = {
+                new: "bi-envelope-paper",
+                withdrawn: "bi-exclamation-triangle",
+                accepted: "bi-check-circle",
+                rejected: "bi-x-circle",
+                system: "bi-info-circle"
+            };
+            return map[type] || "bi-bell";
+        }
+
+        function iconStyle(type) {
+            if (type === "withdrawn" || type === "rejected") return "background: rgba(246,166,61,0.1); color: var(--orange);";
+            if (type === "accepted") return "background: rgba(47,197,168,0.12); color: var(--green);";
+            return "";
+        }
+
         //****核心*****
         function buildNotifications(requests) {
             const map = readMap();
@@ -241,14 +207,16 @@
                     projectId: request.projectId,
                     requestId: request.requestId
                 };
+            }).sort((a, b) => {
+                if (a.read !== b.read) return a.read ? 1 : -1;
+                return new Date(b.time || 0) - new Date(a.time || 0);
             });
         }
 
-        // 更新未读数量
-        function updateUnreadCount() {
-            const unreadCount = notifications.filter(n => !n.read).length;
-            unreadCountDisplay.textContent = unreadCount === 0 ? '暂无未读' : `${unreadCount} 条未读`;
-            markAllReadBtn.disabled = unreadCount === 0;
+        function setStatus(message, type) {
+            if (!notificationStatus) return;
+            notificationStatus.textContent = message;
+            notificationStatus.style.color = type === "error" ? "#c74545" : "var(--muted)";
         }
 
         //通知列表
@@ -257,63 +225,47 @@
 
             if (notifications.length === 0) {
                 notificationListEl.innerHTML = `
-                    <div class="empty-state">
-                        <i class="bi bi-bell-slash" style="font-size: 2.5rem; opacity: 0.5;"></i>
-                        <p style="font-size:1.1rem; margin-top: 12px;">暂无通知消息</p>
-                        <p style="font-size:0.9rem;">当有新的申请动态或导师消息时会显示在这里</p>
+                    <div class="notification-item">
+                        <div class="notification-icon"><i class="bi bi-bell-slash"></i></div>
+                        <div class="msg-body">
+                            <div class="notification-title">暂无通知</div>
+                            <div class="notification-message">有新的申请动态后会显示在这里。</div>
+                        </div>
                     </div>
                 `;
-                updateUnreadCount();
+                setStatus("当前没有通知。", "");
+                markAllReadBtn.disabled = true;
                 return;
             }
 
-            notifications.sort((a, b) => {
-                if (a.read !== b.read) return a.read ? 1 : -1;
-                return new Date(b.time || 0) - new Date(a.time || 0);
-            });
-
-            const html = notifications.map(item => {
-                const unreadClass = item.read ? '' : 'unread';
-                const iconType = {
-                    'application': 'bi-file-text',
-                    'approval': 'bi-check-circle',
-                    'feedback': 'bi-chat-quote',
-                    'system': 'bi-info-circle',
-                    'message': 'bi-envelope',
-                    'deadline': 'bi-calendar-exclamation'
-                }[item.type] || 'bi-bell';
-
-                return `
-                    <div class="notification-item ${unreadClass}" data-id="${item.id}">
-                        <div class="notification-icon">
-                            <i class="bi ${iconType}"></i>
+            const unreadCount = notifications.filter(item => !item.read).length;
+            notificationListEl.innerHTML = notifications.map(item => `
+                <div class="notification-item ${item.read ? "" : "unread"}" data-id="${esc(item.id)}">
+                    <div class="notification-icon" style="${iconStyle(item.type)}">
+                        <i class="bi ${iconClass(item.type)}"></i>
+                    </div>
+                    <div class="msg-body">
+                        <div class="notification-title">
+                            ${esc(item.title)}
+                            ${!item.read ? '<span class="unread-dot"></span>' : ''}
                         </div>
-                        <div class="msg-body">
-                            <div class="notification-title">
-                                ${esc(item.title)}
-                                ${!item.read ? '<span class="unread-dot"></span>' : ''}
-                            </div>
-                            <div class="notification-message">${esc(item.message)}</div>
-                            <div class="notification-meta">
-                                <span><i class="bi bi-clock"></i> ${esc(formatDate(item.time))}</span>
-                                <span><i class="bi bi-tag"></i> ${esc(item.status)}</span>
-                            </div>
-                        </div>
-                        <div class="notification-actions" style="display: flex; gap: 8px; align-items: center;">
-                            ${!item.read ?
-                    `<button class="action-icon-btn mark-read-btn" data-id="${item.id}" title="标为已读">
-                                    <i class="bi bi-check-lg"></i> 已读
-                                </button>` : ''}
-                            <button class="action-icon-btn detail-btn" data-project-id="${esc(item.projectId)}" title="查看详情">
-                                <i class="bi bi-arrow-right-circle"></i>
-                            </button>
+                        <div class="notification-message">${esc(item.message)}</div>
+                        <div class="notification-meta">
+                            <span><i class="bi bi-clock"></i> ${esc(formatDate(item.time))}</span>
+                            <span><i class="bi bi-tag"></i> ${esc(item.status)}</span>
                         </div>
                     </div>
-                `;
-            }).join("");
+                    <div class="notification-actions">
+                        ${!item.read ? `<button class="btn-secondary mark-read-btn" data-id="${esc(item.id)}" type="button" style="padding: 6px 10px;">已读</button>` : ""}
+                        <button class="btn-secondary detail-btn" data-project-id="${esc(item.projectId)}" type="button" style="padding: 6px 10px;">
+                            <i class="bi bi-arrow-right-circle"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join("");
 
-            notificationListEl.innerHTML = html;
-            updateUnreadCount();
+            setStatus(unreadCount === 0 ? "暂无未读通知。" : `${unreadCount} 条未读通知。`, "");
+            markAllReadBtn.disabled = unreadCount === 0;
 
             // 绑定按钮
             document.querySelectorAll('.mark-read-btn').forEach(btn => {
@@ -365,25 +317,31 @@
         async function initNotifications() {
             try {
                 notificationListEl.innerHTML = `
-                    <div class="empty-state">
-                        <i class="bi bi-hourglass-split" style="font-size: 2.5rem; opacity: 0.5;"></i>
-                        <p style="font-size:1.1rem; margin-top: 12px;">正在加载通知</p>
+                    <div class="notification-item">
+                        <div class="notification-icon"><i class="bi bi-hourglass-split"></i></div>
+                        <div class="msg-body">
+                            <div class="notification-title">正在加载通知</div>
+                            <div class="notification-message">请稍候</div>
+                        </div>
                     </div>
                 `;
+                setStatus("正在加载通知...", "");
 
                 const requests = await ApiClient.get("/api/student/requests");
                 notifications = buildNotifications(Array.isArray(requests) ? requests : []);
                 renderNotifications();
             } catch (error) {
                 console.error(error);
-                unreadCountDisplay.textContent = "加载失败";
                 notificationListEl.innerHTML = `
-                    <div class="empty-state">
-                        <i class="bi bi-exclamation-circle" style="font-size: 2.5rem; opacity: 0.5;"></i>
-                        <p style="font-size:1.1rem; margin-top: 12px;">通知加载失败</p>
-                        <p style="font-size:0.9rem;">${esc(error.message || "请稍后重试")}</p>
+                    <div class="notification-item">
+                        <div class="notification-icon"><i class="bi bi-exclamation-circle"></i></div>
+                        <div class="msg-body">
+                            <div class="notification-title" style="color:#c74545;">通知加载失败</div>
+                            <div class="notification-message">${esc(error.message || "请稍后重试")}</div>
+                        </div>
                     </div>
                 `;
+                setStatus(error.message || "通知加载失败。", "error");
             }
         }
 

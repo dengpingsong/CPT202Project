@@ -1,10 +1,35 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { studentApi } from '../../utils/api'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { studentApi, getCurrentUser } from '../../utils/api'
 import { toast } from '../../utils/ui-feedback'
 
+const router = useRouter()
 const loading = ref(true)
-const notifications = ref<any[]>([])
+const notifications = ref<NotificationItem[]>([])
+
+const readStorageKey = computed(() => {
+  const user = getCurrentUser()
+  return `studentNotificationRead:${user.userId || user.username || 'current'}`
+})
+
+function readMap(): Record<string, boolean> {
+  try {
+    return JSON.parse(localStorage.getItem(readStorageKey.value) || '{}')
+  } catch {
+    return {}
+  }
+}
+
+function saveRead(id: string) {
+  const map = readMap()
+  map[id] = true
+  localStorage.setItem(readStorageKey.value, JSON.stringify(map))
+}
+
+function normalizeStatus(status: string | null | undefined): string {
+  return String(status || 'UNKNOWN').toUpperCase()
+}
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return '-'
@@ -16,39 +41,129 @@ function formatDate(value: string | null | undefined): string {
   })
 }
 
-function getIcon(status: string): string {
-  const s = String(status || '').toUpperCase()
-  if (s === 'ACCEPTED') return 'bi-check-circle'
-  if (s === 'REJECTED') return 'bi-x-circle'
-  if (s === 'WITHDRAWN') return 'bi-arrow-counterclockwise'
-  return 'bi-bell'
+function notificationTime(r: any): string {
+  return r.reviewedAt || r.withdrawnAt || r.submittedAt
 }
 
-function getIconColor(status: string): string {
-  const s = String(status || '').toUpperCase()
-  if (s === 'ACCEPTED') return 'var(--green)'
-  if (s === 'REJECTED') return 'var(--red)'
-  if (s === 'WITHDRAWN') return 'var(--muted)'
+function notificationType(status: string): string {
+  if (status === 'PENDING') return 'new'
+  if (status === 'WITHDRAWN') return 'withdrawn'
+  if (status === 'ACCEPTED') return 'accepted'
+  if (status === 'REJECTED') return 'rejected'
+  return 'system'
+}
+
+function notificationTitle(status: string): string {
+  const map: Record<string, string> = {
+    PENDING: 'Application Submitted',
+    WITHDRAWN: 'Application Withdrawn',
+    ACCEPTED: 'Application Accepted',
+    REJECTED: 'Application Rejected',
+  }
+  return map[status] || 'Status Update'
+}
+
+function notificationMessage(r: any, status: string): string {
+  const project = r.projectTitle || 'Untitled Project'
+  if (status === 'PENDING') return `Your application for "${project}" has been submitted and is waiting for review.`
+  if (status === 'WITHDRAWN') return `You withdrew your application for "${project}".`
+  if (status === 'ACCEPTED') return `Your application for "${project}" has been accepted.`
+  if (status === 'REJECTED') {
+    const feedback = r.decisionComment ? ` Feedback: ${r.decisionComment}` : ''
+    return `Your application for "${project}" was rejected.${feedback}`
+  }
+  return `Your application for "${project}" has been updated.`
+}
+
+function iconClass(type: string): string {
+  const map: Record<string, string> = {
+    new: 'bi-envelope-paper',
+    withdrawn: 'bi-exclamation-triangle',
+    accepted: 'bi-check-circle',
+    rejected: 'bi-x-circle',
+    system: 'bi-info-circle',
+  }
+  return map[type] || 'bi-bell'
+}
+
+function iconBg(type: string): string {
+  if (type === 'withdrawn' || type === 'rejected') return 'rgba(246,166,61,0.1)'
+  if (type === 'accepted') return 'rgba(47,197,168,0.12)'
+  return 'rgba(90,43,152,0.1)'
+}
+
+function iconColor(type: string): string {
+  if (type === 'withdrawn' || type === 'rejected') return 'var(--orange)'
+  if (type === 'accepted') return 'var(--green)'
   return 'var(--deep)'
 }
 
-async function init() {
+interface NotificationItem {
+  id: string
+  type: string
+  title: string
+  message: string
+  time: string
+  status: string
+  read: boolean
+  requestId: number
+  projectId: number
+}
+
+function buildNotifications(requests: any[]): NotificationItem[] {
+  const map = readMap()
+  return requests.map(r => {
+    const status = normalizeStatus(r.requestStatus)
+    const time = notificationTime(r)
+    const id = `student-request-${r.requestId}-${status}-${time || 'unknown'}`
+    return {
+      id,
+      type: notificationType(status),
+      title: notificationTitle(status),
+      message: notificationMessage(r, status),
+      time,
+      status,
+      read: Boolean(map[id]),
+      requestId: r.requestId,
+      projectId: r.projectId,
+    }
+  }).sort((a, b) => {
+    if (a.read !== b.read) return a.read ? 1 : -1
+    return new Date(b.time || 0).getTime() - new Date(a.time || 0).getTime()
+  })
+}
+
+const unreadCount = computed(() => notifications.value.filter(n => !n.read).length)
+
+function markRead(item: NotificationItem) {
+  if (item.read) return
+  item.read = true
+  saveRead(item.id)
+}
+
+function markAllRead() {
+  notifications.value.forEach(n => markRead(n))
+}
+
+function viewDetail(projectId: number) {
+  router.push(`/student/projects/${projectId}`)
+}
+
+async function loadNotifications() {
   loading.value = true
   try {
     const reqRes = await studentApi.getRequests()
     const reqs = Array.isArray(reqRes.data) ? reqRes.data : []
-    // Build notifications from requests that have been reviewed
-    notifications.value = reqs
-      .filter(r => r.reviewedAt || r.withdrawnAt)
-      .sort((a, b) => new Date(b.reviewedAt || b.withdrawnAt || 0).getTime() - new Date(a.reviewedAt || a.withdrawnAt || 0).getTime())
+    notifications.value = buildNotifications(reqs)
   } catch (e: any) {
     toast.error(e.message || 'Failed to load notifications')
+    notifications.value = []
   } finally {
     loading.value = false
   }
 }
 
-onMounted(init)
+onMounted(loadNotifications)
 </script>
 
 <template>
@@ -56,6 +171,17 @@ onMounted(init)
     <header class="page-header">
       <h1>Notifications</h1>
     </header>
+
+    <div class="toolbar">
+      <span class="status-text">
+        <template v-if="loading">Loading...</template>
+        <template v-else-if="unreadCount === 0">No unread notifications</template>
+        <template v-else>{{ unreadCount }} unread notification(s)</template>
+      </span>
+      <button class="btn-mark-all" :disabled="unreadCount === 0" @click="markAllRead">
+        Mark All Read
+      </button>
+    </div>
 
     <div v-if="loading" class="panel" style="text-align: center; padding: 40px; color: var(--muted);">
       Loading...
@@ -66,24 +192,32 @@ onMounted(init)
     </div>
 
     <div v-else class="notification-list">
-      <div v-for="n in notifications" :key="n.requestId" class="notification-item" :class="{ unread: !n.readAt }">
-        <div class="notification-icon">
-          <i :class="`bi ${getIcon(n.requestStatus)}`" :style="{ color: getIconColor(n.requestStatus) }"></i>
+      <div
+        v-for="n in notifications"
+        :key="n.id"
+        class="notification-item"
+        :class="{ unread: !n.read }"
+        @click="markRead(n)"
+      >
+        <div class="notification-icon" :style="{ background: iconBg(n.type), color: iconColor(n.type) }">
+          <i :class="`bi ${iconClass(n.type)}`"></i>
         </div>
-        <div>
+        <div class="msg-body">
           <div class="notification-title">
-            {{ n.projectTitle || 'Untitled Project' }}
-            <span v-if="!n.readAt" class="unread-dot"></span>
+            {{ n.title }}
+            <span v-if="!n.read" class="unread-dot"></span>
           </div>
-          <div class="notification-message">
-            Status: {{ n.requestStatus }}
-            <span v-if="n.decisionComment"> — {{ n.decisionComment }}</span>
-          </div>
+          <div class="notification-message">{{ n.message }}</div>
           <div class="notification-meta">
-            <span>{{ formatDate(n.reviewedAt || n.withdrawnAt) }}</span>
-            <span>Rank: {{ n.preferenceRank || '-' }}</span>
+            <span><i class="bi bi-clock"></i> {{ formatDate(n.time) }}</span>
+            <span><i class="bi bi-tag"></i> {{ n.status }}</span>
           </div>
-          <router-link :to="`/student/projects/${n.projectId}`" class="detail-link">View Project</router-link>
+        </div>
+        <div class="notification-actions">
+          <button v-if="!n.read" class="btn-sm btn-read" @click.stop="markRead(n)">Read</button>
+          <button class="btn-sm btn-detail" @click.stop="viewDetail(n.projectId)">
+            <i class="bi bi-arrow-right-circle"></i>
+          </button>
         </div>
       </div>
     </div>
@@ -110,6 +244,38 @@ onMounted(init)
   padding: 24px 28px;
 }
 
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.status-text {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.btn-mark-all {
+  padding: 8px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(90, 43, 152, 0.16);
+  background: linear-gradient(180deg, #fff, #f7f2ff);
+  color: var(--deep);
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85rem;
+}
+
+.btn-mark-all:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-mark-all:hover:not(:disabled) {
+  background: linear-gradient(180deg, #fff, #efe4ff);
+}
+
 .notification-list {
   display: flex;
   flex-direction: column;
@@ -118,7 +284,7 @@ onMounted(init)
 
 .notification-item {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto 1fr auto;
   gap: 16px;
   align-items: flex-start;
   padding: 18px 20px;
@@ -126,6 +292,7 @@ onMounted(init)
   border: 1px solid rgba(90, 43, 152, 0.1);
   background: #fcfbff;
   transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
 }
 
 .notification-item:hover {
@@ -140,11 +307,14 @@ onMounted(init)
   width: 46px;
   height: 46px;
   border-radius: 16px;
-  background: rgba(90, 43, 152, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.2rem;
+}
+
+.msg-body {
+  min-width: 0;
 }
 
 .notification-title {
@@ -158,7 +328,7 @@ onMounted(init)
 }
 
 .notification-message {
-  color: var(--text);
+  color: #444;
   line-height: 1.65;
   font-size: 0.9rem;
 }
@@ -180,14 +350,44 @@ onMounted(init)
   display: inline-block;
 }
 
-.detail-link {
-  color: var(--deep);
-  font-weight: 600;
-  text-decoration: none;
-  font-size: 0.85rem;
-  margin-top: 8px;
-  display: inline-block;
+.notification-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
-.detail-link:hover { text-decoration: underline; }
+.btn-sm {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1.5px solid;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+  background: transparent;
+}
+
+.btn-read {
+  border-color: var(--deep);
+  color: var(--deep);
+}
+
+.btn-read:hover {
+  background: var(--deep);
+  color: #fff;
+}
+
+.btn-detail {
+  border-color: var(--muted);
+  color: var(--muted);
+}
+
+.btn-detail:hover {
+  background: var(--muted);
+  color: #fff;
+}
 </style>

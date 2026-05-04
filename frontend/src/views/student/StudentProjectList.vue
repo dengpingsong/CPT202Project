@@ -98,14 +98,12 @@ function clearAllFilters() {
 async function loadProjects(page: number) {
   loading.value = true
   try {
-    const params = new URLSearchParams({ pageNum: String(page), pageSize: String(pageSize.value) })
-    selectedTagIds.value.forEach(id => params.append('tagIds', id))
-    if (keyword.value.trim()) params.set('keyword', keyword.value.trim())
-    if (categoryId.value) params.set('categoryId', categoryId.value)
-    if (statusFilter.value) params.set('status', statusFilter.value)
-
-    const res = await studentApi.getProjects(page, pageSize.value)
-    // If the API doesn't support query params yet, use the generic endpoint
+    const res = await studentApi.getProjects(page, pageSize.value, {
+      keyword: keyword.value.trim(),
+      categoryId: categoryId.value,
+      status: statusFilter.value,
+      tagIds: Array.from(selectedTagIds.value),
+    })
     const data = res.data
     projects.value = Array.isArray(data?.records) ? data.records : []
     total.value = Number(data?.total || projects.value.length)

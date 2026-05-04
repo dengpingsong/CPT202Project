@@ -19,25 +19,15 @@ const rejected = computed(() => requests.value.filter(r => normalizeStatus(r.req
 const withdrawn = computed(() => requests.value.filter(r => normalizeStatus(r.requestStatus) === 'WITHDRAWN').length)
 const activeCount = computed(() => pending.value + accepted.value)
 
-const statusSummary = computed(() => {
-  const parts: string[] = []
-  if (pending.value > 0) parts.push(`${pending.value} pending`)
-  if (accepted.value > 0) parts.push(`${accepted.value} accepted`)
-  if (rejected.value > 0) parts.push(`${rejected.value} rejected`)
-  if (withdrawn.value > 0) parts.push(`${withdrawn.value} withdrawn`)
-  return parts.length ? parts.join('  ') : '0 request'
-})
+const statusEntries = computed(() => {
+  const entries = [
+    { label: 'Pending', value: pending.value, className: 'tone-pending' },
+    { label: 'Accepted', value: accepted.value, className: 'tone-accepted' },
+    { label: 'Rejected', value: rejected.value, className: 'tone-rejected' },
+    { label: 'Withdrawn', value: withdrawn.value, className: 'tone-withdrawn' },
+  ].filter(item => item.value > 0)
 
-const statusRule = computed(() => {
-  if (accepted.value > 0) return `You have ${accepted.value} accepted project(s), new applications may be restricted`
-  if (pending.value > 0 || rejected.value > 0) return `${pending.value} pending, ${rejected.value} rejected`
-  return 'No pending or accepted applications'
-})
-
-const requestCountRule = computed(() => {
-  if (accepted.value > 0) return 'If a project is closed or cancelled, status will update automatically'
-  if (pending.value > 0 || rejected.value > 0) return 'You can continue browsing projects and re-arrange your preferences'
-  return 'Start by browsing recommended projects or searching'
+  return entries.length ? entries : [{ label: 'Requests', value: 0, className: 'tone-empty' }]
 })
 
 const withdrawnProjectIds = computed(() => {
@@ -144,18 +134,21 @@ onMounted(loadData)
     <section class="stats">
       <div class="panel">
         <h3>Current Status</h3>
-        <strong>{{ loading ? 'Loading...' : statusSummary }}</strong>
-        <p class="rule">{{ statusRule }}</p>
+        <div v-if="loading" class="status-summary">Loading...</div>
+        <div v-else class="status-list">
+          <span v-for="item in statusEntries" :key="item.label" class="status-chip" :class="item.className">
+            <strong>{{ item.value }}</strong>
+            <span>{{ item.label }}</span>
+          </span>
+        </div>
       </div>
       <div class="panel">
         <h3>Accepted Projects</h3>
         <strong>{{ accepted }}</strong>
-        <p class="rule">If already accepted, new application buttons will be disabled</p>
       </div>
       <div class="panel">
         <h3>Total Applications</h3>
         <strong>{{ requests.length }}</strong>
-        <p class="rule">{{ requestCountRule }}</p>
       </div>
     </section>
 
@@ -281,7 +274,12 @@ onMounted(loadData)
   gap: 16px;
 }
 
-.stats .panel { padding: 20px 24px; }
+.stats .panel {
+  border: 1px solid rgba(90, 43, 152, 0.18);
+  border-radius: 18px;
+  padding: 20px 24px;
+  box-shadow: 0 12px 30px rgba(90, 43, 152, 0.06);
+}
 
 .panel h3 {
   margin: 0 0 12px;
@@ -291,8 +289,56 @@ onMounted(loadData)
   letter-spacing: 0.08em;
 }
 
-.panel strong { font-size: 2rem; display: block; margin-bottom: 6px; }
-.panel .rule { font-size: 0.8rem; color: var(--muted); }
+.panel strong { font-size: 2rem; display: block; }
+
+.status-summary {
+  color: var(--text);
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.status-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.status-chip {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(28, 27, 51, 0.1);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #fff;
+}
+
+.status-chip::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.status-chip strong {
+  font-size: 1.15rem;
+  text-align: right;
+  color: var(--text);
+}
+
+.status-chip span {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.status-chip.tone-pending::before { background: var(--orange); }
+.status-chip.tone-accepted::before { background: var(--green); }
+.status-chip.tone-rejected::before { background: var(--red); }
+.status-chip.tone-withdrawn::before,
+.status-chip.tone-empty::before { background: var(--muted); }
 
 .grid {
   display: grid;
@@ -302,11 +348,14 @@ onMounted(loadData)
 }
 
 .card {
+  border: 1px solid rgba(90, 43, 152, 0.16);
+  border-radius: 18px;
   padding: 22px;
   min-height: 210px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  box-shadow: 0 12px 30px rgba(90, 43, 152, 0.05);
 }
 
 .card h4 { margin: 0; font-size: 1.2rem; }

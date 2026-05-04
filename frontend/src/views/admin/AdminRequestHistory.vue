@@ -35,7 +35,7 @@ onMounted(loadData)
 <template>
   <div class="page">
     <header class="page-header">
-      <h1>Request History</h1>
+      <h1>History</h1>
     </header>
 
     <div class="panel">
@@ -78,7 +78,9 @@ onMounted(loadData)
 
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 20px; }
+.page-header { padding: 0; }
 .page-header h1 { margin: 0; font-size: 1.8rem; font-weight: 600; color: var(--text); }
+.panel { background: #fff; border: 1px solid rgba(90, 43, 152, 0.16); border-radius: 18px; padding: 24px 28px; box-shadow: 0 12px 30px rgba(90, 43, 152, 0.05); }
 .table-wrapper { overflow-x: auto; border-radius: 18px; }
 .data-table { width: 100%; border-collapse: collapse; min-width: 700px; font-size: 0.9rem; }
 .data-table th { text-align: left; padding: 16px; background: #f8f5ff; font-weight: 600; color: var(--deep); border-bottom: 2px solid rgba(90, 43, 152, 0.2); }

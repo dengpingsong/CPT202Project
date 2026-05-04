@@ -76,12 +76,21 @@ client.interceptors.response.use(
 
 async function request<T = any>(url: string, options: { method?: string; body?: any } = {}): Promise<ApiResponse<T>> {
   const { method = 'GET', body } = options
-  const response = await client.request<ApiResponse<T>>({
-    url,
-    method: method.toLowerCase(),
-    data: body,
-  })
-  return response.data
+  try {
+    const response = await client.request<ApiResponse<T>>({
+      url,
+      method: method.toLowerCase(),
+      data: body,
+    })
+    const result = response.data
+    if (result && result.code !== undefined && result.code !== 1) {
+      throw new Error(result.msg || 'Request failed.')
+    }
+    return result
+  } catch (error: any) {
+    const message = error.response?.data?.msg || error.message || 'Request failed.'
+    throw new Error(message)
+  }
 }
 
 // Auth APIs
@@ -111,8 +120,15 @@ export const authApi = {
 // Student APIs
 export const studentApi = {
   getRequests: () => request('/student/requests'),
-  getProjects: (pageNum = 1, pageSize = 12) =>
-    request(`/student/projects?pageNum=${pageNum}&pageSize=${pageSize}`),
+  getProjects: (pageNum = 1, pageSize = 12, filters: Record<string, any> = {}) => {
+    const params = new URLSearchParams({ pageNum: String(pageNum), pageSize: String(pageSize) })
+    if (filters.keyword) params.set('keyword', String(filters.keyword))
+    if (filters.categoryId) params.set('categoryId', String(filters.categoryId))
+    if (filters.status) params.set('status', String(filters.status))
+    const tagIds = Array.isArray(filters.tagIds) ? filters.tagIds : []
+    tagIds.forEach((tagId: number | string) => params.append('tagIds', String(tagId)))
+    return request(`/student/projects?${params.toString()}`)
+  },
   getProfile: () => request('/student/profile/me'),
   updateProfile: (payload: Record<string, any>) =>
     request('/student/profile/me', { method: 'PUT', body: payload }),

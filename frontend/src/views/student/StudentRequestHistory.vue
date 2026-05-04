@@ -125,7 +125,7 @@ onMounted(init)
 <template>
   <div class="history-page">
     <header class="page-header">
-      <h1>Request History</h1>
+      <h1>History</h1>
     </header>
 
     <div class="panel">
@@ -176,6 +176,10 @@ onMounted(init)
   gap: 20px;
 }
 
+.page-header {
+  padding: 0;
+}
+
 .page-header h1 {
   margin: 0;
   font-size: 1.8rem;
@@ -185,8 +189,10 @@ onMounted(init)
 
 .panel {
   background: #fff;
-  border-radius: 28px;
+  border: 1px solid rgba(90, 43, 152, 0.16);
+  border-radius: 18px;
   padding: 24px 28px;
+  box-shadow: 0 12px 30px rgba(90, 43, 152, 0.05);
 }
 
 .timeline-vertical {
