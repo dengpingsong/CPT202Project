@@ -74,6 +74,21 @@ public class CommonAuthController {
     }
 
     /**
+     * 发送注册邮箱验证码邮件。
+     * 调用前会校验邮箱域名是否在允许范围（@student.xjtlu.edu.cn 或 @xjtlu.edu.cn）
+     * 以及邮箱是否已被注册。
+     *
+     * @param requestDTO 邮箱参数
+     * @return 统一成功响应
+     */
+    @PostMapping("/register/email-otp/send")
+    @Operation(summary = "Send email OTP for registration")
+    public Result<String> sendRegisterEmailOtp(@Valid @RequestBody EmailOtpRequestDTO requestDTO) {
+        authService.sendEmailRegisterOtp(requestDTO);
+        return Result.success(MessageConstants.EMAIL_OTP_SENT);
+    }
+
+    /**
      * 通过邮箱验证码登录。
      *
      * @param loginDTO 邮箱验证码登录参数

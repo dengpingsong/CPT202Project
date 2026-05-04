@@ -39,6 +39,8 @@ public interface AuthService {
      */
     void sendEmailLoginOtp(EmailOtpRequestDTO requestDTO);
 
+    void sendEmailRegisterOtp(EmailOtpRequestDTO requestDTO);
+
     /**
      * 通过邮箱验证码登录。
      *
