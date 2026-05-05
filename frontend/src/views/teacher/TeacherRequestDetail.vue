@@ -188,7 +188,7 @@ onMounted(loadData)
             <span class="meta-value">{{ request.projectTitle || '-' }}</span>
           </div>
           <div class="meta-item">
-            <span class="meta-label">Status</span>
+            <span class="meta-label">Application Status</span>
             <span class="meta-value">
               <span class="status-pill" :style="{ color: statusColor(request.requestStatus), background: statusColor(request.requestStatus) + '18' }">
                 {{ statusText(request.requestStatus) }}

@@ -139,7 +139,7 @@ onMounted(init)
       <div v-else-if="timelineEntries.length === 0" class="timeline-vertical">
         <div class="item">
           <div class="timeline-title">No request history</div>
-          <div class="timeline-desc">Status changes will appear here after you submit applications.</div>
+          <div class="timeline-desc">Application status changes will appear here after you submit applications.</div>
         </div>
       </div>
 
@@ -147,13 +147,13 @@ onMounted(init)
         <div v-for="entry in timelineEntries" :key="`${entry.requestId}-${entry.changedAt}`" class="item">
           <div class="timeline-date">{{ formatDate(entry.changedAt) }}</div>
           <div class="timeline-title" :style="{ color: statusColor(entry.status) }">
-            {{ entry.projectTitle }} · {{ statusText(entry.status) }}
+            {{ entry.projectTitle }} · Application: {{ statusText(entry.status) }}
           </div>
           <div class="timeline-desc">
             <div>Submitted: {{ formatDate(entry.submittedAt) }}</div>
             <div>Rank: {{ entry.preferenceRank || '-' }}</div>
             <div v-if="entry.notes">Notes: {{ entry.notes }}</div>
-            <div v-if="entry.remark">Status Note: {{ entry.remark }}</div>
+            <div v-if="entry.remark">Application Status Note: {{ entry.remark }}</div>
             <div v-if="entry.decisionComment">Feedback: {{ entry.decisionComment }}</div>
             <div v-if="entry.changedByStudentName">By: {{ entry.changedByStudentName }}</div>
             <router-link

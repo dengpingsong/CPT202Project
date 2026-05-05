@@ -7,7 +7,6 @@ import AppPagination from '../../components/AppPagination.vue'
 // State
 const loading = ref(true)
 const projects = ref<any[]>([])
-const requests = ref<any[]>([])
 const tags = ref<any[]>([])
 const categories = ref<any[]>([])
 const selectedTagIds = ref<Set<string>>(new Set())
@@ -41,24 +40,20 @@ function normalizeStatus(status: string | null | undefined): string {
 function statusClass(status: string): string {
   const s = normalizeStatus(status)
   if (s === 'AVAILABLE') return 'status-available'
-  if (s === 'PENDING' || s === 'REQUESTED') return 'status-requested'
-  if (s === 'ACCEPTED' || s === 'AGREED') return 'status-agreed'
-  if (s === 'REJECTED') return 'status-rejected'
+  if (s === 'REQUESTED') return 'status-requested'
+  if (s === 'AGREED') return 'status-agreed'
   return 'status-unavailable'
 }
 
-function findStudentRequestStatus(projectId: number | string): string | null {
-  const matched = requests.value.find(
-    r => String(r.projectId) === String(projectId)
-      && ['PENDING', 'ACCEPTED', 'REJECTED'].includes(normalizeStatus(r.requestStatus))
-  )
-  return matched ? normalizeStatus(matched.requestStatus) : null
-}
-
-function getDisplayStatus(project: any): string {
-  const reqStatus = findStudentRequestStatus(project.projectId)
-  if (reqStatus === 'PENDING') return 'REQUESTED'
-  return reqStatus || project.projectStatus
+function projectStatusText(status: string | null | undefined): string {
+  const map: Record<string, string> = {
+    AVAILABLE: 'Available',
+    REQUESTED: 'Requested',
+    AGREED: 'Agreed',
+    CLOSED: 'Closed',
+    ARCHIVED: 'Closed',
+  }
+  return map[normalizeStatus(status)] || normalizeStatus(status)
 }
 
 function onKeywordInput() {
@@ -133,12 +128,6 @@ async function loadCategories() {
 }
 
 async function init() {
-  try {
-    const reqRes = await studentApi.getRequests()
-    requests.value = Array.isArray(reqRes.data) ? reqRes.data : []
-  } catch {
-    requests.value = []
-  }
   await Promise.all([loadTags(), loadCategories()])
   await loadProjects(1)
 }
@@ -173,8 +162,8 @@ onMounted(init)
           </select>
         </span>
         <span class="filter-control select-control">
-          <select v-model="statusFilter" aria-label="Status" @change="loadProjects(1)">
-            <option value="">All Status</option>
+          <select v-model="statusFilter" aria-label="Project Status" @change="loadProjects(1)">
+            <option value="">All Project Status</option>
             <option value="AVAILABLE">Available</option>
             <option value="REQUESTED">Requested</option>
             <option value="AGREED">Agreed</option>
@@ -220,7 +209,7 @@ onMounted(init)
               <th>Category</th>
               <th>Topic Area</th>
               <th>Quota</th>
-              <th>Status</th>
+              <th>Project Status</th>
               <th>Details</th>
             </tr>
           </thead>
@@ -239,8 +228,8 @@ onMounted(init)
               <td>{{ project.topicArea || '-' }}</td>
               <td>{{ project.currentAgreedCount || 0 }}/{{ project.maxStudents || 0 }}</td>
               <td>
-                <span class="status-pill" :class="statusClass(getDisplayStatus(project))">
-                  {{ getDisplayStatus(project) }}
+                <span class="status-pill" :class="statusClass(project.projectStatus)">
+                  {{ projectStatusText(project.projectStatus) }}
                 </span>
               </td>
               <td>

@@ -96,7 +96,7 @@ onMounted(loadHistory)
         <div v-for="item in historyItems" :key="`${item.requestId}-${item.changedAt}`" class="item">
           <div class="timeline-date">{{ formatDate(item.changedAt) }}</div>
           <div class="timeline-title" :style="{ color: statusColor(item.status) }">
-            {{ statusText(item.status) }} — {{ item.projectTitle }}
+            Request: {{ statusText(item.status) }} — {{ item.projectTitle }}
           </div>
           <div class="timeline-desc">
             <div>Student: {{ item.studentName }} (ID: {{ item.studentId }})</div>

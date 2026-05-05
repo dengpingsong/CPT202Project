@@ -8,6 +8,10 @@ const router = useRouter()
 const loading = ref(true)
 const requests = ref<any[]>([])
 const statusFilter = ref('')
+const showRejectModal = ref(false)
+const rejectRequestId = ref<number | null>(null)
+const rejectComment = ref('')
+const rejecting = ref(false)
 
 function normalizeStatus(status: string | null | undefined): string {
   return String(status || 'UNKNOWN').toUpperCase()
@@ -76,15 +80,30 @@ async function handleAccept(requestId: number) {
   }
 }
 
-async function handleReject(requestId: number) {
-  const comment = window.prompt('Enter rejection reason (optional):')
-  if (comment === null) return
+function openRejectModal(requestId: number) {
+  rejectRequestId.value = requestId
+  rejectComment.value = ''
+  showRejectModal.value = true
+}
+
+function closeRejectModal() {
+  showRejectModal.value = false
+  rejectRequestId.value = null
+  rejectComment.value = ''
+}
+
+async function handleReject() {
+  if (rejectRequestId.value === null) return
+  rejecting.value = true
   try {
-    await teacherApi.reviewRequest(requestId, 'REJECTED', comment)
+    await teacherApi.reviewRequest(rejectRequestId.value, 'REJECTED', rejectComment.value.trim())
     toast.success('Application rejected')
+    closeRejectModal()
     await loadRequests()
   } catch (e: any) {
     toast.error(e.message || 'Failed to reject')
+  } finally {
+    rejecting.value = false
   }
 }
 
@@ -100,8 +119,8 @@ onMounted(loadRequests)
     <div class="panel">
       <div class="filters-row">
         <span class="filter-control select-control">
-          <select v-model="statusFilter" aria-label="Status">
-            <option value="">All Status</option>
+          <select v-model="statusFilter" aria-label="Request Status">
+            <option value="">All Request Status</option>
             <option value="PENDING">Pending</option>
             <option value="ACCEPTED">Accepted</option>
             <option value="REJECTED">Rejected</option>
@@ -121,7 +140,7 @@ onMounted(loadRequests)
               <th>Student</th>
               <th>Project</th>
               <th>Submitted</th>
-              <th>Status</th>
+              <th>Request Status</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -161,7 +180,7 @@ onMounted(loadRequests)
                   <button
                     v-if="normalizeStatus(r.requestStatus) === 'PENDING'"
                     class="btn-sm btn-reject"
-                    @click="handleReject(r.requestId)"
+                    @click="openRejectModal(r.requestId)"
                   >
                     <i class="bi bi-x-lg"></i> Reject
                   </button>
@@ -174,6 +193,34 @@ onMounted(loadRequests)
 
       <div class="summary">{{ filteredRequests.length }} request(s)</div>
     </div>
+
+    <Teleport to="body">
+      <div v-if="showRejectModal" class="modal-overlay" @click.self="closeRejectModal">
+        <div class="modal-dialog">
+          <div class="modal-header">
+            <h2>Reject Application</h2>
+            <button class="icon-button" type="button" @click="closeRejectModal">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+          <div class="modal-body">
+            <label class="field-label">Rejection Reason (optional)</label>
+            <textarea
+              v-model="rejectComment"
+              rows="4"
+              class="reject-textarea"
+              placeholder="Enter feedback for the student..."
+            ></textarea>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" @click="closeRejectModal">Cancel</button>
+            <button type="button" class="btn-reject modal-reject-btn" :disabled="rejecting" @click="handleReject">
+              {{ rejecting ? 'Rejecting...' : 'Confirm Reject' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -373,10 +420,133 @@ onMounted(loadRequests)
   color: var(--muted);
 }
 
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(28, 27, 51, 0.45);
+  z-index: 30;
+}
+
+.modal-dialog {
+  width: min(520px, 100%);
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 30px 80px rgba(28, 27, 51, 0.22);
+  padding: 24px 28px 26px;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.icon-button {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(90, 43, 152, 0.16);
+  background: rgba(90, 43, 152, 0.06);
+  color: var(--deep);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-label {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.reject-textarea {
+  width: 100%;
+  min-height: 110px;
+  resize: vertical;
+  padding: 12px 14px;
+  border: 1.5px solid rgba(90, 43, 152, 0.18);
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  outline: none;
+  background: #fff;
+}
+
+.reject-textarea:focus {
+  border-color: var(--deep);
+  box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.1);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1.5px solid var(--muted);
+  color: var(--text);
+  padding: 10px 20px;
+  border-radius: 40px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-secondary:hover {
+  border-color: var(--deep);
+  color: var(--deep);
+}
+
+.modal-reject-btn {
+  padding: 10px 20px;
+  border-radius: 40px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.modal-reject-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 @media (max-width: 560px) {
   .filters-row {
     grid-template-columns: 1fr;
     max-width: none;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .modal-actions .btn-secondary,
+  .modal-actions .modal-reject-btn {
+    width: 100%;
   }
 }
 </style>

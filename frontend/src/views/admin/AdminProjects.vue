@@ -137,7 +137,7 @@ onMounted(loadProjects)
               <span class="detail-value">{{ selectedProject.currentAgreedCount || 0 }}/{{ selectedProject.maxStudents || 0 }}</span>
             </div>
             <div class="detail-item">
-              <span class="detail-label">Status</span>
+              <span class="detail-label">Project Status</span>
               <span class="detail-value">
                 <span class="status-pill" :class="statusClass(selectedProject.projectStatus)">
                   {{ normalizeStatus(selectedProject.projectStatus) }}

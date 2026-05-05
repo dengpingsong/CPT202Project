@@ -131,8 +131,8 @@ onMounted(loadUsers)
           </select>
         </span>
         <span class="filter-control select-control">
-          <select v-model="statusFilter" aria-label="Status" @change="loadUsers()">
-            <option value="">All Status</option>
+          <select v-model="statusFilter" aria-label="Account Status" @change="loadUsers()">
+            <option value="">All Account Status</option>
             <option value="ACTIVE">Active</option>
             <option value="DISABLED">Disabled</option>
           </select>
@@ -152,7 +152,7 @@ onMounted(loadUsers)
               <th>Full Name</th>
               <th>Email</th>
               <th>Role</th>
-              <th>Status</th>
+              <th>Account Status</th>
               <th>Action</th>
             </tr>
           </thead>

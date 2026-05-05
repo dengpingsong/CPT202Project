@@ -60,8 +60,8 @@ onMounted(loadData)
     <div class="panel">
       <div class="filters-row">
         <span class="filter-control select-control">
-          <select v-model="statusFilter" aria-label="Status" @change="loadData()">
-            <option value="">All Status</option>
+          <select v-model="statusFilter" aria-label="Request Status" @change="loadData()">
+            <option value="">All Request Status</option>
             <option value="PENDING">Pending</option>
             <option value="ACCEPTED">Accepted</option>
             <option value="REJECTED">Rejected</option>
@@ -81,7 +81,7 @@ onMounted(loadData)
               <th>Request ID</th>
               <th>Project</th>
               <th>Student</th>
-              <th>Status</th>
+              <th>Request Status</th>
               <th>Rank</th>
               <th>Submitted</th>
               <th>Decision Comment</th>

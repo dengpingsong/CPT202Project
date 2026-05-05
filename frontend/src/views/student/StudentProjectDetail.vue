@@ -29,12 +29,8 @@ const hasAccepted = computed(() => {
   return requests.value.some(r => normalizeStatus(r.requestStatus) === 'ACCEPTED')
 })
 
-const displayStatus = computed(() => {
+const projectDisplayStatus = computed(() => {
   if (!project.value) return 'UNKNOWN'
-  if (activeRequest.value) {
-    const s = normalizeStatus(activeRequest.value.requestStatus)
-    return s === 'PENDING' ? 'REQUESTED' : s
-  }
   return normalizeStatus(project.value.projectStatus)
 })
 
@@ -77,9 +73,8 @@ function normalizeStatus(status: string | null | undefined): string {
 function statusClass(status: string): string {
   const s = normalizeStatus(status)
   if (s === 'AVAILABLE') return 'status-available'
-  if (s === 'PENDING' || s === 'REQUESTED') return 'status-requested'
-  if (s === 'ACCEPTED' || s === 'AGREED') return 'status-agreed'
-  if (s === 'REJECTED') return 'status-rejected'
+  if (s === 'REQUESTED') return 'status-requested'
+  if (s === 'AGREED') return 'status-agreed'
   return 'status-unavailable'
 }
 
@@ -217,9 +212,9 @@ onMounted(loadData)
             <span class="meta-value">{{ project.currentAgreedCount || 0 }}/{{ project.maxStudents || 0 }}</span>
           </div>
           <div class="meta-item">
-            <span class="meta-label">Status</span>
+            <span class="meta-label">Project Status</span>
             <span class="meta-value">
-              <span class="status-pill" :class="statusClass(displayStatus)">{{ statusText(displayStatus) }}</span>
+              <span class="status-pill" :class="statusClass(projectDisplayStatus)">{{ statusText(projectDisplayStatus) }}</span>
             </span>
           </div>
           <div class="meta-item">

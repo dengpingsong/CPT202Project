@@ -241,8 +241,8 @@ onMounted(async () => {
     <div class="panel">
       <div class="filters-row">
         <span class="filter-control select-control">
-          <select v-model="statusFilter" aria-label="Status" @change="loadProjects()">
-            <option value="">All Status</option>
+          <select v-model="statusFilter" aria-label="Project Status" @change="loadProjects()">
+            <option value="">All Project Status</option>
             <option value="AVAILABLE">Available</option>
             <option value="REQUESTED">Requested</option>
             <option value="AGREED">Agreed</option>

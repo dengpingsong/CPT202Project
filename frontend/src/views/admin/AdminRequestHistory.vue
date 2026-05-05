@@ -45,8 +45,8 @@ onMounted(loadData)
             <tr>
               <th>History ID</th>
               <th>Request ID</th>
-              <th>Old Status</th>
-              <th>New Status</th>
+              <th>Old Request Status</th>
+              <th>New Request Status</th>
               <th>Changed By</th>
               <th>Remark</th>
               <th>Changed At</th>

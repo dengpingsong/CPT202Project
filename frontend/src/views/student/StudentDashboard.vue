@@ -68,18 +68,22 @@ function statusClass(status: string): string {
   return 'status-unavailable'
 }
 
+function projectStatusText(status: string | null | undefined): string {
+  const map: Record<string, string> = {
+    AVAILABLE: 'Available',
+    REQUESTED: 'Requested',
+    AGREED: 'Agreed',
+    CLOSED: 'Closed',
+    ARCHIVED: 'Closed',
+  }
+  return map[normalizeStatus(status)] || normalizeStatus(status)
+}
+
 function formatDate(value: string | null | undefined): string {
   if (!value) return '-'
   const date = new Date(value)
   if (isNaN(date.getTime())) return String(value).slice(0, 10)
   return date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })
-}
-
-function getProjectRequestStatus(projectId: number | string): string | null {
-  const matched = requests.value.find(
-    r => String(r.projectId) === String(projectId) && ['PENDING', 'REQUESTED'].includes(normalizeStatus(r.requestStatus))
-  )
-  return matched ? normalizeStatus(matched.requestStatus) : null
 }
 
 async function withdrawRequest(requestId: number | string) {
@@ -133,7 +137,7 @@ onMounted(loadData)
     <!-- Stats -->
     <section class="stats">
       <div class="panel">
-        <h3>Current Status</h3>
+        <h3>Application Status</h3>
         <div v-if="loading" class="status-summary">Loading...</div>
         <div v-else class="status-list">
           <span v-for="item in statusEntries" :key="item.label" class="status-chip" :class="item.className">
@@ -143,7 +147,7 @@ onMounted(loadData)
         </div>
       </div>
       <div class="panel">
-        <h3>Accepted Projects</h3>
+        <h3>Accepted Applications</h3>
         <strong>{{ accepted }}</strong>
       </div>
       <div class="panel">
@@ -158,17 +162,16 @@ onMounted(loadData)
       <div class="grid">
         <template v-if="recommendedProjects.length > 0">
           <article v-for="project in recommendedProjects" :key="project.projectId" class="card">
-            <span class="status-pill" :class="statusClass(getProjectRequestStatus(project.projectId) || project.projectStatus)">
-              {{ getProjectRequestStatus(project.projectId) || project.projectStatus }}
+            <span class="status-pill" :class="statusClass(project.projectStatus)">
+              Project: {{ projectStatusText(project.projectStatus) }}
             </span>
             <h4>{{ project.title || 'Untitled Project' }}</h4>
             <p class="meta">Category: {{ project.categoryName || '-' }} | Quota: {{ project.currentAgreedCount || 0 }}/{{ project.maxStudents || 0 }}</p>
             <p class="meta">Supervisor: {{ project.teacherName || '-' }} | Area: {{ project.topicArea || '-' }}</p>
             <button
-              :class="{ secondary: !getProjectRequestStatus(project.projectId) }"
               @click="router.push(`/student/projects/${project.projectId}`)"
             >
-              {{ getProjectRequestStatus(project.projectId) ? 'View Application' : 'View Details' }}
+              View Details
             </button>
           </article>
         </template>
@@ -189,7 +192,7 @@ onMounted(loadData)
             <div class="application-title-row">
               <strong>{{ item.projectTitle || 'Untitled Project' }}</strong>
               <span class="status" :class="statusClass(item.requestStatus)">
-                {{ normalizeStatus(item.requestStatus) }}
+                Application: {{ normalizeStatus(item.requestStatus) }}
               </span>
             </div>
             <div class="meta-row">
