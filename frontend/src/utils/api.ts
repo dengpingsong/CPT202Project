@@ -101,6 +101,9 @@ export const authApi = {
   register: (payload: Record<string, string>) =>
     request('/common/auth/register', { method: 'POST', body: payload }),
 
+  sendRegisterEmailOtp: (email: string) =>
+    request('/common/auth/register/email-otp/send', { method: 'POST', body: { email } }),
+
   sendEmailOtp: (email: string) =>
     request('/common/auth/email-otp/send', { method: 'POST', body: { email } }),
 

@@ -110,15 +110,22 @@ const regUsername = ref('')
 const regPassword = ref('')
 const regEmail = ref('')
 const regFullName = ref('')
-const regRole = ref<'STUDENT' | 'TEACHER'>('STUDENT')
+const regOtp = ref('')
 const regStudentNo = ref('')
 const regProgramme = ref('')
 const regEntryDate = ref('')
+const regPhone = ref('')
+const regInterests = ref('')
 const regStaffNo = ref('')
 const regDepartment = ref('')
 const regTitle = ref('')
+const regResearchArea = ref('')
+const regOffice = ref('')
 const registerError = ref('')
+const registerSuccess = ref('')
 const registerLoading = ref(false)
+const registerOtpSending = ref(false)
+const registerOtpCountdown = ref(0)
 
 // Reset password
 const resetEmail = ref('')
@@ -134,6 +141,36 @@ const hasResetToken = computed(() => !!resetToken.value)
 const otpMessage = computed(() => otpLoginMessage.value || otpRequestMessage.value)
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$///format
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
+const STUDENT_EMAIL_DOMAIN = 'student.xjtlu.edu.cn'
+const TEACHER_EMAIL_DOMAIN = 'xjtlu.edu.cn'
+
+const inferredRegisterRole = computed<'STUDENT' | 'TEACHER' | ''>(() => {
+  const email = regEmail.value.trim().toLowerCase()
+  const domain = email.includes('@') ? email.split('@').pop() || '' : ''
+  if (domain === STUDENT_EMAIL_DOMAIN) return 'STUDENT'
+  if (domain === TEACHER_EMAIL_DOMAIN) return 'TEACHER'
+  return ''
+})
+
+const registerRoleLabel = computed(() => {
+  if (inferredRegisterRole.value === 'STUDENT') return 'Student account'
+  if (inferredRegisterRole.value === 'TEACHER') return 'Teacher account'
+  return 'Role will be inferred from your email'
+})
+
+const registerRoleHint = computed(() => {
+  if (inferredRegisterRole.value === 'STUDENT') {
+    return 'Using @student.xjtlu.edu.cn means student profile fields are required.'
+  }
+  if (inferredRegisterRole.value === 'TEACHER') {
+    return 'Using @xjtlu.edu.cn means teacher profile fields are required.'
+  }
+  return 'Only @student.xjtlu.edu.cn and @xjtlu.edu.cn addresses can register.'
+})
+
+const canSendRegisterOtp = computed(() =>
+  validateEmail(regEmail.value) && !!inferredRegisterRole.value && registerOtpCountdown.value === 0,
+)
 
 //Validate email format
 function validateEmail(email: string) {
@@ -158,6 +195,40 @@ function getErrorMessage(error: unknown, fallback = 'Network error, please try a
   return error instanceof Error && error.message ? promptMessage(error.message, fallback) : fallback
 }
 
+function resetRegisterForm() {
+  regUsername.value = ''
+  regPassword.value = ''
+  regEmail.value = ''
+  regFullName.value = ''
+  regOtp.value = ''
+  regStudentNo.value = ''
+  regProgramme.value = ''
+  regEntryDate.value = ''
+  regPhone.value = ''
+  regInterests.value = ''
+  regStaffNo.value = ''
+  regDepartment.value = ''
+  regTitle.value = ''
+  regResearchArea.value = ''
+  regOffice.value = ''
+  registerError.value = ''
+  registerSuccess.value = ''
+  registerOtpSending.value = false
+  registerOtpCountdown.value = 0
+}
+
+function startRegisterOtpCountdown(seconds = 60) {
+  registerOtpCountdown.value = seconds
+  const timer = window.setInterval(() => {
+    if (registerOtpCountdown.value <= 1) {
+      registerOtpCountdown.value = 0
+      window.clearInterval(timer)
+      return
+    }
+    registerOtpCountdown.value -= 1
+  }, 1000)
+}
+
 //change panel
 function showPanel(id: PanelId) {
   currentPanel.value = id
@@ -172,6 +243,10 @@ function showPanel(id: PanelId) {
   if (id === 'twoFactor') {
     resetTwoFactorDigits()
     twoFactorMessage.value = ''
+  }
+  if (id === 'register') {
+    registerError.value = ''
+    registerSuccess.value = ''
   }
 }
 //redirection
@@ -299,6 +374,7 @@ async function handleOtpLogin() {
 // Register
 async function handleRegister() {
   registerError.value = ''
+  registerSuccess.value = ''
   registerLoading.value = true
 
   const payload: Record<string, string> = {
@@ -306,17 +382,7 @@ async function handleRegister() {
     password: regPassword.value,
     email: regEmail.value.trim(),
     fullName: regFullName.value.trim(),
-    role: regRole.value,
-  }
-
-  if (regRole.value === 'STUDENT') {
-    payload.studentNo = regStudentNo.value.trim()
-    payload.programme = regProgramme.value.trim()
-    payload.enrollmentDate = regEntryDate.value.trim()
-  } else {
-    payload.staffNo = regStaffNo.value.trim()
-    payload.department = regDepartment.value.trim()
-    payload.title = regTitle.value.trim()
+    otp: regOtp.value.trim(),
   }
 
   if (!validateEmail(payload.email)) {
@@ -324,12 +390,37 @@ async function handleRegister() {
     registerLoading.value = false
     return
   }
-  if (regRole.value === 'STUDENT' && !DATE_PATTERN.test(payload.enrollmentDate || '')) {
+  if (!inferredRegisterRole.value) {
+    registerError.value = 'Please use your XJTLU student or teacher email address.'
+    registerLoading.value = false
+    return
+  }
+  if (!/^\d{6}$/.test(payload.otp)) {
+    registerError.value = 'Please enter the 6-digit verification code sent to your email.'
+    registerLoading.value = false
+    return
+  }
+
+  if (inferredRegisterRole.value === 'STUDENT') {
+    payload.studentNo = regStudentNo.value.trim()
+    payload.programme = regProgramme.value.trim()
+    payload.enrollmentDate = regEntryDate.value.trim()
+    payload.phone = regPhone.value.trim()
+    payload.interests = regInterests.value.trim()
+  } else {
+    payload.staffNo = regStaffNo.value.trim()
+    payload.department = regDepartment.value.trim()
+    payload.title = regTitle.value.trim()
+    payload.researchArea = regResearchArea.value.trim()
+    payload.office = regOffice.value.trim()
+  }
+
+  if (inferredRegisterRole.value === 'STUDENT' && !DATE_PATTERN.test(payload.enrollmentDate || '')) {
     registerError.value = 'Enrollment date must use yyyy-MM-dd format.'
     registerLoading.value = false
     return
   }
-  if (regRole.value === 'STUDENT' && isFutureDate(payload.enrollmentDate)) {
+  if (inferredRegisterRole.value === 'STUDENT' && isFutureDate(payload.enrollmentDate)) {
     registerError.value = 'Enrollment date cannot be in the future.'
     registerLoading.value = false
     return
@@ -337,11 +428,14 @@ async function handleRegister() {
 
   try {
     const res = await authApi.register(payload)
-    if (res.code === 1) {
-      regUsername.value = ''
-      regPassword.value = ''
-      regEmail.value = ''
-      regFullName.value = ''
+    if (res.code === 1 && res.data) {
+      setAuth(res.data as any)
+      resetRegisterForm()
+      registerSuccess.value = 'Register success. Redirecting to your dashboard...'
+      redirectByRole((res.data as any).role)
+    } else if (res.code === 1) {
+      resetRegisterForm()
+      registerSuccess.value = 'Register success. Please log in.'
       showPanel('login')
       loginError.value = 'Register success. Please log in.'
     } else {
@@ -351,6 +445,34 @@ async function handleRegister() {
     registerError.value = getErrorMessage(e, 'Register failed')
   } finally {
     registerLoading.value = false
+  }
+}
+
+async function handleSendRegisterOtp() {
+  registerError.value = ''
+  registerSuccess.value = ''
+  if (!validateEmail(regEmail.value)) {
+    registerError.value = 'Please enter a valid email before requesting a code.'
+    return
+  }
+  if (!inferredRegisterRole.value) {
+    registerError.value = 'Only @student.xjtlu.edu.cn and @xjtlu.edu.cn addresses can receive registration codes.'
+    return
+  }
+
+  registerOtpSending.value = true
+  try {
+    const res = await authApi.sendRegisterEmailOtp(regEmail.value.trim())
+    if (res.code === 1) {
+      registerSuccess.value = promptMessage(res.msg || res.data, 'Verification code sent.')
+      startRegisterOtpCountdown()
+    } else {
+      registerError.value = promptMessage(res.msg, 'Failed to send verification code.')
+    }
+  } catch (e) {
+    registerError.value = getErrorMessage(e, 'Failed to send verification code.')
+  } finally {
+    registerOtpSending.value = false
   }
 }
 
@@ -584,70 +706,135 @@ onMounted(async () => {
         <!-- Register Panel -->
         <div v-show="currentPanel === 'register'" class="auth-panel active">
           <h2>Create Account</h2>
-          <h3>Register a student or teacher account</h3>
+          <h3>Register with your XJTLU email, verify it.</h3>
 
           <form @submit.prevent="handleRegister" class="register-form">
-            <div class="form-field">
-              <label class="inline-label">Username</label>
-              <input v-model="regUsername" type="text" placeholder="Username" required>
-            </div>
-
-            <div class="form-field">
-              <label class="inline-label">Password</label>
-              <input v-model="regPassword" type="password" placeholder="Password" required>
-            </div>
-
-            <div class="form-field">
-              <label class="inline-label">Email</label>
-              <input v-model="regEmail" type="email" placeholder="Email" required>
+            <div class="register-intro full-span">
+              <div class="register-role-chip" :class="inferredRegisterRole ? inferredRegisterRole.toLowerCase() : 'pending'">
+                {{ registerRoleLabel }}
+              </div>
+              <p>{{ registerRoleHint }}</p>
             </div>
 
             <div class="form-field">
               <label class="inline-label">Full Name</label>
-              <input v-model="regFullName" type="text" placeholder="Full Name" required>
+              <input v-model="regFullName" type="text" placeholder="Your full name" required>
             </div>
 
-            <div class="form-field full-span">
-              <label class="inline-label">Role</label>
-              <select v-model="regRole" required>
-                <option value="STUDENT">Student</option>
-                <option value="TEACHER">Teacher</option>
-              </select>
+            <div class="form-field">
+              <label class="inline-label">Email</label>
+              <input v-model="regEmail" type="email" placeholder="name@student.xjtlu.edu.cn" required>
             </div>
 
-            <div class="field-group" v-show="regRole === 'STUDENT'">
+            <div class="form-field">
+              <label class="inline-label">Username</label>
+              <input v-model="regUsername" type="text" placeholder="Choose a username" required>
+            </div>
+
+            <div class="form-field">
+              <label class="inline-label">Password</label>
+              <input v-model="regPassword" type="password" placeholder="Create a password" required>
+            </div>
+
+            <div class="field-group field-group-otp">
+              <div class="form-field">
+                <label class="inline-label">Email Verification Code</label>
+                <input
+                  v-model="regOtp"
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="6"
+                  placeholder="Enter 6-digit code"
+                  required
+                >
+              </div>
+              <button
+                type="button"
+                class="otp-send-btn register-otp-btn"
+                :disabled="registerOtpSending || !canSendRegisterOtp"
+                @click="handleSendRegisterOtp"
+              >
+                {{
+                  registerOtpSending
+                    ? 'Sending...'
+                    : registerOtpCountdown > 0
+                      ? `${registerOtpCountdown}s`
+                      : 'Send Code'
+                }}
+              </button>
+            </div>
+
+            <div class="register-profile-header full-span">
+              <strong>
+                {{
+                  inferredRegisterRole === 'TEACHER'
+                    ? 'Teacher Profile'
+                    : inferredRegisterRole === 'STUDENT'
+                      ? 'Student Profile'
+                      : 'Profile Details'
+                }}
+              </strong>
+              <span>
+                {{
+                  inferredRegisterRole === 'TEACHER'
+                    ? 'These fields are required for teacher emails.'
+                    : inferredRegisterRole === 'STUDENT'
+                      ? 'These fields are required for student emails.'
+                      : 'Enter a valid XJTLU email first to unlock the correct required fields.'
+                }}
+              </span>
+            </div>
+
+            <div class="field-group" v-show="inferredRegisterRole === 'STUDENT'">
               <div class="form-field">
                 <label class="inline-label">Student No</label>
-                <input v-model="regStudentNo" type="text" placeholder="Student No" :required="regRole === 'STUDENT'">
+                <input v-model="regStudentNo" type="text" placeholder="Student number" :required="inferredRegisterRole === 'STUDENT'">
               </div>
               <div class="form-field">
                 <label class="inline-label">Programme</label>
-                <input v-model="regProgramme" type="text" placeholder="Programme" :required="regRole === 'STUDENT'">
+                <input v-model="regProgramme" type="text" placeholder="Programme" :required="inferredRegisterRole === 'STUDENT'">
+              </div>
+              <div class="form-field">
+                <label class="inline-label">Enrollment Date</label>
+                <input v-model="regEntryDate" type="date" :required="inferredRegisterRole === 'STUDENT'">
+              </div>
+              <div class="form-field">
+                <label class="inline-label">Phone</label>
+                <input v-model="regPhone" type="text" placeholder="Optional contact number">
               </div>
               <div class="form-field full-span">
-                <label class="inline-label">Enrollment Date</label>
-                <input v-model="regEntryDate" type="date" :required="regRole === 'STUDENT'">
+                <label class="inline-label">Interests</label>
+                <input v-model="regInterests" type="text" placeholder="Optional interests or research topics">
               </div>
             </div>
 
-            <div class="field-group" v-show="regRole === 'TEACHER'">
+            <div class="field-group" v-show="inferredRegisterRole === 'TEACHER'">
               <div class="form-field">
                 <label class="inline-label">Staff No</label>
-                <input v-model="regStaffNo" type="text" placeholder="Staff No">
+                <input v-model="regStaffNo" type="text" placeholder="Staff number" :required="inferredRegisterRole === 'TEACHER'">
               </div>
               <div class="form-field">
                 <label class="inline-label">Department</label>
-                <input v-model="regDepartment" type="text" placeholder="Department">
+                <input v-model="regDepartment" type="text" placeholder="Department" :required="inferredRegisterRole === 'TEACHER'">
+              </div>
+              <div class="form-field">
+                <label class="inline-label">Title</label>
+                <input v-model="regTitle" type="text" placeholder="Title" :required="inferredRegisterRole === 'TEACHER'">
+              </div>
+              <div class="form-field">
+                <label class="inline-label">Office</label>
+                <input v-model="regOffice" type="text" placeholder="Optional office location">
               </div>
               <div class="form-field full-span">
-                <label class="inline-label">Title</label>
-                <input v-model="regTitle" type="text" placeholder="Title">
+                <label class="inline-label">Research Area</label>
+                <input v-model="regResearchArea" type="text" placeholder="Optional research area">
               </div>
             </div>
 
+            <div class="general-success" v-if="registerSuccess">{{ registerSuccess }}</div>
             <div class="general-error">{{ registerError }}</div>
             <button class="full-span" type="submit" :disabled="registerLoading">
-              {{ registerLoading ? 'Registering...' : 'Register' }}
+              {{ registerLoading ? 'Creating Account...' : 'Create Account' }}
             </button>
           </form>
         </div>
@@ -798,7 +985,7 @@ onMounted(async () => {
 }
 
 .auth-panel-card.register-mode {
-  width: min(100%, 392px);
+  width: min(100%, 430px);
 }
 
 .auth-tabs {
@@ -1049,19 +1236,97 @@ button:disabled {
   font-size: 0.85rem;
 }
 
+.general-success {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(47, 197, 168, 0.24);
+  border-radius: 12px;
+  background: rgba(47, 197, 168, 0.08);
+  color: #177b68;
+  font-size: 0.84rem;
+}
+
 .register-form {
   display: grid;
   grid-template-columns: 1fr;
   gap: 10px;
 }
 
+.register-intro {
+  padding: 14px;
+  border: 1px solid rgba(90, 43, 152, 0.12);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at top right, rgba(36, 179, 255, 0.12), transparent 35%),
+    linear-gradient(180deg, rgba(90, 43, 152, 0.05), rgba(90, 43, 152, 0.02));
+}
+
+.register-intro p {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.register-role-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.register-role-chip.pending {
+  background: rgba(90, 43, 152, 0.08);
+  color: var(--deep);
+}
+
+.register-role-chip.student {
+  background: rgba(36, 179, 255, 0.12);
+  color: #0a699c;
+}
+
+.register-role-chip.teacher {
+  background: rgba(246, 166, 61, 0.16);
+  color: #8c5a0d;
+}
+
 .form-field {
   min-width: 0;
 }
 
+.field-group-otp {
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: end;
+}
+
+.register-otp-btn {
+  min-width: 108px;
+}
+
+.register-profile-header {
+  display: grid;
+  gap: 3px;
+  padding-top: 4px;
+}
+
+.register-profile-header strong {
+  font-size: 0.86rem;
+  color: var(--text);
+}
+
+.register-profile-header span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 .register-form .field-group {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -1110,6 +1375,15 @@ button:disabled {
 
   .login-card {
     padding: 24px 20px;
+  }
+
+  .register-form .field-group,
+  .field-group-otp {
+    grid-template-columns: 1fr !important;
+  }
+
+  .register-otp-btn {
+    width: 100% !important;
   }
 }
 </style>
