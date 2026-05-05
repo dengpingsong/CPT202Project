@@ -416,7 +416,13 @@ onMounted(fetchProfile)
 .profile-page {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 20px;
+  width: 100%;
+}
+
+.page-header {
+  width: min(860px, 100%);
 }
 
 .page-header h1 {
@@ -431,7 +437,8 @@ onMounted(fetchProfile)
   border-radius: 28px;
   padding: 32px 36px;
   border: 1px solid rgba(28, 27, 51, 0.08);
-  max-width: 700px;
+  width: min(860px, 100%);
+  box-sizing: border-box;
 }
 
 .settings-form {
@@ -480,7 +487,7 @@ onMounted(fetchProfile)
 
 .form-row {
   display: grid;
-  grid-template-columns: 120px 1fr;
+  grid-template-columns: 160px 1fr;
   align-items: center;
   gap: 16px;
 }
@@ -506,8 +513,8 @@ onMounted(fetchProfile)
   transition: border 0.2s, box-shadow 0.2s;
   font-family: inherit;
   width: 100%;
-  max-width: 420px;
   outline: none;
+  box-sizing: border-box;
 }
 
 .form-control:focus {
@@ -672,5 +679,25 @@ onMounted(fetchProfile)
     padding: 24px;
   }
   .btn-logout { margin-left: 0; }
+}
+
+@media (max-width: 640px) {
+  .page-header,
+  .content-panel {
+    width: 100%;
+  }
+
+  .content-panel {
+    border-radius: 20px;
+    padding: 22px 18px;
+  }
+
+  .form-actions {
+    align-items: stretch;
+  }
+
+  .form-actions > button {
+    width: 100%;
+  }
 }
 </style>
