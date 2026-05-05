@@ -99,17 +99,19 @@ onMounted(loadRequests)
 
     <div class="panel">
       <div class="filters-row">
-        <label class="filter-field">
-          Status
-          <select v-model="statusFilter">
+        <span class="filter-control select-control">
+          <select v-model="statusFilter" aria-label="Status">
             <option value="">All Status</option>
             <option value="PENDING">Pending</option>
             <option value="ACCEPTED">Accepted</option>
             <option value="REJECTED">Rejected</option>
             <option value="WITHDRAWN">Withdrawn</option>
           </select>
-        </label>
-        <button class="clear-btn" @click="statusFilter = ''">Clear</button>
+        </span>
+        <button class="clear-btn" @click="statusFilter = ''">
+          <i class="bi bi-arrow-counterclockwise"></i>
+          Clear
+        </button>
       </div>
 
       <div class="table-wrapper">
@@ -196,48 +198,67 @@ onMounted(loadRequests)
 }
 
 .filters-row {
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: minmax(170px, 0.9fr) auto;
+  gap: 12px;
   align-items: end;
   margin-bottom: 16px;
+  max-width: 360px;
 }
 
-.filter-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 0.9rem;
-  color: var(--muted);
-}
-
-.filter-field select {
-  padding: 10px 12px;
-  border: 1px solid rgba(90, 43, 152, 0.18);
+.filter-control {
+  min-height: 44px;
+  border: 1.5px solid rgba(90, 43, 152, 0.16);
   border-radius: 12px;
-  font: inherit;
   background: #fff;
-  outline: none;
+  display: flex;
+  align-items: center;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.filter-field select:focus {
+.filter-control:focus-within {
   border-color: var(--deep);
-  box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.14);
+  box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.08);
+}
+
+.filter-control select {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.95rem;
+}
+
+.select-control select {
+  height: 42px;
+  padding: 0 12px;
+  cursor: pointer;
 }
 
 .clear-btn {
-  padding: 10px 14px;
+  min-height: 44px;
+  padding: 0 16px;
   border-radius: 12px;
-  border: 1px solid rgba(90, 43, 152, 0.16);
-  background: linear-gradient(180deg, #fff, #f7f2ff);
+  border: 1.5px solid rgba(90, 43, 152, 0.16);
+  background: #fff;
   color: var(--deep);
-  font-weight: 600;
-  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   font-family: inherit;
   font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
 }
 
 .clear-btn:hover {
-  background: linear-gradient(180deg, #fff, #efe4ff);
+  border-color: var(--deep);
+  background: rgba(90, 43, 152, 0.06);
 }
 
 .table-wrapper {
@@ -350,5 +371,12 @@ onMounted(loadRequests)
   margin-top: 16px;
   font-size: 0.9rem;
   color: var(--muted);
+}
+
+@media (max-width: 560px) {
+  .filters-row {
+    grid-template-columns: 1fr;
+    max-width: none;
+  }
 }
 </style>

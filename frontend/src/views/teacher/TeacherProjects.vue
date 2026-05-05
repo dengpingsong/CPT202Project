@@ -11,7 +11,6 @@ const projects = ref<any[]>([])
 const categories = ref<any[]>([])
 const tags = ref<any[]>([])
 const statusFilter = ref('')
-const projectStatus = ref('')
 
 // Edit panel
 const showEditPanel = ref(false)
@@ -72,7 +71,6 @@ async function loadProjects() {
   try {
     const res = await teacherApi.listProjects(statusFilter.value || undefined)
     projects.value = Array.isArray(res.data) ? res.data : []
-    projectStatus.value = `${projects.value.length} project(s)`
   } catch (e: any) {
     toast.error(e.message || 'Failed to load projects')
     projects.value = []
@@ -241,19 +239,20 @@ onMounted(async () => {
     </header>
 
     <div class="panel">
-      <div class="status-line">{{ projectStatus }}</div>
-
       <div class="filters-row">
-        <label class="filter-field">
-          Status
-          <select v-model="statusFilter" @change="loadProjects()">
+        <span class="filter-control select-control">
+          <select v-model="statusFilter" aria-label="Status" @change="loadProjects()">
             <option value="">All Status</option>
             <option value="AVAILABLE">Available</option>
             <option value="REQUESTED">Requested</option>
             <option value="AGREED">Agreed</option>
             <option value="CLOSED">Closed</option>
           </select>
-        </label>
+        </span>
+        <button class="clear-btn" @click="statusFilter = ''; loadProjects()">
+          <i class="bi bi-arrow-counterclockwise"></i>
+          Clear
+        </button>
       </div>
 
       <div v-if="loading" style="color: var(--muted); text-align: center; padding: 24px;">Loading...</div>
@@ -275,102 +274,109 @@ onMounted(async () => {
           <div class="card-actions">
             <button class="btn-card" @click="viewRequests">Requests</button>
             <button class="btn-card" @click="openProjectEditor(p.projectId)">Edit</button>
-            <button class="btn-card" @click="openProjectEditor(p.projectId)">Status</button>
-            <button class="btn-card" @click="openProjectEditor(p.projectId)">Tags</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Edit Panel -->
-    <div v-if="showEditPanel" class="panel edit-panel">
-      <div class="edit-header">
-        <h3>Edit Project</h3>
-        <button class="btn-close-panel" @click="closeEditPanel">Close</button>
+    <!-- Edit Modal -->
+    <Teleport to="body">
+      <div v-if="showEditPanel" class="modal-overlay" @click.self="closeEditPanel">
+        <div class="edit-modal-dialog">
+          <div class="edit-header">
+            <h3>Edit Project</h3>
+            <button class="icon-button" @click="closeEditPanel">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+          <div class="edit-status" :class="editPanelStatusType">{{ editPanelStatus }}</div>
+
+          <div class="edit-modal-body">
+            <!-- Project Info -->
+            <form @submit.prevent>
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label>Title</label>
+                  <input v-model="editTitle" type="text" class="form-control">
+                </div>
+                <div class="form-group">
+                  <label>Max Students</label>
+                  <input v-model.number="editMaxStudents" type="number" min="1" class="form-control">
+                </div>
+              </div>
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label>Category</label>
+                  <select v-model="editCategoryId" class="form-control">
+                    <option value="">Select category</option>
+                    <option v-for="cat in categories" :key="cat.categoryId" :value="String(cat.categoryId)">
+                      {{ cat.categoryName }}
+                    </option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Topic Area</label>
+                  <input v-model="editTopicArea" type="text" class="form-control">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Description</label>
+                <textarea v-model="editDescription" rows="4" class="form-control"></textarea>
+              </div>
+              <div class="form-group">
+                <label>Required Skills</label>
+                <textarea v-model="editRequiredSkills" rows="3" class="form-control"></textarea>
+              </div>
+            </form>
+
+            <hr class="divider">
+
+            <!-- Status -->
+            <form @submit.prevent>
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label>Project Status</label>
+                  <select v-model="editProjectStatus" class="form-control">
+                    <option value="AVAILABLE">Available</option>
+                    <option value="AGREED">Agreed</option>
+                    <option value="CLOSED">Closed</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Status Remark</label>
+                  <input v-model="editStatusRemark" type="text" class="form-control" placeholder="Optional">
+                </div>
+              </div>
+            </form>
+
+            <hr class="divider">
+
+            <!-- Tags -->
+            <div class="form-group">
+              <label>Project Tags</label>
+              <div class="tags-container">
+                <label v-for="tag in tags" :key="tag.tagId" class="tag-checkbox">
+                  <input
+                    type="checkbox"
+                    :checked="editSelectedTagIds.has(tag.tagId)"
+                    @change="toggleEditTag(tag.tagId)"
+                  >
+                  <span>{{ tag.tagName }}</span>
+                </label>
+                <span v-if="tags.length === 0" style="color: var(--muted); font-size: 0.9rem;">No tags available</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="edit-modal-actions">
+            <button class="btn-secondary" @click="closeEditPanel">Cancel</button>
+            <button class="btn-primary" :disabled="saving" @click="saveAllChanges">
+              {{ saving ? 'Saving...' : 'Save All Changes' }}
+            </button>
+          </div>
+        </div>
       </div>
-      <div class="edit-status" :class="editPanelStatusType">{{ editPanelStatus }}</div>
-
-      <!-- Project Info -->
-      <form @submit.prevent>
-        <div class="form-grid-2">
-          <div class="form-group">
-            <label>Title</label>
-            <input v-model="editTitle" type="text" class="form-control">
-          </div>
-          <div class="form-group">
-            <label>Max Students</label>
-            <input v-model.number="editMaxStudents" type="number" min="1" class="form-control">
-          </div>
-        </div>
-        <div class="form-grid-2">
-          <div class="form-group">
-            <label>Category</label>
-            <select v-model="editCategoryId" class="form-control">
-              <option value="">Select category</option>
-              <option v-for="cat in categories" :key="cat.categoryId" :value="String(cat.categoryId)">
-                {{ cat.categoryName }}
-              </option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Topic Area</label>
-            <input v-model="editTopicArea" type="text" class="form-control">
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Description</label>
-          <textarea v-model="editDescription" rows="4" class="form-control"></textarea>
-        </div>
-        <div class="form-group">
-          <label>Required Skills</label>
-          <textarea v-model="editRequiredSkills" rows="3" class="form-control"></textarea>
-        </div>
-      </form>
-
-      <hr class="divider">
-
-      <!-- Status -->
-      <form @submit.prevent>
-        <div class="form-grid-2">
-          <div class="form-group">
-            <label>Project Status</label>
-            <select v-model="editProjectStatus" class="form-control">
-              <option value="AVAILABLE">Available</option>
-              <option value="AGREED">Agreed</option>
-              <option value="CLOSED">Closed</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Status Remark</label>
-            <input v-model="editStatusRemark" type="text" class="form-control" placeholder="Optional">
-          </div>
-        </div>
-      </form>
-
-      <hr class="divider">
-
-      <!-- Tags -->
-      <div class="form-group">
-        <label>Project Tags</label>
-        <div class="tags-container">
-          <label v-for="tag in tags" :key="tag.tagId" class="tag-checkbox">
-            <input
-              type="checkbox"
-              :checked="editSelectedTagIds.has(tag.tagId)"
-              @change="toggleEditTag(tag.tagId)"
-            >
-            <span>{{ tag.tagName }}</span>
-          </label>
-          <span v-if="tags.length === 0" style="color: var(--muted); font-size: 0.9rem;">No tags available</span>
-        </div>
-      </div>
-
-      <div style="margin-top: 20px;">
-        <button class="btn-primary" :disabled="saving" @click="saveAllChanges">
-          {{ saving ? 'Saving...' : 'Save All Changes' }}
-        </button>
-      </div>
-    </div>
+    </Teleport>
 
     <!-- Status Confirm Modal -->
     <Teleport to="body">
@@ -419,40 +425,68 @@ onMounted(async () => {
   padding: 24px 28px;
 }
 
-.status-line {
-  font-size: 0.9rem;
-  color: var(--muted);
-  margin-bottom: 12px;
-}
-
 .filters-row {
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: minmax(170px, 0.9fr) auto;
+  gap: 12px;
   align-items: end;
   margin-bottom: 16px;
+  max-width: 360px;
 }
 
-.filter-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 0.9rem;
-  color: var(--muted);
-}
-
-.filter-field select {
-  padding: 10px 12px;
-  border: 1px solid rgba(90, 43, 152, 0.18);
+.filter-control {
+  min-height: 44px;
+  border: 1.5px solid rgba(90, 43, 152, 0.16);
   border-radius: 12px;
-  font: inherit;
   background: #fff;
-  outline: none;
-  min-width: 180px;
+  display: flex;
+  align-items: center;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.filter-field select:focus {
+.filter-control:focus-within {
   border-color: var(--deep);
-  box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.14);
+  box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.08);
+}
+
+.filter-control select {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.95rem;
+}
+
+.select-control select {
+  height: 42px;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.clear-btn {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(90, 43, 152, 0.16);
+  background: #fff;
+  color: var(--deep);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.clear-btn:hover {
+  border-color: var(--deep);
+  background: rgba(90, 43, 152, 0.06);
 }
 
 .project-grid {
@@ -492,6 +526,7 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 8px;
+  margin-top: 4px;
 }
 
 .btn-card {
@@ -525,17 +560,12 @@ onMounted(async () => {
 .status-agreed { background: rgba(36, 179, 255, 0.15); color: var(--accent); }
 .status-unavailable { background: rgba(156, 156, 178, 0.2); color: rgba(28, 27, 51, 0.65); }
 
-/* Edit Panel */
-.edit-panel {
-  margin-top: 4px;
-  border: 2px solid rgba(90, 43, 152, 0.12);
-}
-
 .edit-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
+  padding: 24px 28px 14px;
+  border-bottom: 1px solid rgba(156, 156, 178, 0.18);
 }
 
 .edit-header h3 {
@@ -545,25 +575,9 @@ onMounted(async () => {
   color: var(--text);
 }
 
-.btn-close-panel {
-  padding: 8px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(90, 43, 152, 0.16);
-  background: #fff;
-  color: var(--deep);
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 0.85rem;
-}
-
-.btn-close-panel:hover {
-  background: #f7f2ff;
-}
-
 .edit-status {
   font-size: 0.9rem;
-  margin-bottom: 16px;
+  padding: 12px 28px 0;
   min-height: 22px;
   color: var(--muted);
 }
@@ -691,6 +705,32 @@ onMounted(async () => {
   padding: 28px;
 }
 
+.edit-modal-dialog {
+  width: min(820px, 100%);
+  max-height: min(86vh, 840px);
+  background: #fff;
+  border-radius: 24px;
+  border: 1px solid rgba(28, 27, 51, 0.08);
+  box-shadow: 0 24px 80px rgba(28, 27, 51, 0.22);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.edit-modal-body {
+  padding: 18px 28px 8px;
+  overflow-y: auto;
+}
+
+.edit-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 28px 24px;
+  border-top: 1px solid rgba(156, 156, 178, 0.18);
+  background: #fff;
+}
+
 .modal-header {
   display: flex;
   align-items: center;
@@ -727,11 +767,33 @@ onMounted(async () => {
 }
 
 @media (max-width: 768px) {
+  .filters-row {
+    grid-template-columns: 1fr;
+    max-width: none;
+  }
   .form-grid-2 {
     grid-template-columns: 1fr;
   }
   .project-grid {
     grid-template-columns: 1fr;
+  }
+  .edit-modal-dialog {
+    max-height: 92vh;
+  }
+  .edit-header,
+  .edit-status,
+  .edit-modal-body,
+  .edit-modal-actions {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  .edit-modal-actions {
+    flex-direction: column-reverse;
+  }
+  .edit-modal-actions .btn-primary,
+  .edit-modal-actions .btn-secondary {
+    justify-content: center;
+    width: 100%;
   }
 }
 </style>

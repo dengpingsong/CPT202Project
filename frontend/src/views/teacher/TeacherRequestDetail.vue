@@ -65,7 +65,11 @@ async function loadData() {
 
     studentProfile.value = {
       fullName: request.value.studentName,
-      studentNo: request.value.studentId,
+      studentNo: request.value.studentNo,
+      email: request.value.studentEmail,
+      programme: request.value.studentProgramme,
+      phone: request.value.studentPhone,
+      interests: request.value.studentInterests,
     }
 
     if (request.value?.projectId) {

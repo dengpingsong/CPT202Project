@@ -180,8 +180,9 @@ onMounted(loadProjects)
 .summary { margin-top: 16px; font-size: 0.9rem; color: var(--muted); }
 
 /* Modal */
-.modal-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(28, 27, 51, 0.45); z-index: 20; }
-.modal-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.modal-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(28, 27, 51, 0.45); z-index: 30; }
+.modal-dialog { width: min(720px, 100%); max-height: 90vh; overflow-y: auto; background: #fff; border-radius: 24px; box-shadow: 0 30px 80px rgba(28, 27, 51, 0.22); padding: 24px 28px 26px; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
 .modal-header h2 { margin: 0; color: var(--text); font-size: 1.35rem; font-weight: 600; }
 .icon-button { width: 38px; height: 38px; border-radius: 50%; border: 1px solid rgba(90, 43, 152, 0.16); background: rgba(90, 43, 152, 0.06); color: var(--deep); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 1.1rem; }
 .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; background: #f9f5ff; border-radius: 20px; padding: 18px 20px; }
@@ -191,4 +192,7 @@ onMounted(loadProjects)
 .detail-block { margin-top: 20px; }
 .detail-block h3 { font-weight: 600; font-size: 1rem; margin-bottom: 10px; color: var(--deep); border-left: 4px solid var(--deep); padding-left: 14px; }
 .detail-text { background: #faf9ff; padding: 16px 20px; border-radius: 18px; line-height: 1.7; color: var(--text); border: 1px solid rgba(90, 43, 152, 0.15); }
+@media (max-width: 640px) {
+  .detail-grid { grid-template-columns: 1fr; }
+}
 </style>

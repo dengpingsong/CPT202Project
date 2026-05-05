@@ -48,24 +48,25 @@ onMounted(loadUsers)
 
     <div class="panel">
       <div class="filters-row">
-        <label class="filter-field">
-          Role
-          <select v-model="roleFilter" @change="loadUsers()">
+        <span class="filter-control select-control">
+          <select v-model="roleFilter" aria-label="Role" @change="loadUsers()">
             <option value="">All Roles</option>
             <option value="ADMIN">Admin</option>
             <option value="TEACHER">Teacher</option>
             <option value="STUDENT">Student</option>
           </select>
-        </label>
-        <label class="filter-field">
-          Status
-          <select v-model="statusFilter" @change="loadUsers()">
+        </span>
+        <span class="filter-control select-control">
+          <select v-model="statusFilter" aria-label="Status" @change="loadUsers()">
             <option value="">All Status</option>
             <option value="ACTIVE">Active</option>
             <option value="DISABLED">Disabled</option>
           </select>
-        </label>
-        <button class="clear-btn" @click="roleFilter = ''; statusFilter = ''; loadUsers()">Refresh</button>
+        </span>
+        <button class="clear-btn" @click="roleFilter = ''; statusFilter = ''; loadUsers()">
+          <i class="bi bi-arrow-counterclockwise"></i>
+          Clear
+        </button>
       </div>
 
       <div class="table-wrapper">
@@ -120,12 +121,13 @@ onMounted(loadUsers)
 <style scoped>
 .page { display: flex; flex-direction: column; gap: 20px; }
 .page-header h1 { margin: 0; font-size: 1.8rem; font-weight: 600; color: var(--text); }
-.filters-row { display: flex; gap: 10px; align-items: end; margin-bottom: 16px; flex-wrap: wrap; }
-.filter-field { display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; color: var(--muted); }
-.filter-field select { padding: 10px 12px; border: 1px solid rgba(90, 43, 152, 0.18); border-radius: 12px; font: inherit; background: #fff; outline: none; min-width: 160px; }
-.filter-field select:focus { border-color: var(--deep); box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.14); }
-.clear-btn { padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(90, 43, 152, 0.16); background: linear-gradient(180deg, #fff, #f7f2ff); color: var(--deep); font-weight: 600; cursor: pointer; font-family: inherit; font-size: 0.9rem; }
-.clear-btn:hover { background: linear-gradient(180deg, #fff, #efe4ff); }
+.filters-row { display: grid; grid-template-columns: minmax(190px, 1fr) minmax(170px, 0.9fr) auto; gap: 12px; align-items: end; margin-bottom: 16px; }
+.filter-control { min-height: 44px; border: 1.5px solid rgba(90, 43, 152, 0.16); border-radius: 12px; background: #fff; display: flex; align-items: center; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
+.filter-control:focus-within { border-color: var(--deep); box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.08); }
+.filter-control select { width: 100%; min-width: 0; border: 0; outline: none; background: transparent; color: var(--text); font: inherit; font-size: 0.95rem; }
+.select-control select { height: 42px; padding: 0 12px; cursor: pointer; }
+.clear-btn { min-height: 44px; padding: 0 16px; border-radius: 12px; border: 1.5px solid rgba(90, 43, 152, 0.16); background: #fff; color: var(--deep); display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-family: inherit; font-size: 0.9rem; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.clear-btn:hover { border-color: var(--deep); background: rgba(90, 43, 152, 0.06); }
 .table-wrapper { overflow-x: auto; border-radius: 18px; }
 .data-table { width: 100%; border-collapse: collapse; min-width: 700px; font-size: 0.9rem; }
 .data-table th { text-align: left; padding: 16px; background: #f8f5ff; font-weight: 600; color: var(--deep); border-bottom: 2px solid rgba(90, 43, 152, 0.2); }
@@ -138,4 +140,7 @@ onMounted(loadUsers)
 .btn-enable { border-color: var(--green); color: var(--green); }
 .btn-enable:hover { background: var(--green); color: #fff; }
 .summary { margin-top: 16px; font-size: 0.9rem; color: var(--muted); }
+@media (max-width: 760px) {
+  .filters-row { grid-template-columns: 1fr; }
+}
 </style>
