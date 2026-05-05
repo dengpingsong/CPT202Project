@@ -20,14 +20,14 @@ class IntegrationTestConfiguration {
     /** Replaces Redis with an in-memory cache for deterministic test runs. */
     @Bean
     @Primary
-    RedisCacheService redisCacheService(ObjectMapper objectMapper) {
+    InMemoryRedisCacheService redisCacheService(ObjectMapper objectMapper) {
         return new InMemoryRedisCacheService(objectMapper);
     }
 
     private record CacheEntry(Object value, Instant expiresAt) {
     }
 
-    private static final class InMemoryRedisCacheService implements RedisCacheService {
+    static final class InMemoryRedisCacheService implements RedisCacheService {
 
         private final ObjectMapper objectMapper;
         private final ConcurrentMap<String, CacheEntry> entries = new ConcurrentHashMap<>();
@@ -57,6 +57,10 @@ class IntegrationTestConfiguration {
         @Override
         public void delete(String key) {
             entries.remove(key);
+        }
+
+        void clear() {
+            entries.clear();
         }
 
         private Optional<Object> readEntry(String key) {
