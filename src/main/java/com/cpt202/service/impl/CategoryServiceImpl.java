@@ -9,6 +9,7 @@ import com.cpt202.model.entity.Category;
 import com.cpt202.repository.CategoryRepository;
 import com.cpt202.service.RedisCacheService;
 import com.cpt202.service.CategoryService;
+import com.cpt202.validation.CatalogValidationService;
 import com.cpt202.vo.CategoryVO;
 import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final RedisCacheService redisCacheService;
+    private final CatalogValidationService catalogValidationService;
 
     /**
      * 查询全部分类列表。
@@ -69,9 +71,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public void create(CategoryDTO categoryDTO) {
         String categoryName = categoryDTO.getCategoryName().trim();
-        if (categoryRepository.existsByCategoryNameIgnoreCase(categoryName)) {
-            throw new RuleViolationException(MessageConstants.CATEGORY_NAME_EXISTS);
-        }
+        catalogValidationService.checkCategoryNameUnique(categoryName);
 
         LocalDateTime now = LocalDateTime.now();
 
@@ -97,9 +97,7 @@ public class CategoryServiceImpl implements CategoryService {
                 .orElseThrow(() -> new NotFoundException(MessageConstants.CATEGORY_TO_UPDATE_NOT_FOUND));
 
         String categoryName = categoryDTO.getCategoryName().trim();
-        if (categoryRepository.existsByCategoryNameIgnoreCaseAndCategoryIdNot(categoryName, categoryId)) {
-            throw new RuleViolationException(MessageConstants.CATEGORY_NAME_EXISTS);
-        }
+        catalogValidationService.checkCategoryNameUniqueExcludingId(categoryName, categoryId);
 
         category.setCategoryName(categoryName);
         category.setDescription(categoryDTO.getDescription());

@@ -9,6 +9,7 @@ import com.cpt202.model.entity.Tag;
 import com.cpt202.repository.TagRepository;
 import com.cpt202.service.RedisCacheService;
 import com.cpt202.service.TagService;
+import com.cpt202.validation.CatalogValidationService;
 import com.cpt202.vo.TagVO;
 import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class TagServiceImpl implements TagService {
 
     private final TagRepository tagRepository;
     private final RedisCacheService redisCacheService;
+    private final CatalogValidationService catalogValidationService;
 
     /**
      * 查询全部标签列表。
@@ -73,9 +75,7 @@ public class TagServiceImpl implements TagService {
     @Override
     public void create(TagDTO tagDTO) {
         String tagName = tagDTO.getTagName().trim();
-        if (tagRepository.existsByTagNameIgnoreCase(tagName)) {
-            throw new RuleViolationException(MessageConstants.TAG_NAME_EXISTS);
-        }
+        catalogValidationService.checkTagNameUnique(tagName);
 
         LocalDateTime now = LocalDateTime.now();
         Tag tag = new Tag();
@@ -99,9 +99,7 @@ public class TagServiceImpl implements TagService {
                 .orElseThrow(() -> new NotFoundException(MessageConstants.TAG_TO_UPDATE_NOT_FOUND));
 
         String tagName = tagDTO.getTagName().trim();
-        if (tagRepository.existsByTagNameIgnoreCaseAndTagIdNot(tagName, tagId)) {
-            throw new RuleViolationException(MessageConstants.TAG_NAME_EXISTS);
-        }
+        catalogValidationService.checkTagNameUniqueExcludingId(tagName, tagId);
 
         tag.setTagName(tagName);
         tag.setDescription(tagDTO.getDescription());
