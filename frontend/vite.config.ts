@@ -5,13 +5,13 @@ import vue from '@vitejs/plugin-vue'
 export default defineConfig({
   plugins: [vue()],
   build: {
-    outDir: '../src/main/resources/static',
-    emptyOutDir: false,
+    outDir: 'dist',
+    emptyOutDir: true,
   },
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',//catch end
+        target: 'http://localhost:8080',
         changeOrigin: true,
       },
     },
