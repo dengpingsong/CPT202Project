@@ -102,6 +102,13 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Load .env file as Spring properties (local dev) -->
+        <dependency>
+            <groupId>me.paulschwarz</groupId>
+            <artifactId>spring-dotenv</artifactId>
+            <version>4.0.0</version>
+        </dependency>
+
         <!-- Testing: Spring Boot Test (includes JUnit 5, Mockito, MockMvc) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
