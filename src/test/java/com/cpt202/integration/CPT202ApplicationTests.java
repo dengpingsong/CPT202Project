@@ -14,12 +14,13 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Application smoke tests that cover context startup, friendly page routes,
+ * Application smoke tests that cover context startup, Vue SPA routes,
  * static HTML availability, and the documentation endpoint used by CD health checks.
  */
 @SpringBootTest(properties = "knife4j.enable=true")
@@ -37,16 +38,31 @@ class CPT202ApplicationTests {
         // If the application context fails to start, this test will fail.
     }
 
-    /** Verifies friendly routes redirect to the expected static entry pages. */
+    /** Verifies SPA routes forward to the shared Vue entry page. */
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "/",
+            "/login",
+            "/register",
+            "/student/dashboard",
+            "/teacher/projects",
+            "/admin/projects"
+    })
+    void spaRoutesForwardToVueEntry(String requestPath) throws Exception {
+        mockMvc.perform(get(requestPath))
+                .andExpect(status().isOk())
+                .andExpect(forwardedUrl("/index.html"));
+    }
+
+    /** Verifies legacy auth routes redirect to the expected Vue routes. */
     @ParameterizedTest
     @CsvSource({
-            "/,/login/login.html",
-            "/auth/login,/login/login.html",
-            "/auth/register,/login/login.html#register",
-            "/auth/forgot-password,/login/login.html#reset",
-            "/auth/reset-password?token=test-token,/login/login.html?token=test-token#reset"
+            "/auth/login,/login",
+            "/auth/register,/register",
+            "/auth/forgot-password,/login#reset",
+            "/auth/reset-password?token=test-token,/login?token=test-token#reset"
     })
-    void friendlyRoutesRedirectToExpectedPages(String requestPath, String redirectTarget) throws Exception {
+    void legacyAuthRoutesRedirectToVueRoutes(String requestPath, String redirectTarget) throws Exception {
         mockMvc.perform(get(requestPath))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl(redirectTarget));

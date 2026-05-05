@@ -1,6 +1,7 @@
 package com.cpt202.service;
 
 import com.cpt202.model.entity.User;
+import com.cpt202.dto.AdminUserUpdateDTO;
 import com.cpt202.vo.UserVO;
 
 import java.util.List;
@@ -28,4 +29,12 @@ public interface UserAdminService {
      * @param accountStatus 账号状态
      */
     void updateStatus(Long userId, String accountStatus);
+
+    /**
+     * 修改指定用户的基础信息。
+     *
+     * @param userId 用户主键
+     * @param updateDTO 用户基础信息
+     */
+    void updateUser(Long userId, AdminUserUpdateDTO updateDTO);
 }

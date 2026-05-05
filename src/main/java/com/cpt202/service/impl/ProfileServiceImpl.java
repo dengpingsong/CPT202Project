@@ -89,6 +89,7 @@ public class ProfileServiceImpl implements ProfileService {
         BeanUtils.copyProperties(studentProfileUpdateDTO, profile, "fullName", "email");
         profile.getUser().setFullName(studentProfileUpdateDTO.getFullName());
         profile.getUser().setEmail(studentProfileUpdateDTO.getEmail().trim());
+        profile.getUser().setUpdatedAt(LocalDateTime.now());
         profile.setUpdatedAt(LocalDateTime.now());
 
         studentProfileRepository.save(profile);
@@ -134,6 +135,7 @@ public class ProfileServiceImpl implements ProfileService {
         BeanUtils.copyProperties(teacherProfileUpdateDTO, profile, "fullName", "email");
         profile.getUser().setFullName(teacherProfileUpdateDTO.getFullName());
         profile.getUser().setEmail(teacherProfileUpdateDTO.getEmail().trim());
+        profile.getUser().setUpdatedAt(LocalDateTime.now());
         profile.setUpdatedAt(LocalDateTime.now());
 
         teacherProfileRepository.save(profile);

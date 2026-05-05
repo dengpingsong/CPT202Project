@@ -1,5 +1,6 @@
 package com.cpt202.vo;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -33,5 +34,6 @@ public class RequestStatusHistoryVO {
     /** 备注。 */
     private String remark;
     /** 变更时间。 */
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime changedAt;
 }
