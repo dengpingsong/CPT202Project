@@ -15,6 +15,7 @@ public final class MessageConstants {
     public static final String USERNAME_EXISTS = "Username already exists. Please choose another one.";
     public static final String EMAIL_EXISTS = "Email is already registered. Please use another email.";
     public static final String EMAIL_FORMAT_INVALID = "Invalid email format.";
+    public static final String EMAIL_DOMAIN_NOT_ALLOWED = "Unsupported email domain. Please use @student.xjtlu.edu.cn for students or @xjtlu.edu.cn for teachers.";
     public static final String DATA_INTEGRITY_VIOLATION = "The submitted data conflicts with existing records.";
     public static final String INVALID_REQUEST_BODY = "Invalid request body. Please check field formats such as dates.";
     public static final String INTERNAL_SERVER_ERROR = "Unexpected server error. Please check the server log.";

@@ -19,6 +19,7 @@ import com.cpt202.repository.RequestStatusHistoryRepository;
 import com.cpt202.repository.TeacherProfileRepository;
 import com.cpt202.result.PageResult;
 import com.cpt202.service.ProjectService;
+import com.cpt202.validation.ProjectValidationService;
 import com.cpt202.vo.ProjectVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -47,6 +48,7 @@ public class ProjectServiceImpl implements ProjectService {
     private final ProjectStatusHistoryRepository projectStatusHistoryRepository;
     private final ProjectRequestRepository projectRequestRepository;
     private final RequestStatusHistoryRepository requestStatusHistoryRepository;
+    private final ProjectValidationService projectValidationService;
 
     /**
      * 查询学生端项目列表。
@@ -144,7 +146,7 @@ public class ProjectServiceImpl implements ProjectService {
     @Transactional
     public void changeStatus(Long projectId, Long teacherId, ProjectStatusUpdateDTO projectStatusUpdateDTO) {
         Project project = getOwnedProjectEntity(projectId, teacherId);
-        validateManualStatusChange(project, projectStatusUpdateDTO.getProjectStatus());
+        projectValidationService.checkManualStatusChange(project, projectStatusUpdateDTO.getProjectStatus());
         Project.ProjectStatus oldStatus = project.getProjectStatus();
         LocalDateTime now = LocalDateTime.now();
         project.setProjectStatus(projectStatusUpdateDTO.getProjectStatus());
@@ -166,18 +168,7 @@ public class ProjectServiceImpl implements ProjectService {
         projectStatusHistoryRepository.save(history);
     }
 
-    private void validateManualStatusChange(Project project, Project.ProjectStatus targetStatus) {
-        if (targetStatus == Project.ProjectStatus.REQUESTED) {
-            throw new BusinessException(MessageConstants.PROJECT_STATUS_REQUESTED_NOT_ALLOWED_MANUALLY);
-        }
-        if (targetStatus == Project.ProjectStatus.ARCHIVED) {
-            throw new BusinessException(MessageConstants.PROJECT_STATUS_ARCHIVED_DISABLED);
-        }
-        if (project.getProjectStatus() == Project.ProjectStatus.CLOSED
-                && targetStatus != Project.ProjectStatus.CLOSED) {
-            throw new BusinessException(MessageConstants.PROJECT_STATUS_TRANSITION_INVALID);
-        }
-    }
+    // --- Validation logic moved to ProjectValidationService ---
 
     private void cancelActiveRequestsForClosedProject(Project project, LocalDateTime changedAt) {
         List<ProjectRequest> activeRequests = projectRequestRepository.findByProject_ProjectIdAndRequestStatusIn(
@@ -215,9 +206,7 @@ public class ProjectServiceImpl implements ProjectService {
 
     private Project getOwnedProjectEntity(Long projectId, Long teacherId) {
         Project project = getProjectEntity(projectId);
-        if (project.getTeacher() == null || !teacherId.equals(project.getTeacher().getTeacherId())) {
-            throw new BusinessException(MessageConstants.CANNOT_OPERATE_OTHER_TEACHER_PROJECT);
-        }
+        projectValidationService.checkProjectOwnership(project, teacherId);
         return project;
     }
 

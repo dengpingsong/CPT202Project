@@ -3,7 +3,7 @@ package com.cpt202.service.impl;
 import com.cpt202.constant.MessageConstants;
 import com.cpt202.exception.BusinessException;
 import com.cpt202.model.entity.User;
-import com.cpt202.service.EmailLoginOtpMailService;
+import com.cpt202.service.EmailOtpMailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
@@ -17,7 +17,7 @@ import org.springframework.util.StringUtils;
  */
 @Service
 @RequiredArgsConstructor
-public class EmailLoginOtpMailServiceImpl implements EmailLoginOtpMailService {
+public class EmailOtpMailServiceImpl implements EmailOtpMailService {
 
     private final JavaMailSender mailSender;
 
@@ -37,7 +37,7 @@ public class EmailLoginOtpMailServiceImpl implements EmailLoginOtpMailService {
         message.setFrom(mailFrom);
         message.setTo(user.getEmail());
         message.setSubject("CPT202 Login Verification Code");
-        message.setText(buildMailContent(user, otp));
+        message.setText(buildLoginMailContent(user, otp));
         try {
             mailSender.send(message);
         } catch (MailException ex) {
@@ -45,7 +45,25 @@ public class EmailLoginOtpMailServiceImpl implements EmailLoginOtpMailService {
         }
     }
 
-    private String buildMailContent(User user, String otp) {
+    @Override
+    public void sendRegisterOtpMail(String email, String otp) {
+        if (!StringUtils.hasText(mailFrom)) {
+            throw new BusinessException(MessageConstants.EMAIL_OTP_MAIL_NOT_CONFIGURED);
+        }
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(mailFrom);
+        message.setTo(email);
+        message.setSubject("CPT202 Register Verification Code");
+        message.setText(buildRegisterMailContent(otp));
+        try {
+            mailSender.send(message);
+        } catch (MailException ex) {
+            throw new BusinessException(MessageConstants.EMAIL_OTP_MAIL_SEND_FAILED);
+        }
+    }
+
+    private String buildLoginMailContent(User user, String otp) {
         String displayName = StringUtils.hasText(user.getFullName()) ? user.getFullName() : user.getUsername();
         return """
                 Hello %s,
@@ -57,5 +75,18 @@ public class EmailLoginOtpMailServiceImpl implements EmailLoginOtpMailService {
                 This code will expire in %d minutes.
                 If you did not request this login, you can safely ignore this email.
                 """.formatted(displayName, otp, expirationMinutes);
+    }
+
+    private String buildRegisterMailContent(String otp) {
+        return """
+                Hello,
+
+                Your CPT202 Project Selection System Register verification code is:
+
+                %s
+
+                This code will expire in %d minutes.
+                If you did not request this register, you can safely ignore this email.
+                """.formatted(otp, expirationMinutes);
     }
 }

@@ -20,13 +20,15 @@ import com.cpt202.repository.StudentProfileRepository;
 import com.cpt202.repository.TeacherProfileRepository;
 import com.cpt202.repository.UserRepository;
 import com.cpt202.service.AuthService;
-import com.cpt202.service.EmailLoginOtpMailService;
+import com.cpt202.service.EmailOtpMailService;
 import com.cpt202.service.JwtTokenService;
 import com.cpt202.service.PasswordResetMailService;
 import com.cpt202.service.RedisCacheService;
 import com.cpt202.service.TwoFactorAuthService;
+import com.cpt202.validation.AuthValidationService;
 import com.cpt202.vo.LoginVO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -37,12 +39,10 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Duration;
 import java.util.HexFormat;
 import java.util.Base64;
-import java.util.regex.Pattern;
 
 /**
  * 认证服务实现类。
@@ -50,11 +50,11 @@ import java.util.regex.Pattern;
  * 负责处理用户注册、登录、账号校验与登录态生成等逻辑。
  */
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
     private static final String DEFAULT_ACCOUNT_STATUS = "ACTIVE";
-    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private final UserRepository userRepository;
     private final StudentProfileRepository studentProfileRepository;
@@ -62,9 +62,10 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final JwtTokenService jwtTokenService;
     private final PasswordResetMailService passwordResetMailService;
-    private final EmailLoginOtpMailService emailLoginOtpMailService;
+    private final EmailOtpMailService emailOtpMailService;
     private final RedisCacheService redisCacheService;
     private final TwoFactorAuthService twoFactorAuthService;
+    private final AuthValidationService authValidationService;
 
     @Value("${app.frontend-base-url}")
     private String frontendBaseUrl;
@@ -87,20 +88,34 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public LoginVO register(RegisterUserDTO registerUserDTO) {
-        validateRegisterPayload(registerUserDTO);
+        String normalizedEmail = registerUserDTO.getEmail().trim().toLowerCase();
+        authValidationService.checkEmailFormat(normalizedEmail);
 
-        if (userRepository.existsByUsername(registerUserDTO.getUsername())) {
-            throw new RuleViolationException(MessageConstants.USERNAME_EXISTS);
+        User.UserRole role = authValidationService.inferRoleFromEmail(normalizedEmail);
+
+        authValidationService.checkRegisterPayload(registerUserDTO, role);
+
+        // otp verification
+        String submittedOtp = registerUserDTO.getOtp() == null ? "" : registerUserDTO.getOtp().trim();
+        if (!StringUtils.hasText(submittedOtp)) {
+            throw new RuleViolationException(MessageConstants.EMAIL_OTP_REQUIRED);
         }
-        if (userRepository.existsByEmail(registerUserDTO.getEmail().trim())) {
-            throw new RuleViolationException(MessageConstants.EMAIL_EXISTS);
+        String otpKey = RedisKeyConstants.EMAIL_REGISTER_OTP_PREFIX + normalizedEmail;
+        String storedOtp = redisCacheService.get(otpKey, String.class)
+                .orElseThrow(() -> new BusinessException(MessageConstants.EMAIL_OTP_EXPIRED));
+        if (!storedOtp.equals(submittedOtp)) {
+            throw new BusinessException(MessageConstants.EMAIL_OTP_INVALID);
         }
+
+        authValidationService.checkUsernameUnique(registerUserDTO.getUsername());
+        authValidationService.checkEmailUnique(normalizedEmail);
 
         LocalDateTime now = LocalDateTime.now();
         User user = new User();
-        BeanUtils.copyProperties(registerUserDTO, user, "password");
-        user.setEmail(registerUserDTO.getEmail().trim());
+        BeanUtils.copyProperties(registerUserDTO, user, "password", "email", "otp");
+        user.setEmail(normalizedEmail);
         user.setPasswordHash(hashPassword(registerUserDTO.getPassword()));
+        user.setRole(role);
         user.setAccountStatus(DEFAULT_ACCOUNT_STATUS);
         user.setCreatedAt(now);
         user.setUpdatedAt(now);
@@ -127,6 +142,9 @@ public class AuthServiceImpl implements AuthService {
             user.setTeacherProfile(teacherProfile);
         }
 
+        // otp removed
+        redisCacheService.delete(otpKey);
+
         return buildLoginVO(user);
     }
 
@@ -145,9 +163,7 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(MessageConstants.INVALID_CREDENTIALS);
         }
 
-        if (!DEFAULT_ACCOUNT_STATUS.equalsIgnoreCase(user.getAccountStatus())) {
-            throw new BusinessException(MessageConstants.ACCOUNT_UNAVAILABLE_CONTACT_ADMIN);
-        }
+        authValidationService.checkAccountActive(user);
 
         if (Boolean.TRUE.equals(user.getTwoFactorEnabled()) && StringUtils.hasText(user.getTwoFactorSecret())) {
             return buildTwoFactorRequiredLoginVO(user);
@@ -159,7 +175,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void sendEmailLoginOtp(EmailOtpRequestDTO requestDTO) {
         String normalizedEmail = requestDTO.getEmail().trim();
-        validateEmail(normalizedEmail);
+        authValidationService.checkEmailFormat(normalizedEmail);
 
         String cooldownKey = RedisKeyConstants.EMAIL_LOGIN_OTP_COOLDOWN_PREFIX + normalizedEmail.toLowerCase();
         if (redisCacheService.get(cooldownKey, String.class).isPresent()) {
@@ -176,7 +192,7 @@ public class AuthServiceImpl implements AuthService {
         try {
             redisCacheService.set(otpKey, otp, Duration.ofMinutes(emailLoginOtpExpirationMinutes));
             redisCacheService.set(cooldownKey, "1", Duration.ofSeconds(emailLoginOtpCooldownSeconds));
-            emailLoginOtpMailService.sendLoginOtpMail(user, otp);
+            emailOtpMailService.sendLoginOtpMail(user, otp);
         } catch (RuntimeException ex) {
             redisCacheService.delete(otpKey);
             redisCacheService.delete(cooldownKey);
@@ -185,9 +201,41 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    public void sendEmailRegisterOtp(EmailOtpRequestDTO requestDTO){
+        String normalizedEmail = requestDTO.getEmail().trim().toLowerCase();
+        authValidationService.checkEmailFormat(normalizedEmail);
+        authValidationService.checkRegistrableEmailDomain(normalizedEmail);
+
+        if (userRepository.existsByEmail(normalizedEmail)) {
+            throw new RuleViolationException(MessageConstants.EMAIL_EXISTS);
+        }
+
+        String cooldownKey = RedisKeyConstants.EMAIL_REGISTER_OTP_COOLDOWN_PREFIX + normalizedEmail;
+        if (redisCacheService.get(cooldownKey, String.class).isPresent()) {
+            throw new RuleViolationException(MessageConstants.EMAIL_OTP_REQUEST_TOO_FREQUENT);
+        }
+
+        String otp = generateEmailOtp();
+        log.info("[DEV] Register OTP for {} = {}", normalizedEmail, otp);
+        String otpKey = RedisKeyConstants.EMAIL_REGISTER_OTP_PREFIX + normalizedEmail;
+
+        try {
+            redisCacheService.set(otpKey, otp, Duration.ofMinutes(emailLoginOtpExpirationMinutes));
+            redisCacheService.set(cooldownKey, "1", Duration.ofSeconds(emailLoginOtpCooldownSeconds));
+            emailOtpMailService.sendRegisterOtpMail(normalizedEmail, otp);
+        } catch (RuntimeException ex) {
+            redisCacheService.delete(otpKey);
+            redisCacheService.delete(cooldownKey);
+            throw ex;
+        }
+    }
+
+
+
+    @Override
     public LoginVO loginWithEmailOtp(EmailOtpLoginDTO loginDTO) {
         String normalizedEmail = loginDTO.getEmail().trim();
-        validateEmail(normalizedEmail);
+        authValidationService.checkEmailFormat(normalizedEmail);
 
         String submittedOtp = loginDTO.getOtp().trim();
         if (!StringUtils.hasText(submittedOtp)) {
@@ -197,9 +245,7 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmailIgnoreCase(normalizedEmail)
                 .orElseThrow(() -> new BusinessException(MessageConstants.INVALID_CREDENTIALS));
 
-        if (!DEFAULT_ACCOUNT_STATUS.equalsIgnoreCase(user.getAccountStatus())) {
-            throw new BusinessException(MessageConstants.ACCOUNT_UNAVAILABLE_CONTACT_ADMIN);
-        }
+        authValidationService.checkAccountActive(user);
 
         String otpKey = RedisKeyConstants.EMAIL_LOGIN_OTP_PREFIX + normalizedEmail.toLowerCase();
         String storedOtp = redisCacheService.get(otpKey, String.class)
@@ -221,9 +267,7 @@ public class AuthServiceImpl implements AuthService {
             throw new RuleViolationException(MessageConstants.TWO_FACTOR_CODE_REQUIRED);
         }
         User user = twoFactorAuthService.verifyLoginChallenge(challengeToken, code);
-        if (!DEFAULT_ACCOUNT_STATUS.equalsIgnoreCase(user.getAccountStatus())) {
-            throw new BusinessException(MessageConstants.ACCOUNT_UNAVAILABLE_CONTACT_ADMIN);
-        }
+        authValidationService.checkAccountActive(user);
         return buildLoginVO(user);
     }
 
@@ -233,7 +277,7 @@ public class AuthServiceImpl implements AuthService {
         passwordResetTokenRepository.deleteByExpiresAtBefore(LocalDateTime.now());
 
         String normalizedEmail = requestDTO.getEmail().trim();
-        validateEmail(normalizedEmail);
+        authValidationService.checkEmailFormat(normalizedEmail);
 
         User user = userRepository.findByEmailIgnoreCase(normalizedEmail).orElse(null);
         if (user == null || !DEFAULT_ACCOUNT_STATUS.equalsIgnoreCase(user.getAccountStatus())) {
@@ -255,11 +299,7 @@ public class AuthServiceImpl implements AuthService {
         passwordResetMailService.sendPasswordResetMail(user, buildResetLink(rawToken));
     }
 
-    private void validateEmail(String email) {
-        if (!EMAIL_PATTERN.matcher(email).matches()) {
-            throw new RuleViolationException(MessageConstants.EMAIL_FORMAT_INVALID);
-        }
-    }
+    // --- Validation logic moved to AuthValidationService ---
 
     @Override
     @Transactional
@@ -286,42 +326,6 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
         passwordResetTokenRepository.save(passwordResetToken);
         invalidateOtherActiveTokens(user, passwordResetToken.getResetId(), LocalDateTime.now());
-    }
-
-    private void validateRegisterPayload(RegisterUserDTO dto) {
-        if (dto.getRole() == null) {
-            throw new RuleViolationException(MessageConstants.REGISTER_ROLE_REQUIRED);
-        }
-        if (!EMAIL_PATTERN.matcher(dto.getEmail().trim()).matches()) {
-            throw new RuleViolationException(MessageConstants.EMAIL_FORMAT_INVALID);
-        }
-
-        if (dto.getRole() == User.UserRole.STUDENT) {
-            if (dto.getStudentNo() == null || dto.getStudentNo().isBlank()) {
-                throw new RuleViolationException(MessageConstants.STUDENT_NO_REQUIRED);
-            }
-            if (dto.getProgramme() == null || dto.getProgramme().isBlank()) {
-                throw new RuleViolationException(MessageConstants.STUDENT_PROGRAMME_REQUIRED);
-            }
-            if (dto.getEnrollmentDate() == null) {
-                throw new RuleViolationException(MessageConstants.STUDENT_ENROLLMENT_DATE_REQUIRED);
-            }
-            if (dto.getEnrollmentDate().isAfter(LocalDate.now())) {
-                throw new RuleViolationException(MessageConstants.ENROLLMENT_DATE_CANNOT_BE_FUTURE);
-            }
-        }
-
-        if (dto.getRole() == User.UserRole.TEACHER) {
-            if (dto.getStaffNo() == null || dto.getStaffNo().isBlank()) {
-                throw new RuleViolationException(MessageConstants.TEACHER_STAFF_NO_REQUIRED);
-            }
-            if (dto.getDepartment() == null || dto.getDepartment().isBlank()) {
-                throw new RuleViolationException(MessageConstants.TEACHER_DEPARTMENT_REQUIRED);
-            }
-            if (dto.getTitle() == null || dto.getTitle().isBlank()) {
-                throw new RuleViolationException(MessageConstants.TEACHER_TITLE_REQUIRED);
-            }
-        }
     }
 
     private LoginVO buildLoginVO(User user) {
