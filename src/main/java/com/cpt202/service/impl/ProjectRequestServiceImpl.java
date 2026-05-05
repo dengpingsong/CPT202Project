@@ -23,6 +23,7 @@ import com.cpt202.result.PageResult;
 import com.cpt202.service.ProjectRequestValidationService;
 import com.cpt202.service.ProjectRequestService;
 import com.cpt202.vo.ProjectRequestVO;
+import com.cpt202.vo.StudentRequestSummaryVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Page;
@@ -32,8 +33,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Project Request Service Implementation.
@@ -138,6 +142,53 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
         return toProjectRequestVOList(requestRepository.findByStudent_StudentIdOrderBySubmittedAtDesc(studentId));
     }
 
+        @Override
+        public StudentRequestSummaryVO getStudentRequestSummary(Long studentId) {
+        Page<ProjectRequestVO> recentRequestPage = requestRepository.findStudentRequestVos(studentId, PageRequest.of(0, 3));
+        List<ProjectRequest> withdrawnRequests = requestRepository.findByStudent_StudentIdAndRequestStatus(
+            studentId,
+            ProjectRequest.RequestStatus.WITHDRAWN
+        );
+        List<Object[]> statusCounts = requestRepository.countStudentRequestsByStatus(studentId);
+
+        return StudentRequestSummaryVO.builder()
+            .totalRequests(statusCounts.stream().mapToLong(row -> ((Number) row[1]).longValue()).sum())
+            .pendingCount(findCount(statusCounts, ProjectRequest.RequestStatus.PENDING))
+            .acceptedCount(findCount(statusCounts, ProjectRequest.RequestStatus.ACCEPTED))
+            .rejectedCount(findCount(statusCounts, ProjectRequest.RequestStatus.REJECTED))
+            .withdrawnCount(findCount(statusCounts, ProjectRequest.RequestStatus.WITHDRAWN))
+            .withdrawnProjectIds(withdrawnRequests.stream()
+                .map(request -> request.getProject() == null ? null : request.getProject().getProjectId())
+                .filter(projectId -> projectId != null)
+                .distinct()
+                .toList())
+            .recentRequests(recentRequestPage.getContent())
+            .build();
+        }
+
+        @Override
+        public List<ProjectRequestVO> getStudentRequestContext(Long studentId, Long projectId) {
+        Map<Long, ProjectRequestVO> requestContext = new LinkedHashMap<>();
+
+        requestRepository.findByStudent_StudentIdAndProject_ProjectIdOrderBySubmittedAtDesc(studentId, projectId)
+            .stream()
+            .map(this::toProjectRequestVO)
+            .forEach(request -> requestContext.put(request.getRequestId(), request));
+
+        requestRepository.findByStudent_StudentIdAndRequestStatusInOrderBySubmittedAtDesc(
+                studentId,
+                ACTIVE_REQUEST_STATUSES)
+            .stream()
+            .map(this::toProjectRequestVO)
+            .forEach(request -> requestContext.putIfAbsent(request.getRequestId(), request));
+
+        return requestContext.values().stream()
+            .sorted(Comparator.comparing(ProjectRequestVO::getSubmittedAt,
+                    Comparator.nullsLast(Comparator.reverseOrder()))
+                .thenComparing(ProjectRequestVO::getRequestId, Comparator.nullsLast(Comparator.reverseOrder())))
+            .toList();
+        }
+
     @Override
     public PageResult<ProjectRequestVO> listStudentRequestsPage(Long studentId, StudentProjectRequestQueryDTO queryDTO) {
         Page<ProjectRequestVO> requestPage = requestRepository.findStudentRequestVos(studentId, toPageable(queryDTO));
@@ -150,6 +201,18 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
                 ? requestRepository.findByProject_Teacher_TeacherIdOrderBySubmittedAtDesc(teacherId)
                 : requestRepository.findByProject_Teacher_TeacherIdAndRequestStatusOrderBySubmittedAtDesc(teacherId, status);
         return toProjectRequestVOList(requests);
+    }
+
+    @Override
+    public ProjectRequestVO getTeacherRequest(Long requestId, Long teacherId) {
+        ProjectRequest request = requestRepository.findById(requestId)
+                .orElseThrow(() -> new NotFoundException(MessageConstants.REQUEST_NOT_FOUND));
+        if (request.getProject() == null
+                || request.getProject().getTeacher() == null
+                || !teacherId.equals(request.getProject().getTeacher().getTeacherId())) {
+            throw new BusinessException(MessageConstants.CANNOT_REVIEW_OTHER_TEACHER_REQUEST);
+        }
+        return toProjectRequestVO(request);
     }
 
     @Override
@@ -198,10 +261,25 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
         requestVO.setProjectTitle(request.getProject() == null ? null : request.getProject().getTitle());
         requestVO.setStudentId(request.getStudent() == null ? null : request.getStudent().getStudentId());
         requestVO.setStudentName(request.getStudent() == null || request.getStudent().getUser() == null
-                ? null : request.getStudent().getUser().getFullName());
+            ? null : request.getStudent().getUser().getFullName());
+        requestVO.setStudentNo(request.getStudent() == null ? null : request.getStudent().getStudentNo());
+        requestVO.setStudentEmail(request.getStudent() == null || request.getStudent().getUser() == null
+            ? null : request.getStudent().getUser().getEmail());
+        requestVO.setStudentProgramme(request.getStudent() == null ? null : request.getStudent().getProgramme());
+        requestVO.setStudentPhone(request.getStudent() == null ? null : request.getStudent().getPhone());
+        requestVO.setStudentInterests(request.getStudent() == null ? null : request.getStudent().getInterests());
         requestVO.setReviewedByTeacherId(request.getReviewedBy() == null ? null : request.getReviewedBy().getTeacherId());
         return requestVO;
     }
+
+        private long findCount(List<Object[]> counts, ProjectRequest.RequestStatus status) {
+        return counts.stream()
+            .filter(row -> row[0] == status)
+            .map(row -> (Number) row[1])
+            .findFirst()
+            .map(Number::longValue)
+            .orElse(0L);
+        }
 
     private void saveHistory(ProjectRequest request,
                              ProjectRequest.RequestStatus oldStatus,

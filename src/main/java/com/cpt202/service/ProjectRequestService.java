@@ -7,6 +7,7 @@ import com.cpt202.dto.TeacherProjectRequestQueryDTO;
 import com.cpt202.model.entity.ProjectRequest;
 import com.cpt202.result.PageResult;
 import com.cpt202.vo.ProjectRequestVO;
+import com.cpt202.vo.StudentRequestSummaryVO;
 
 import java.util.List;
 
@@ -33,6 +34,23 @@ public interface ProjectRequestService {
     List<ProjectRequestVO> listStudentRequests(Long studentId);
 
     /**
+     * 查询学生 dashboard 需要的申请摘要。
+     *
+     * @param studentId 学生主键
+     * @return 聚合后的申请摘要
+     */
+    StudentRequestSummaryVO getStudentRequestSummary(Long studentId);
+
+    /**
+     * 查询学生在某个项目详情页所需的最小申请上下文。
+     *
+     * @param studentId 学生主键
+     * @param projectId 项目主键
+     * @return 当前项目相关申请与全局活跃申请的合并结果
+     */
+    List<ProjectRequestVO> getStudentRequestContext(Long studentId, Long projectId);
+
+    /**
      * 分页查询学生本人申请列表。
      *
      * @param studentId 学生主键
@@ -49,6 +67,15 @@ public interface ProjectRequestService {
      * @return 申请展示对象列表
      */
     List<ProjectRequestVO> listTeacherRequests(Long teacherId, ProjectRequest.RequestStatus status);
+
+    /**
+     * 查询教师可访问的单条申请详情。
+     *
+     * @param requestId 申请主键
+     * @param teacherId 教师主键
+     * @return 申请详情
+     */
+    ProjectRequestVO getTeacherRequest(Long requestId, Long teacherId);
 
     /**
      * 分页查询教师申请列表。

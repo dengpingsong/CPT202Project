@@ -11,8 +11,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 /**
  * 管理端用户接口控制器。
  * 提供用户列表查询与账号状态修改能力。
@@ -36,8 +34,8 @@ public class AdminUserController {
      */
     @GetMapping
     @Operation(summary = "List users")
-    public Result<List<UserVO>> list(AdminUserQueryDTO queryDTO) {
-        return Result.success(userAdminService.listUsers(queryDTO.getRole(), queryDTO.getAccountStatus()));
+    public Result<PageResult<UserVO>> list(@Valid AdminUserQueryDTO queryDTO) {
+        return Result.success(userAdminService.listUsersPage(queryDTO));
     }
 
     @GetMapping("/page")
