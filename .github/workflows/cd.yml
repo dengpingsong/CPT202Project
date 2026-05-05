@@ -200,11 +200,7 @@ jobs:
             ls -la /opt/cpt202
             ls -la /opt/cpt202/nginx
             docker compose --env-file /opt/cpt202/.env ps
-<<<<<<< HEAD
-            rm -f /opt/cpt202/.env
-=======
             rm -f /opt/cpt202/.env
             CURRENT_APP_IMAGE="cpt202program:${{ github.event.workflow_run.head_sha }}"
             docker image ls --format '{{.Repository}}:{{.Tag}}' | grep '^cpt202program:' | grep -Fvx "$CURRENT_APP_IMAGE" | xargs -r docker image rm -f || true
             docker image prune -f || true
->>>>>>> 13efa42 (fix: run continuous deployment only after CI succeeds)
