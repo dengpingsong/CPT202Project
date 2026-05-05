@@ -1,6 +1,7 @@
 package com.cpt202.vo;
 
 import com.cpt202.model.entity.Project;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -44,7 +45,9 @@ public class ProjectVO {
     /** 项目状态。 */
     private Project.ProjectStatus projectStatus;
     /** 发布时间。 */
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime publishDate;
     /** 截止时间。 */
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime closeDate;
 }

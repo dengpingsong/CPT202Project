@@ -33,6 +33,9 @@
         .card-header { margin-bottom:24px; border-bottom:2px solid #f1f5f9; padding-bottom:16px; }
         .data-table { width:100%; border-collapse:collapse; font-size:0.92rem; }
         .data-table th, .data-table td { padding:14px 8px; text-align:left; border-bottom:1px solid #edf2f7; }
+        .history-header { padding:0; margin-bottom:20px; }
+        .history-header h1 { margin:0; font-size:1.8rem; font-weight:600; color:var(--text); }
+        .dashboard-card.history-panel { border:1px solid rgba(90,43,152,0.16); border-radius:18px; box-shadow:0 12px 30px rgba(90,43,152,0.05); }
     </style>
 </head>
 <body>
@@ -50,8 +53,10 @@
         </div>
     </aside>
     <main class="main-content">
-        <div class="dashboard-card">
-            <div class="card-header"><h2>申请历史记录</h2></div>
+        <header class="history-header">
+            <h1>History</h1>
+        </header>
+        <div class="dashboard-card history-panel">
             <table class="data-table">
                 <thead>
                 <tr>

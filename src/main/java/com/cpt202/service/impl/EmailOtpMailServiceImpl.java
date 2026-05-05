@@ -6,6 +6,7 @@ import com.cpt202.model.entity.User;
 import com.cpt202.service.EmailOtpMailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -37,11 +38,15 @@ public class EmailOtpMailServiceImpl implements EmailOtpMailService {
         message.setTo(user.getEmail());
         message.setSubject("CPT202 Login Verification Code");
         message.setText(buildLoginMailContent(user, otp));
-        mailSender.send(message);
+        try {
+            mailSender.send(message);
+        } catch (MailException ex) {
+            throw new BusinessException(MessageConstants.EMAIL_OTP_MAIL_SEND_FAILED);
+        }
     }
 
     @Override
-    public void sendRegisterOtpMail(String email, String otp){
+    public void sendRegisterOtpMail(String email, String otp) {
         if (!StringUtils.hasText(mailFrom)) {
             throw new BusinessException(MessageConstants.EMAIL_OTP_MAIL_NOT_CONFIGURED);
         }
@@ -51,7 +56,11 @@ public class EmailOtpMailServiceImpl implements EmailOtpMailService {
         message.setTo(email);
         message.setSubject("CPT202 Register Verification Code");
         message.setText(buildRegisterMailContent(otp));
-        mailSender.send(message);
+        try {
+            mailSender.send(message);
+        } catch (MailException ex) {
+            throw new BusinessException(MessageConstants.EMAIL_OTP_MAIL_SEND_FAILED);
+        }
     }
 
     private String buildLoginMailContent(User user, String otp) {
