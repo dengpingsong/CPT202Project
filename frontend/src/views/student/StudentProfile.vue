@@ -33,6 +33,7 @@ const twoFactorDisablePassword = ref('')
 const twoFactorStatus = ref('')
 const twoFactorStatusType = ref<'success' | 'error' | ''>('')
 const setupLoading = ref(false)
+const twoFactorCollapsed = ref(true)
 
 // Password
 const oldPassword = ref('')
@@ -43,10 +44,16 @@ const passwordStatusType = ref<'success' | 'error' | ''>('')
 const passwordSaving = ref(false)
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
 function formatDateForInput(value: string | null | undefined): string {
   if (!value) return ''
-  return String(value).split('T')[0]
+  if (Array.isArray(value) && value.length >= 3) {
+    const [year, month, day] = value
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+  }
+  const dateText = String(value).trim().split('T')[0]
+  return DATE_PATTERN.test(dateText) ? dateText : ''
 }
 
 async function fetchProfile() {
@@ -92,6 +99,11 @@ async function handleSave() {
     return
   }
   if (enrollmentDate.value) {
+    if (!DATE_PATTERN.test(enrollmentDate.value)) {
+      profileStatus.value = 'Enrollment date must use yyyy-MM-dd format.'
+      profileStatusType.value = 'error'
+      return
+    }
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     if (new Date(`${enrollmentDate.value}T00:00:00`) > today) {
@@ -105,14 +117,15 @@ async function handleSave() {
   profileStatus.value = 'Saving...'
   profileStatusType.value = ''
   try {
-    await studentApi.updateProfile({
+    const payload: Record<string, string> = {
       fullName: fullName.value.trim(),
       email: email.value.trim(),
       programme: programme.value.trim(),
-      enrollmentDate: enrollmentDate.value || null,
+      enrollmentDate: enrollmentDate.value,
       phone: phone.value.trim(),
       interests: interests.value.trim(),
-    })
+    }
+    await studentApi.updateProfile(payload)
     localStorage.setItem('fullName', fullName.value.trim())
     profileStatus.value = 'Profile saved successfully.'
     profileStatusType.value = 'success'
@@ -158,6 +171,22 @@ async function setupTwoFactor() {
   } finally {
     setupLoading.value = false
   }
+}
+
+function collapseTwoFactorSetup() {
+  twoFactorSetupBox.value = false
+  twoFactorEnableCode.value = ''
+  twoFactorStatus.value = ''
+  twoFactorStatusType.value = ''
+}
+
+function toggleTwoFactorSetup() {
+  if (twoFactorSetupBox.value) {
+    collapseTwoFactorSetup()
+    return
+  }
+  twoFactorCollapsed.value = false
+  setupTwoFactor()
 }
 
 async function enableTwoFactor() {
@@ -293,34 +322,36 @@ onMounted(fetchProfile)
 
         <!-- 2FA -->
         <div class="form-section">
-          <div class="section-title">Two-Factor Authentication (TOTP)</div>
-          <div class="form-row">
-            <span class="form-label"><i class="bi bi-shield-lock"></i> Status</span>
-            <div style="color: var(--muted);">{{ twoFactorEnabled ? 'Enabled' : 'Disabled' }}</div>
-          </div>
-
-          <div v-if="twoFactorSetupBox" class="tfa-box">
-            <canvas ref="twoFactorQrCanvas" style="max-width: 180px; display: block; margin: 0 auto 12px;"></canvas>
-            <p style="font-size: 0.9rem; color: var(--muted); margin: 0 0 8px;">Manual key: <strong>{{ twoFactorManualKey }}</strong></p>
-            <input v-model="twoFactorEnableCode" type="text" inputmode="numeric" maxlength="6" class="form-control" placeholder="6-digit code">
-            <button type="button" class="btn-primary" style="margin-top: 12px;" :disabled="setupLoading" @click="enableTwoFactor">
-              {{ setupLoading ? 'Enabling...' : 'Enable 2FA' }}
+          <div class="section-title" style="user-select: none; display: flex; align-items: center; justify-content: space-between;">
+            <span>Two-Factor Authentication (TOTP)</span>
+            <button type="button" class="setup-toggle-btn" :disabled="setupLoading" @click="toggleTwoFactorSetup">
+              {{ twoFactorSetupBox ? 'Collapse setup' : (twoFactorEnabled ? 'Regenerate QR Code' : 'Setup 2FA') }}
             </button>
           </div>
+          <div v-show="!twoFactorCollapsed">
+            <div class="form-row">
+              <span class="form-label"><i class="bi bi-shield-lock"></i> Status</span>
+              <div style="color: var(--muted);">{{ twoFactorEnabled ? 'Enabled' : 'Disabled' }}</div>
+            </div>
 
-          <div v-if="twoFactorEnabled" class="tfa-box">
-            <input v-model="twoFactorDisablePassword" type="password" class="form-control" placeholder="Enter current password to disable 2FA">
-            <button type="button" class="btn-secondary" style="margin-top: 12px;" :disabled="setupLoading" @click="disableTwoFactor">
-              {{ setupLoading ? 'Disabling...' : 'Disable 2FA' }}
-            </button>
-          </div>
+            <div v-if="twoFactorSetupBox" class="tfa-box">
+              <canvas ref="twoFactorQrCanvas" style="max-width: 180px; display: block; margin: 0 auto 12px;"></canvas>
+              <p style="font-size: 0.9rem; color: var(--muted); margin: 0 0 8px;">Manual key: <strong>{{ twoFactorManualKey }}</strong></p>
+              <input v-model="twoFactorEnableCode" type="text" inputmode="numeric" maxlength="6" class="form-control" placeholder="6-digit code">
+              <button type="button" class="btn-primary" style="margin-top: 12px;" :disabled="setupLoading" @click="enableTwoFactor">
+                {{ setupLoading ? 'Enabling...' : 'Enable 2FA' }}
+              </button>
+            </div>
 
-          <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-            <button type="button" class="btn-secondary" :disabled="setupLoading" @click="setupTwoFactor">
-              {{ twoFactorEnabled ? 'Regenerate QR Code' : 'Setup 2FA' }}
-            </button>
+            <div v-if="twoFactorEnabled" class="tfa-box">
+              <input v-model="twoFactorDisablePassword" type="password" class="form-control" placeholder="Enter current password to disable 2FA">
+              <button type="button" class="btn-secondary" style="margin-top: 12px;" :disabled="setupLoading" @click="disableTwoFactor">
+                {{ setupLoading ? 'Disabling...' : 'Disable 2FA' }}
+              </button>
+            </div>
+
+            <div class="form-status" :class="twoFactorStatusType">{{ twoFactorStatus }}</div>
           </div>
-          <div class="form-status" :class="twoFactorStatusType">{{ twoFactorStatus }}</div>
         </div>
 
         <!-- Actions -->
@@ -422,6 +453,29 @@ onMounted(fetchProfile)
   margin-bottom: 4px;
   border-left: 4px solid var(--deep);
   padding-left: 14px;
+}
+
+.setup-toggle-btn {
+  border: 1.5px solid var(--muted);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 8px 18px;
+  white-space: nowrap;
+}
+
+.setup-toggle-btn:hover {
+  border-color: var(--deep);
+  color: var(--deep);
+}
+
+.setup-toggle-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .form-row {

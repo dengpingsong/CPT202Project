@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { teacherApi } from '../../utils/api'
-import { toast, confirm } from '../../utils/ui-feedback'
+import { toast } from '../../utils/ui-feedback'
 
 const router = useRouter()
 
@@ -95,7 +95,7 @@ async function loadReferenceData() {
   }
 }
 
-async function openProjectEditor(projectId: number, focusArea?: string) {
+async function openProjectEditor(projectId: number) {
   showEditPanel.value = true
   setEditStatus('Loading project details...', '')
 
@@ -274,9 +274,9 @@ onMounted(async () => {
           </div>
           <div class="card-actions">
             <button class="btn-card" @click="viewRequests">Requests</button>
-            <button class="btn-card" @click="openProjectEditor(p.projectId, 'edit')">Edit</button>
-            <button class="btn-card" @click="openProjectEditor(p.projectId, 'status')">Status</button>
-            <button class="btn-card" @click="openProjectEditor(p.projectId, 'tags')">Tags</button>
+            <button class="btn-card" @click="openProjectEditor(p.projectId)">Edit</button>
+            <button class="btn-card" @click="openProjectEditor(p.projectId)">Status</button>
+            <button class="btn-card" @click="openProjectEditor(p.projectId)">Tags</button>
           </div>
         </div>
       </div>

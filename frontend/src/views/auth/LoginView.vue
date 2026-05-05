@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { authApi, setAuth } from '../../utils/api'
 
+//luyou control
 const router = useRouter()
+const route = useRoute()
 
-// Panel state
+// Panel state in5
 type PanelId = 'login' | 'emailOtp' | 'twoFactor' | 'register' | 'reset'
 const currentPanel = ref<PanelId>('login')
 
 // Login
-const loginUsername = ref('')
+const loginUsername = ref('')//this word will update automatically
 const loginPassword = ref('')
 const loginError = ref('')
 const loginLoading = ref(false)
@@ -18,16 +20,17 @@ const loginLoading = ref(false)
 // Email OTP
 const otpEmail = ref('')
 const otpCode = ref('')
-const otpDigits = ref<string[]>(['', '', '', '', '', ''])
+const otpDigits = ref<string[]>(['', '', '', '', '', ''])//yanzhengma
 const otpRefs = ref<HTMLInputElement[]>([])
 const otpRequestMessage = ref('')
 const otpRequestLoading = ref(false)
 const otpLoginMessage = ref('')
 const otpLoginLoading = ref(false)
 
+// Handle OTP input
 function onOtpInput(index: number, e: Event) {
   const raw = (e.target as HTMLInputElement).value
-  const val = raw.replace(/[^0-9]/g, '')
+  const val = raw.replace(/[^0-9]/g, '')//num
   otpDigits.value[index] = val.slice(-1)
   ;(e.target as HTMLInputElement).value = otpDigits.value[index]
   if (val && index < 5) otpRefs.value[index + 1]?.focus()
@@ -36,12 +39,13 @@ function onOtpInput(index: number, e: Event) {
 
 function onOtpKeydown(index: number, e: KeyboardEvent) {
   if (e.key === 'Backspace' && !otpDigits.value[index] && index > 0) {
-    otpDigits.value[index - 1] = ''
+    otpDigits.value[index - 1] = ''//remove
     otpRefs.value[index - 1]?.focus()
     otpCode.value = otpDigits.value.join('')
   }
 }
 
+// Handle paste of OTP code
 function onOtpPaste(e: ClipboardEvent) {
   const text = e.clipboardData?.getData('text')?.replace(/\D/g, '') ?? ''
   if (text.length >= 6) {
@@ -52,6 +56,7 @@ function onOtpPaste(e: ClipboardEvent) {
   }
 }
 
+//clear
 function resetOtpDigits() {
   otpDigits.value = ['', '', '', '', '', '']
   otpCode.value = ''
@@ -66,6 +71,7 @@ const twoFactorMessage = ref('')
 const twoFactorLoading = ref(false)
 const twoFactorUsername = ref('')
 
+// Handle Two-Factor input
 function onTwoFactorInput(index: number, e: Event) {
   const raw = (e.target as HTMLInputElement).value
   const val = raw.replace(/[^0-9]/g, '')
@@ -74,7 +80,7 @@ function onTwoFactorInput(index: number, e: Event) {
   if (val && index < 5) twoFactorRefs.value[index + 1]?.focus()
   twoFactorCode.value = twoFactorDigits.value.join('')
 }
-
+// Handle Two-Factor backspace（same）
 function onTwoFactorKeydown(index: number, e: KeyboardEvent) {
   if (e.key === 'Backspace' && !twoFactorDigits.value[index] && index > 0) {
     twoFactorDigits.value[index - 1] = ''
@@ -83,6 +89,7 @@ function onTwoFactorKeydown(index: number, e: KeyboardEvent) {
   }
 }
 
+// Handle Two-Factor paste（same）
 function onTwoFactorPaste(e: ClipboardEvent) {
   const text = e.clipboardData?.getData('text')?.replace(/\D/g, '') ?? ''
   if (text.length >= 6) {
@@ -92,7 +99,7 @@ function onTwoFactorPaste(e: ClipboardEvent) {
     twoFactorRefs.value[5]?.focus()
   }
 }
-
+//clear
 function resetTwoFactorDigits() {
   twoFactorDigits.value = ['', '', '', '', '', '']
   twoFactorCode.value = ''
@@ -124,12 +131,16 @@ const resetConfirmMessage = ref('')
 const resetConfirmLoading = ref(false)
 
 const hasResetToken = computed(() => !!resetToken.value)
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const otpMessage = computed(() => otpLoginMessage.value || otpRequestMessage.value)
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$///format
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
+//Validate email format
 function validateEmail(email: string) {
   return EMAIL_PATTERN.test(email.trim())
 }
 
+// Check if date is in the future
 function isFutureDate(value: string) {
   if (!value) return false
   const today = new Date()
@@ -137,6 +148,17 @@ function isFutureDate(value: string) {
   return new Date(`${value}T00:00:00`) > today
 }
 
+function promptMessage(message: unknown, fallback = '') {
+  const text = typeof message === 'string' ? message.trim() : ''
+  if (!text) return fallback
+  return text
+}
+
+function getErrorMessage(error: unknown, fallback = 'Network error, please try again.') {
+  return error instanceof Error && error.message ? promptMessage(error.message, fallback) : fallback
+}
+
+//change panel
 function showPanel(id: PanelId) {
   currentPanel.value = id
   if (id === 'login') {
@@ -152,7 +174,7 @@ function showPanel(id: PanelId) {
     twoFactorMessage.value = ''
   }
 }
-
+//redirection
 function redirectByRole(role: string) {
   const routes: Record<string, string> = {
     TEACHER: '/teacher/dashboard',
@@ -176,7 +198,7 @@ async function handleLogin() {
       username: loginUsername.value.trim(),
       password: loginPassword.value,
     })
-    if (res.code === 1 && res.data) {
+    if (res.code === 1 && res.data) {//sucess
       const data = res.data as any
       if (data.twoFactorRequired) {
         twoFactorChallengeToken.value = data.twoFactorChallengeToken || ''
@@ -189,10 +211,10 @@ async function handleLogin() {
       setAuth(data)
       redirectByRole(data.role)
     } else {
-      loginError.value = res.msg || 'Login failed'
+      loginError.value = promptMessage(res.msg, 'Login failed')
     }
-  } catch {
-    loginError.value = 'Network error, please try again.'
+  } catch (e) {
+    loginError.value = getErrorMessage(e, 'Login failed')
   } finally {
     loginLoading.value = false
   }
@@ -216,10 +238,10 @@ async function handleTwoFactor() {
       setAuth(res.data as any)
       redirectByRole((res.data as any).role)
     } else {
-      twoFactorMessage.value = res.msg || 'Verification failed'
+      twoFactorMessage.value = promptMessage(res.msg, 'Verification failed')
     }
-  } catch {
-    twoFactorMessage.value = 'Network error, please try again.'
+  } catch (e) {
+    twoFactorMessage.value = getErrorMessage(e, 'Verification failed')
   } finally {
     twoFactorLoading.value = false
   }
@@ -237,11 +259,11 @@ async function handleSendOtp() {
   try {
     const res = await authApi.sendEmailOtp(otpEmail.value.trim())
     otpRequestMessage.value = res.code === 1
-      ? (res.data as string) || 'Verification code sent.'
-      : res.msg || 'Failed to send code'
+      ? promptMessage(res.data, 'Verification code sent.')
+      : promptMessage(res.msg, 'Failed to send code')
     if (res.code === 1) resetOtpDigits()
-  } catch {
-    otpRequestMessage.value = 'Network error, please try again.'
+  } catch (e) {
+    otpRequestMessage.value = getErrorMessage(e, 'Failed to send code')
   } finally {
     otpRequestLoading.value = false
   }
@@ -265,10 +287,10 @@ async function handleOtpLogin() {
       setAuth(res.data as any)
       redirectByRole((res.data as any).role)
     } else {
-      otpLoginMessage.value = res.msg || 'Login failed'
+      otpLoginMessage.value = promptMessage(res.msg, 'Login failed')
     }
-  } catch {
-    otpLoginMessage.value = 'Network error, please try again.'
+  } catch (e) {
+    otpLoginMessage.value = getErrorMessage(e, 'Login failed')
   } finally {
     otpLoginLoading.value = false
   }
@@ -290,7 +312,7 @@ async function handleRegister() {
   if (regRole.value === 'STUDENT') {
     payload.studentNo = regStudentNo.value.trim()
     payload.programme = regProgramme.value.trim()
-    payload.enrollmentDate = regEntryDate.value
+    payload.enrollmentDate = regEntryDate.value.trim()
   } else {
     payload.staffNo = regStaffNo.value.trim()
     payload.department = regDepartment.value.trim()
@@ -299,6 +321,11 @@ async function handleRegister() {
 
   if (!validateEmail(payload.email)) {
     registerError.value = 'Invalid email format.'
+    registerLoading.value = false
+    return
+  }
+  if (regRole.value === 'STUDENT' && !DATE_PATTERN.test(payload.enrollmentDate || '')) {
+    registerError.value = 'Enrollment date must use yyyy-MM-dd format.'
     registerLoading.value = false
     return
   }
@@ -318,10 +345,10 @@ async function handleRegister() {
       showPanel('login')
       loginError.value = 'Register success. Please log in.'
     } else {
-      registerError.value = res.msg || 'Register failed'
+      registerError.value = promptMessage(res.msg, 'Register failed')
     }
-  } catch {
-    registerError.value = 'Network error, please try again.'
+  } catch (e) {
+    registerError.value = getErrorMessage(e, 'Register failed')
   } finally {
     registerLoading.value = false
   }
@@ -338,10 +365,10 @@ async function handleResetRequest() {
   try {
     const res = await authApi.forgotPassword(resetEmail.value.trim())
     resetRequestMessage.value = res.code === 1
-      ? (res.data as string) || 'If the email exists, a reset link has been sent.'
-      : res.msg || 'Failed to send reset email'
-  } catch {
-    resetRequestMessage.value = 'Network error, please try again.'
+      ? promptMessage(res.data, 'If the email exists, a reset link has been sent.')
+      : promptMessage(res.msg, 'Failed to send reset email')
+  } catch (e) {
+    resetRequestMessage.value = getErrorMessage(e, 'Failed to send reset email')
   } finally {
     resetRequestLoading.value = false
   }
@@ -366,21 +393,28 @@ async function handleResetConfirm() {
       resetToken.value = ''
       showPanel('login')
     } else {
-      resetConfirmMessage.value = res.msg || 'Reset failed'
+      resetConfirmMessage.value = promptMessage(res.msg, 'Reset failed')
     }
-  } catch {
-    resetConfirmMessage.value = 'Network error, please try again.'
+  } catch (e) {
+    resetConfirmMessage.value = getErrorMessage(e, 'Reset failed')
   } finally {
     resetConfirmLoading.value = false
   }
 }
 
+//check URL for panel
 onMounted(async () => {
   // Check for reset token in URL
   const params = new URLSearchParams(window.location.search)
   const token = params.get('token')
   if (token) {
     resetToken.value = token
+  }
+
+  const isResetRoute = route.path.includes('forgot-password') || route.path.includes('reset-password')
+  if (route.path === '/register') {
+    showPanel('register')
+  } else if (isResetRoute || window.location.hash === '#reset' || token) {
     showPanel('reset')
   }
 
@@ -484,7 +518,6 @@ onMounted(async () => {
               {{ otpRequestLoading ? '...' : 'Send' }}
             </button>
           </form>
-          <div class="helper">{{ otpRequestMessage }}</div>
 
           <div class="otp-divider">
             <span>Verification Code</span>
@@ -506,7 +539,7 @@ onMounted(async () => {
                 @keydown="onOtpKeydown(i, $event)"
               >
             </div>
-            <div class="helper">{{ otpLoginMessage }}</div>
+            <div class="helper otp-helper">{{ otpMessage }}</div>
             <button type="submit" :disabled="otpLoginLoading">
               {{ otpLoginLoading ? 'Verifying...' : 'Login with Code' }}
             </button>
@@ -554,8 +587,6 @@ onMounted(async () => {
           <h3>Register a student or teacher account</h3>
 
           <form @submit.prevent="handleRegister" class="register-form">
-            <div class="general-error">{{ registerError }}</div>
-
             <div class="form-field">
               <label class="inline-label">Username</label>
               <input v-model="regUsername" type="text" placeholder="Username" required>
@@ -614,6 +645,7 @@ onMounted(async () => {
               </div>
             </div>
 
+            <div class="general-error">{{ registerError }}</div>
             <button class="full-span" type="submit" :disabled="registerLoading">
               {{ registerLoading ? 'Registering...' : 'Register' }}
             </button>
@@ -651,6 +683,7 @@ onMounted(async () => {
   </section>
 </template>
 
+//css
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
 
@@ -1001,6 +1034,12 @@ button:disabled {
   margin: -6px 0 8px;
   color: var(--danger);
   font-size: 0.78rem;
+}
+
+.otp-helper {
+  min-height: 36px;
+  margin: 0;
+  line-height: 1.45;
 }
 
 .general-error {

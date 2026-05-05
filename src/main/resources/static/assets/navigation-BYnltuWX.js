@@ -1,0 +1,1 @@
+import{r as e}from"./index-Cplcnj5r.js";function t(){let e=window.history.state?.back;return typeof e==`string`?e:``}function n(n,r){let i=e();function a(){let e=t();if(e.startsWith(`/`)&&(!r||e.startsWith(r))){i.back();return}i.push(n)}return{goBack:a}}export{n as t};

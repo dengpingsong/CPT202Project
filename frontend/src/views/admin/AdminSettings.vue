@@ -9,6 +9,7 @@ const router = useRouter()
 
 const loading = ref(true)
 const saving = ref(false)
+const showPasswordModal = ref(false)
 const profileStatus = ref('')
 const profileStatusType = ref<'success' | 'error' | ''>('')
 
@@ -28,6 +29,7 @@ const twoFactorDisablePassword = ref('')
 const twoFactorStatus = ref('')
 const twoFactorStatusType = ref<'success' | 'error' | ''>('')
 const setupLoading = ref(false)
+const twoFactorCollapsed = ref(true)
 
 // Password
 const oldPassword = ref('')
@@ -133,6 +135,22 @@ async function setupTwoFactor() {
   }
 }
 
+function collapseTwoFactorSetup() {
+  twoFactorSetupBox.value = false
+  twoFactorEnableCode.value = ''
+  twoFactorStatus.value = ''
+  twoFactorStatusType.value = ''
+}
+
+function toggleTwoFactorSetup() {
+  if (twoFactorSetupBox.value) {
+    collapseTwoFactorSetup()
+    return
+  }
+  twoFactorCollapsed.value = false
+  setupTwoFactor()
+}
+
 async function enableTwoFactor() {
   if (!/^\d{6}$/.test(twoFactorEnableCode.value)) {
     twoFactorStatus.value = 'Please enter a valid 6-digit code.'
@@ -202,13 +220,10 @@ async function handleChangePassword() {
   passwordStatusType.value = ''
   try {
     await adminApi.changePassword({ oldPassword: oldPassword.value, newPassword: newPassword.value })
-    passwordStatus.value = 'Password changed. Logging out...'
+    passwordStatus.value = 'Password changed successfully.'
     passwordStatusType.value = 'success'
     toast.success('Password changed')
-    setTimeout(() => {
-      clearAuth()
-      router.push('/login')
-    }, 1500)
+    setTimeout(() => { showPasswordModal.value = false }, 700)
   } catch (e: any) {
     passwordStatus.value = e.message || 'Failed to change password'
     passwordStatusType.value = 'error'
@@ -228,14 +243,14 @@ onMounted(fetchProfile)
 <template>
   <div class="settings-page">
     <div class="page-header">
-      <h1>Admin Settings</h1>
+      <h1>Settings</h1>
     </div>
 
     <div class="content-panel">
       <form class="settings-form" @submit.prevent="handleSave">
-        <!-- Profile -->
+        <!-- Basic Info -->
         <div class="form-section">
-          <div class="section-title">Profile</div>
+          <div class="section-title">Basic Information</div>
 
           <div class="form-row">
             <span class="form-label"><i class="bi bi-person"></i> Account</span>
@@ -255,65 +270,47 @@ onMounted(fetchProfile)
           </div>
         </div>
 
-        <!-- Password -->
-        <div class="form-section">
-          <div class="section-title">Change Password</div>
-          <div class="form-row">
-            <span class="form-label"><i class="bi bi-lock"></i> Old Password</span>
-            <input v-model="oldPassword" type="password" class="form-control" placeholder="Current password">
-          </div>
-          <div class="form-row">
-            <span class="form-label"><i class="bi bi-key"></i> New Password</span>
-            <input v-model="newPassword" type="password" class="form-control" placeholder="New password">
-          </div>
-          <div class="form-row">
-            <span class="form-label"><i class="bi bi-key-fill"></i> Confirm</span>
-            <input v-model="confirmNewPassword" type="password" class="form-control" placeholder="Confirm new password">
-          </div>
-          <div style="margin-top: 8px;">
-            <button type="button" class="btn-secondary" :disabled="passwordSaving" @click="handleChangePassword">
-              {{ passwordSaving ? 'Changing...' : 'Change Password' }}
-            </button>
-          </div>
-          <div class="form-status" :class="passwordStatusType">{{ passwordStatus }}</div>
-        </div>
-
         <!-- 2FA -->
         <div class="form-section">
-          <div class="section-title">Two-Factor Authentication (TOTP)</div>
-          <div class="form-row">
-            <span class="form-label"><i class="bi bi-shield-lock"></i> Status</span>
-            <div style="color: var(--muted);">{{ twoFactorEnabled ? 'Enabled' : 'Disabled' }}</div>
-          </div>
-
-          <div v-if="twoFactorSetupBox" class="tfa-box">
-            <canvas ref="twoFactorQrCanvas" style="max-width: 180px; display: block; margin: 0 auto 12px;"></canvas>
-            <p style="font-size: 0.9rem; color: var(--muted); margin: 0 0 8px;">Manual key: <strong>{{ twoFactorManualKey }}</strong></p>
-            <input v-model="twoFactorEnableCode" type="text" inputmode="numeric" maxlength="6" class="form-control" placeholder="6-digit code">
-            <button type="button" class="btn-primary" style="margin-top: 12px;" :disabled="setupLoading" @click="enableTwoFactor">
-              {{ setupLoading ? 'Enabling...' : 'Enable 2FA' }}
+          <div class="section-title" style="user-select: none; display: flex; align-items: center; justify-content: space-between;">
+            <span>Two-Factor Authentication (TOTP)</span>
+            <button type="button" class="setup-toggle-btn" :disabled="setupLoading" @click="toggleTwoFactorSetup">
+              {{ twoFactorSetupBox ? 'Collapse setup' : (twoFactorEnabled ? 'Regenerate QR Code' : 'Setup 2FA') }}
             </button>
           </div>
+          <div v-show="!twoFactorCollapsed">
+            <div class="form-row">
+              <span class="form-label"><i class="bi bi-shield-lock"></i> Status</span>
+              <div style="color: var(--muted);">{{ twoFactorEnabled ? 'Enabled' : 'Disabled' }}</div>
+            </div>
 
-          <div v-if="twoFactorEnabled" class="tfa-box">
-            <input v-model="twoFactorDisablePassword" type="password" class="form-control" placeholder="Enter current password to disable 2FA">
-            <button type="button" class="btn-secondary" style="margin-top: 12px;" :disabled="setupLoading" @click="disableTwoFactor">
-              {{ setupLoading ? 'Disabling...' : 'Disable 2FA' }}
-            </button>
-          </div>
+            <div v-if="twoFactorSetupBox" class="tfa-box">
+              <canvas ref="twoFactorQrCanvas" style="max-width: 180px; display: block; margin: 0 auto 12px;"></canvas>
+              <p style="font-size: 0.9rem; color: var(--muted); margin: 0 0 8px;">Manual key: <strong>{{ twoFactorManualKey }}</strong></p>
+              <input v-model="twoFactorEnableCode" type="text" inputmode="numeric" maxlength="6" class="form-control" placeholder="6-digit code">
+              <button type="button" class="btn-primary" style="margin-top: 12px;" :disabled="setupLoading" @click="enableTwoFactor">
+                {{ setupLoading ? 'Enabling...' : 'Enable 2FA' }}
+              </button>
+            </div>
 
-          <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-            <button type="button" class="btn-secondary" :disabled="setupLoading" @click="setupTwoFactor">
-              {{ twoFactorEnabled ? 'Regenerate QR Code' : 'Setup 2FA' }}
-            </button>
+            <div v-if="twoFactorEnabled" class="tfa-box">
+              <input v-model="twoFactorDisablePassword" type="password" class="form-control" placeholder="Enter current password to disable 2FA">
+              <button type="button" class="btn-secondary" style="margin-top: 12px;" :disabled="setupLoading" @click="disableTwoFactor">
+                {{ setupLoading ? 'Disabling...' : 'Disable 2FA' }}
+              </button>
+            </div>
+
+            <div class="form-status" :class="twoFactorStatusType">{{ twoFactorStatus }}</div>
           </div>
-          <div class="form-status" :class="twoFactorStatusType">{{ twoFactorStatus }}</div>
         </div>
 
         <!-- Actions -->
         <div class="form-actions">
           <button type="submit" class="btn-primary" :disabled="saving">
-            {{ saving ? 'Saving...' : 'Save Profile' }}
+            {{ saving ? 'Saving...' : 'Save Changes' }}
+          </button>
+          <button type="button" class="btn-secondary" @click="showPasswordModal = true">
+            Change Password
           </button>
           <button type="button" class="btn-logout" @click="handleLogout">
             Logout
@@ -325,6 +322,41 @@ onMounted(fetchProfile)
         </div>
       </form>
     </div>
+
+    <!-- Password Modal -->
+    <Teleport to="body">
+      <div v-if="showPasswordModal" class="password-modal" @click.self="showPasswordModal = false">
+        <div class="password-dialog">
+          <div class="password-dialog-header">
+            <h2>Change Password</h2>
+            <button class="icon-button" @click="showPasswordModal = false">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+          <form class="password-form" @submit.prevent="handleChangePassword">
+            <div class="password-field">
+              <label>Current Password</label>
+              <input v-model="oldPassword" type="password" class="form-control" placeholder="Current password">
+            </div>
+            <div class="password-field">
+              <label>New Password</label>
+              <input v-model="newPassword" type="password" class="form-control" placeholder="New password">
+            </div>
+            <div class="password-field">
+              <label>Confirm New Password</label>
+              <input v-model="confirmNewPassword" type="password" class="form-control" placeholder="Confirm new password">
+            </div>
+            <div class="form-status" :class="passwordStatusType">{{ passwordStatus }}</div>
+            <div class="password-actions">
+              <button type="button" class="btn-secondary" @click="showPasswordModal = false">Cancel</button>
+              <button type="submit" class="btn-primary" :disabled="passwordSaving">
+                {{ passwordSaving ? 'Changing...' : 'Change Password' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -350,6 +382,29 @@ onMounted(fetchProfile)
   margin-bottom: 4px;
   border-left: 4px solid var(--deep);
   padding-left: 14px;
+}
+
+.setup-toggle-btn {
+  border: 1.5px solid var(--muted);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 8px 18px;
+  white-space: nowrap;
+}
+
+.setup-toggle-btn:hover {
+  border-color: var(--deep);
+  color: var(--deep);
+}
+
+.setup-toggle-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .form-row {
@@ -437,6 +492,80 @@ onMounted(fetchProfile)
   margin-left: auto;
 }
 .btn-logout:hover { background: rgba(220, 53, 69, 0.05); }
+
+/* Password Modal */
+.password-modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(28, 27, 51, 0.45);
+  z-index: 20;
+}
+
+.password-dialog {
+  width: min(440px, 100%);
+  background: #fff;
+  border-radius: 24px;
+  border: 1px solid rgba(28, 27, 51, 0.08);
+  padding: 28px;
+}
+
+.password-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.password-dialog-header h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.icon-button {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(90, 43, 152, 0.16);
+  background: rgba(90, 43, 152, 0.06);
+  color: var(--deep);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.password-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.password-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.password-field label {
+  color: var(--text);
+  font-weight: 500;
+  font-size: 0.92rem;
+}
+
+.password-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
 
 @media (max-width: 960px) {
   .form-row { grid-template-columns: 1fr; gap: 6px; }

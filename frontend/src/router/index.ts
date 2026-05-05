@@ -10,9 +10,37 @@ const router = createRouter({
       component: () => import('../views/auth/LoginView.vue'),
     },
     {
+      path: '/auth/login',
+      redirect: '/login',
+    },
+    {
       path: '/register',
       name: 'Register',
-      component: () => import('../views/auth/RegisterView.vue'),
+      component: () => import('../views/auth/LoginView.vue'),
+    },
+    {
+      path: '/auth/register',
+      redirect: '/register',
+    },
+    {
+      path: '/forgot-password',
+      name: 'ForgotPassword',
+      component: () => import('../views/auth/LoginView.vue'),
+    },
+    {
+      path: '/auth/forgot-password',
+      name: 'AuthForgotPassword',
+      component: () => import('../views/auth/LoginView.vue'),
+    },
+    {
+      path: '/reset-password',
+      name: 'ResetPassword',
+      component: () => import('../views/auth/LoginView.vue'),
+    },
+    {
+      path: '/auth/reset-password',
+      name: 'AuthResetPassword',
+      component: () => import('../views/auth/LoginView.vue'),
     },
 
     // Student

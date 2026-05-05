@@ -1,6 +1,7 @@
 package com.cpt202.vo;
 
 import com.cpt202.model.entity.ProjectRequest;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -40,9 +41,12 @@ public class ProjectRequestVO {
     /** 审核意见。 */
     private String decisionComment;
     /** 提交时间。 */
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime submittedAt;
     /** 审核时间。 */
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime reviewedAt;
     /** 撤回时间。 */
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime withdrawnAt;
 }

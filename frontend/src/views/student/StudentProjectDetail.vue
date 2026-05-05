@@ -3,9 +3,11 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { studentApi, api } from '../../utils/api'
 import { toast, confirm } from '../../utils/ui-feedback'
+import { useSmartBack } from '../../utils/navigation'
 
 const router = useRouter()
 const route = useRoute()
+const { goBack } = useSmartBack('/student/projects', '/student')
 
 const loading = ref(true)
 const project = ref<any>(null)
@@ -167,9 +169,9 @@ onMounted(loadData)
 <template>
   <div class="detail-page">
     <div class="page-header">
-      <router-link class="back-link" to="/student/projects">
+      <button type="button" class="back-link" @click="goBack">
         <i class="bi bi-arrow-left"></i> Back to Projects
-      </router-link>
+      </button>
       <h1>Project Details</h1>
     </div>
 
@@ -179,7 +181,7 @@ onMounted(loadData)
 
     <div v-else-if="!project" class="panel-card" style="text-align: center; padding: 40px;">
       Project not found.
-      <router-link to="/student/projects">Back to list</router-link>
+      <button type="button" class="inline-link" @click="goBack">Back to list</button>
     </div>
 
     <template v-else>
@@ -266,7 +268,7 @@ onMounted(loadData)
           >
             {{ submitting ? 'Withdrawing...' : 'Withdraw' }}
           </button>
-          <router-link class="btn-secondary" to="/student/projects">Back</router-link>
+          <button type="button" class="btn-secondary" @click="goBack">Back</button>
         </div>
         <div v-if="buttonState.hint" class="footnote">{{ buttonState.hint }}</div>
       </div>
@@ -303,11 +305,24 @@ onMounted(loadData)
   gap: 6px;
   padding: 6px 12px;
   border-radius: 30px;
+  border: 0;
   background: rgba(90, 43, 152, 0.1);
+  cursor: pointer;
+  font-family: inherit;
   transition: background 0.2s;
 }
 
 .back-link:hover { background: rgba(90, 43, 152, 0.2); text-decoration: none; }
+
+.inline-link {
+  border: 0;
+  background: transparent;
+  color: var(--deep);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  padding: 0;
+}
 
 .panel-card {
   background: #fff;

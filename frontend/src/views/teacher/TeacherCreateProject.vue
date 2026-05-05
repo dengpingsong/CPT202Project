@@ -3,8 +3,10 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { teacherApi } from '../../utils/api'
 import { toast } from '../../utils/ui-feedback'
+import { useSmartBack } from '../../utils/navigation'
 
 const router = useRouter()
+const { goBack } = useSmartBack('/teacher/projects', '/teacher')
 
 const title = ref('')
 const quota = ref(3)
@@ -104,9 +106,9 @@ onMounted(() => {
 <template>
   <div class="create-page">
     <div class="page-header">
-      <router-link class="back-link" to="/teacher/projects">
+      <button type="button" class="back-link" @click="goBack">
         <i class="bi bi-arrow-left"></i> Back to My Projects
-      </router-link>
+      </button>
       <h1>Publish New Project</h1>
     </div>
 
@@ -182,7 +184,7 @@ onMounted(() => {
             <i class="bi bi-rocket-takeoff"></i>
             {{ publishing ? 'Publishing...' : 'Publish' }}
           </button>
-          <button type="button" class="btn-secondary" @click="router.push('/teacher/projects')">Cancel</button>
+          <button type="button" class="btn-secondary" @click="goBack">Cancel</button>
         </div>
       </form>
     </div>
@@ -218,7 +220,10 @@ onMounted(() => {
   gap: 6px;
   padding: 6px 12px;
   border-radius: 30px;
+  border: 0;
   background: rgba(90, 43, 152, 0.1);
+  cursor: pointer;
+  font-family: inherit;
   transition: background 0.2s;
 }
 

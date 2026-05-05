@@ -1,6 +1,7 @@
 package com.cpt202.dto;
 
 import com.cpt202.model.entity.User;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -44,7 +45,8 @@ public class RegisterUserDTO {
     /** 专业。 */
     private String programme;
     /** 入学日期。 */
-    @PastOrPresent(message = "入学日期不能晚于今天。")
+    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
+    @PastOrPresent(message = "Enrollment date cannot be in the future.")
     private LocalDate enrollmentDate;
     /** 联系电话。 */
     private String phone;

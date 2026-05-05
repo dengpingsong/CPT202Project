@@ -12,13 +12,15 @@ import org.springframework.test.web.servlet.MockMvc;
 
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Application smoke tests that cover context startup, friendly page routes,
+ * Application smoke tests that cover context startup, Vue SPA routes,
  * static HTML availability, and the documentation endpoint used by CD health checks.
  */
 @SpringBootTest(properties = {
@@ -45,14 +47,28 @@ class CPT202ApplicationTests {
     }
 
     @ParameterizedTest
-    @CsvSource({
-            "/,/login/login.html",
-            "/auth/login,/login/login.html",
-            "/auth/register,/login/login.html#register",
-            "/auth/forgot-password,/login/login.html#reset",
-            "/auth/reset-password?token=test-token,/login/login.html?token=test-token#reset"
+    @ValueSource(strings = {
+            "/",
+            "/login",
+            "/register",
+            "/student/dashboard",
+            "/teacher/projects",
+            "/admin/projects"
     })
-    void friendlyRoutesRedirectToExpectedPages(String requestPath, String redirectTarget) throws Exception {
+    void spaRoutesForwardToVueEntry(String requestPath) throws Exception {
+        mockMvc.perform(get(requestPath))
+                .andExpect(status().isOk())
+                .andExpect(forwardedUrl("/index.html"));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "/auth/login,/login",
+            "/auth/register,/register",
+            "/auth/forgot-password,/login#reset",
+            "/auth/reset-password?token=test-token,/login?token=test-token#reset"
+    })
+    void legacyAuthRoutesRedirectToVueRoutes(String requestPath, String redirectTarget) throws Exception {
         mockMvc.perform(get(requestPath))
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl(redirectTarget));
@@ -79,5 +95,38 @@ class CPT202ApplicationTests {
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.openapi").exists());
+    }
+
+    @Test
+    void studentRegistrationPersistsEnrollmentDateToProfile() throws Exception {
+        String registerResponse = mockMvc.perform(post("/api/common/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "date_student_test",
+                                  "password": "123456",
+                                  "email": "date.student.test@example.com",
+                                  "fullName": "Date Student",
+                                  "role": "STUDENT",
+                                  "studentNo": "S-DATE-001",
+                                  "programme": "Software Engineering",
+                                  "enrollmentDate": "2024-09-01"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1))
+                .andExpect(jsonPath("$.data.token").isNotEmpty())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String token = registerResponse.replaceAll(".*\\\"token\\\":\\\"([^\\\"]+)\\\".*", "$1");
+
+        mockMvc.perform(get("/api/student/profile/me")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1))
+                .andExpect(jsonPath("$.data.studentNo").value("S-DATE-001"))
+                .andExpect(jsonPath("$.data.enrollmentDate").value("2024-09-01"));
     }
 }

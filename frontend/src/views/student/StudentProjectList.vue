@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { studentApi } from '../../utils/api'
 import { toast } from '../../utils/ui-feedback'
+import AppPagination from '../../components/AppPagination.vue'
 
 // State
 const loading = ref(true)
@@ -30,11 +31,6 @@ const visiblePages = computed(() => {
   if (cp <= 3) return [1, 2, 3, 4, 5]
   if (cp >= tp - 2) return [tp - 4, tp - 3, tp - 2, tp - 1, tp]
   return [cp - 2, cp - 1, cp, cp + 1, cp + 2]
-})
-
-const paginationSummary = computed(() => {
-  if (total.value === 0) return ''
-  return `Page ${currentPage.value} / ${totalPages.value}, total ${total.value} projects`
 })
 
 // Helpers
@@ -157,44 +153,43 @@ onMounted(init)
     </div>
 
     <div class="panel-card">
-      <p style="color: var(--muted); margin-bottom: 10px;">Click View to see project details</p>
-
       <!-- Filters -->
       <div class="filters-row">
-        <label class="filter-field">
-          Keyword
+        <span class="filter-control search-control">
+          <i class="bi bi-search"></i>
           <input
             v-model="keyword"
             type="search"
             placeholder="Project name, area, or skill"
             @input="onKeywordInput"
           >
-        </label>
-        <label class="filter-field">
-          Category
-          <select v-model="categoryId" @change="loadProjects(1)">
+        </span>
+        <span class="filter-control select-control">
+          <select v-model="categoryId" aria-label="Category" @change="loadProjects(1)">
             <option value="">All Categories</option>
             <option v-for="cat in categories" :key="cat.categoryId" :value="cat.categoryId">
               {{ cat.categoryName }}
             </option>
           </select>
-        </label>
-        <label class="filter-field">
-          Status
-          <select v-model="statusFilter" @change="loadProjects(1)">
+        </span>
+        <span class="filter-control select-control">
+          <select v-model="statusFilter" aria-label="Status" @change="loadProjects(1)">
             <option value="">All Status</option>
             <option value="AVAILABLE">Available</option>
             <option value="REQUESTED">Requested</option>
             <option value="AGREED">Agreed</option>
             <option value="CLOSED">Closed</option>
           </select>
-        </label>
-        <button class="clear-btn" @click="clearAllFilters">Clear Filters</button>
+        </span>
+        <button class="clear-btn" @click="clearAllFilters">
+          <i class="bi bi-arrow-counterclockwise"></i>
+          Clear
+        </button>
       </div>
 
       <!-- Tag Filters -->
       <div class="tag-filter-bar">
-        <span class="tag-label">Tags:</span>
+        <span class="tag-label">Tags</span>
         <template v-if="tags.length > 0">
           <button
             v-for="tag in tags"
@@ -206,10 +201,10 @@ onMounted(init)
             {{ tag.tagName }}
           </button>
           <button
-            class="tag-btn"
+            class="tag-btn tag-clear"
             :disabled="selectedTagIds.size === 0"
             @click="clearTagFilters"
-          >Clear</button>
+          >Clear tags</button>
         </template>
         <span v-else class="tag-label">No tags available</span>
       </div>
@@ -258,37 +253,16 @@ onMounted(init)
         </table>
       </div>
 
-      <div class="project-count">Total: {{ total }} projects</div>
-
-      <!-- Pagination -->
-      <div v-if="total > 0" class="pagination-bar">
-        <button
-          class="pagination-btn pagination-nav"
-          :disabled="currentPage <= 1"
-          @click="loadProjects(currentPage - 1)"
-        >
-          <span>Prev</span>
-        </button>
-        <div class="pagination-pages">
-          <button
-            v-for="page in visiblePages"
-            :key="page"
-            class="pagination-number"
-            :class="{ active: page === currentPage }"
-            @click="loadProjects(page)"
-          >
-            {{ page }}
-          </button>
-        </div>
-        <button
-          class="pagination-btn pagination-nav"
-          :disabled="currentPage >= totalPages"
-          @click="loadProjects(currentPage + 1)"
-        >
-          <span>Next</span>
-        </button>
-      </div>
-      <div v-if="total > 0" class="pagination-summary">{{ paginationSummary }}</div>
+      <AppPagination
+        v-if="total > 0"
+        :current-page="currentPage"
+        :total-pages="totalPages"
+        :total-items="total"
+        :page-size="pageSize"
+        :pages="visiblePages"
+        item-label="projects"
+        @change="loadProjects"
+      />
     </div>
   </div>
 </template>
@@ -315,90 +289,119 @@ onMounted(init)
 
 .filters-row {
   display: grid;
-  grid-template-columns: minmax(180px, 1.5fr) minmax(150px, 1fr) minmax(150px, 1fr) auto;
-  gap: 10px;
+  grid-template-columns: minmax(260px, 1.6fr) minmax(190px, 1fr) minmax(170px, 0.9fr) auto;
+  gap: 12px;
   align-items: end;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
-.filter-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 0.9rem;
-  color: var(--muted);
-}
-
-.filter-field input,
-.filter-field select {
-  padding: 10px 12px;
-  border: 1px solid rgba(90, 43, 152, 0.18);
+.filter-control {
+  min-height: 44px;
+  border: 1.5px solid rgba(90, 43, 152, 0.16);
   border-radius: 12px;
-  font: inherit;
   background: #fff;
-  outline: none;
+  display: flex;
+  align-items: center;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.filter-field input:focus,
-.filter-field select:focus {
+.filter-control:focus-within {
   border-color: var(--deep);
-  box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.14);
+  box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.08);
+}
+
+.search-control {
+  gap: 8px;
+  padding: 0 12px;
+}
+
+.search-control i {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.filter-control input,
+.filter-control select {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.95rem;
+}
+
+.select-control select {
+  height: 42px;
+  padding: 0 12px;
+  cursor: pointer;
 }
 
 .clear-btn {
-  padding: 10px 14px;
+  min-height: 44px;
+  padding: 0 16px;
   border-radius: 12px;
-  border: 1px solid rgba(90, 43, 152, 0.16);
-  background: linear-gradient(180deg, #fff, #f7f2ff);
+  border: 1.5px solid rgba(90, 43, 152, 0.16);
+  background: #fff;
   color: var(--deep);
-  font-weight: 600;
-  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   font-family: inherit;
   font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
 }
 
 .clear-btn:hover {
-  background: linear-gradient(180deg, #fff, #efe4ff);
+  border-color: var(--deep);
+  background: rgba(90, 43, 152, 0.06);
 }
 
 .tag-filter-bar {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .tag-label {
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-right: 2px;
 }
 
 .tag-btn {
-  padding: 6px 12px;
+  padding: 7px 14px;
   border-radius: 999px;
-  border: 1px solid rgba(90, 43, 152, 0.16);
+  border: 1.5px solid rgba(90, 43, 152, 0.16);
   background: #fff;
   color: var(--deep);
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   cursor: pointer;
   font-family: inherit;
-  font-weight: 500;
-  transition: all 0.2s;
+  font-weight: 700;
+  line-height: 1;
 }
 
-.tag-btn:hover {
-  background: #f7f2ff;
-}
-
+.tag-btn:hover:not(:disabled),
 .tag-btn.active {
   background: var(--deep);
   color: #fff;
   border-color: var(--deep);
 }
 
+.tag-clear {
+  color: var(--muted);
+}
+
 .tag-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
@@ -463,86 +466,6 @@ onMounted(init)
 .view-btn:hover {
   background: var(--deep);
   color: #fff;
-}
-
-.project-count {
-  margin-top: 16px;
-  font-size: 0.9rem;
-  color: var(--muted);
-}
-
-/* Pagination */
-.pagination-bar {
-  margin-top: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding: 14px 18px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, rgba(90, 43, 152, 0.12), rgba(123, 79, 189, 0.08));
-  border: 1px solid rgba(90, 43, 152, 0.14);
-}
-
-.pagination-pages {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-}
-
-.pagination-btn,
-.pagination-number {
-  min-width: 50px;
-  height: 46px;
-  padding: 0 18px;
-  border-radius: 14px;
-  border: 1px solid rgba(90, 43, 152, 0.16);
-  background: linear-gradient(180deg, #fff, #f7f2ff);
-  color: var(--deep);
-  font-weight: 600;
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: inherit;
-}
-
-.pagination-btn:hover,
-.pagination-number:hover {
-  background: linear-gradient(180deg, #fff, #efe4ff);
-  transform: translateY(-1px);
-}
-
-.pagination-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-  transform: none;
-}
-
-.pagination-number.active {
-  background: linear-gradient(135deg, var(--deep), var(--mid));
-  color: #fff;
-  border-color: var(--deep);
-}
-
-.pagination-nav {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: linear-gradient(135deg, var(--deep), var(--mid));
-  color: #fff;
-}
-
-.pagination-nav:hover {
-  background: linear-gradient(135deg, var(--deep), #6d43b0);
-  color: #fff;
-}
-
-.pagination-summary {
-  margin-top: 10px;
-  color: #6c5a8f;
-  font-size: 0.9rem;
-  text-align: center;
 }
 
 @media (max-width: 960px) {
