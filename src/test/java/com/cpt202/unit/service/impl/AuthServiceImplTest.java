@@ -101,6 +101,9 @@ class AuthServiceImplTest {
     @Test
     void registerShouldRejectDuplicateUsername() {
         RegisterUserDTO dto = validStudentRegisterDTO();
+        dto.setOtp("123456");
+        String otpKey = RedisKeyConstants.EMAIL_REGISTER_OTP_PREFIX + dto.getEmail().trim().toLowerCase();
+        when(redisCacheService.get(otpKey, String.class)).thenReturn(Optional.of("123456"));
 
         when(userRepository.existsByUsername(dto.getUsername())).thenReturn(true);
 
@@ -115,6 +118,9 @@ class AuthServiceImplTest {
     @Test
     void registerStudentShouldCreateProfileAndReturnLoginVo() {
         RegisterUserDTO dto = validStudentRegisterDTO();
+        dto.setOtp("123456");
+        String otpKey = RedisKeyConstants.EMAIL_REGISTER_OTP_PREFIX + dto.getEmail().trim().toLowerCase();
+        when(redisCacheService.get(otpKey, String.class)).thenReturn(Optional.of("123456"));
 
         when(userRepository.existsByUsername(dto.getUsername())).thenReturn(false);
         when(userRepository.existsByEmail(dto.getEmail().trim())).thenReturn(false);
