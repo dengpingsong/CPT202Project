@@ -10,8 +10,9 @@ export function useSmartBack(fallbackPath: string, sectionPrefix?: string) {
 
   function goBack() {
     const previousPath = getPreviousPath()
-    const canReturn = previousPath.startsWith('/')
-      && (!sectionPrefix || previousPath.startsWith(sectionPrefix))
+    const canReturn =
+      previousPath.startsWith('/') &&
+      (!sectionPrefix || previousPath.startsWith(sectionPrefix))
 
     if (canReturn) {
       router.back()

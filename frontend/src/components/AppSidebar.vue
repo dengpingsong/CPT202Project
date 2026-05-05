@@ -113,7 +113,7 @@ function isActive(path: string): boolean {
   display: flex;
   align-items: center;
   gap: 14px;
-  justify-content: center;          /* collapsed: icon centered */
+  justify-content: center; /* collapsed: icon centered */
   text-decoration: none;
   white-space: nowrap;
   outline: none;
@@ -124,11 +124,11 @@ function isActive(path: string): boolean {
 }
 
 .nav-item:focus-visible {
-  background: rgba(28, 27, 51, 0.06);  /* subtle keyboard hint */
+  background: rgba(28, 27, 51, 0.06); /* subtle keyboard hint */
 }
 
 .layout.sidebar-expanded .nav-item {
-  justify-content: flex-start;      /* expanded: icon + text left-aligned */
+  justify-content: flex-start; /* expanded: icon + text left-aligned */
 }
 
 .nav-item:hover {
@@ -156,7 +156,9 @@ function isActive(path: string): boolean {
   opacity: 0;
   max-width: 0;
   overflow: hidden;
-  transition: opacity 0.25s ease 0.05s, max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    opacity 0.25s ease 0.05s,
+    max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
 }
 
@@ -184,7 +186,9 @@ function isActive(path: string): boolean {
   gap: 14px;
   justify-content: center;
   font-family: inherit;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
   white-space: nowrap;
   outline: none;
 }
@@ -233,11 +237,24 @@ function isActive(path: string): boolean {
     width: 100%;
     height: auto;
   }
-  .layout.sidebar-expanded .sidebar { width: 100%; }
-  .main { margin-left: 0; }
-  .layout.sidebar-expanded .main { margin-left: 0; }
-  .sidebar-footer { margin-top: 0; }
-  .nav-label { display: none; }
-  .nav-group { justify-content: flex-start; padding: 0; }
+  .layout.sidebar-expanded .sidebar {
+    width: 100%;
+  }
+  .main {
+    margin-left: 0;
+  }
+  .layout.sidebar-expanded .main {
+    margin-left: 0;
+  }
+  .sidebar-footer {
+    margin-top: 0;
+  }
+  .nav-label {
+    display: none;
+  }
+  .nav-group {
+    justify-content: flex-start;
+    padding: 0;
+  }
 }
 </style>

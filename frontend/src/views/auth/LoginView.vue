@@ -12,7 +12,7 @@ type PanelId = 'login' | 'emailOtp' | 'twoFactor' | 'register' | 'reset'
 const currentPanel = ref<PanelId>('login')
 
 // Login
-const loginUsername = ref('')//this word will update automatically
+const loginUsername = ref('') //this word will update automatically
 const loginPassword = ref('')
 const loginError = ref('')
 const loginLoading = ref(false)
@@ -20,7 +20,7 @@ const loginLoading = ref(false)
 // Email OTP
 const otpEmail = ref('')
 const otpCode = ref('')
-const otpDigits = ref<string[]>(['', '', '', '', '', ''])//yanzhengma
+const otpDigits = ref<string[]>(['', '', '', '', '', '']) //yanzhengma
 const otpRefs = ref<HTMLInputElement[]>([])
 const otpRequestMessage = ref('')
 const otpRequestLoading = ref(false)
@@ -30,7 +30,7 @@ const otpLoginLoading = ref(false)
 // Handle OTP input
 function onOtpInput(index: number, e: Event) {
   const raw = (e.target as HTMLInputElement).value
-  const val = raw.replace(/[^0-9]/g, '')//num
+  const val = raw.replace(/[^0-9]/g, '') //num
   otpDigits.value[index] = val.slice(-1)
   ;(e.target as HTMLInputElement).value = otpDigits.value[index]
   if (val && index < 5) otpRefs.value[index + 1]?.focus()
@@ -39,7 +39,7 @@ function onOtpInput(index: number, e: Event) {
 
 function onOtpKeydown(index: number, e: KeyboardEvent) {
   if (e.key === 'Backspace' && !otpDigits.value[index] && index > 0) {
-    otpDigits.value[index - 1] = ''//remove
+    otpDigits.value[index - 1] = '' //remove
     otpRefs.value[index - 1]?.focus()
     otpCode.value = otpDigits.value.join('')
   }
@@ -138,8 +138,10 @@ const resetConfirmMessage = ref('')
 const resetConfirmLoading = ref(false)
 
 const hasResetToken = computed(() => !!resetToken.value)
-const otpMessage = computed(() => otpLoginMessage.value || otpRequestMessage.value)
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$///format
+const otpMessage = computed(
+  () => otpLoginMessage.value || otpRequestMessage.value,
+)
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/ //format
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 const STUDENT_EMAIL_DOMAIN = 'student.xjtlu.edu.cn'
 const TEACHER_EMAIL_DOMAIN = 'xjtlu.edu.cn'
@@ -168,8 +170,11 @@ const registerRoleHint = computed(() => {
   return 'Only @student.xjtlu.edu.cn and @xjtlu.edu.cn addresses can register.'
 })
 
-const canSendRegisterOtp = computed(() =>
-  validateEmail(regEmail.value) && !!inferredRegisterRole.value && registerOtpCountdown.value === 0,
+const canSendRegisterOtp = computed(
+  () =>
+    validateEmail(regEmail.value) &&
+    !!inferredRegisterRole.value &&
+    registerOtpCountdown.value === 0,
 )
 
 //Validate email format
@@ -191,8 +196,13 @@ function promptMessage(message: unknown, fallback = '') {
   return text
 }
 
-function getErrorMessage(error: unknown, fallback = 'Network error, please try again.') {
-  return error instanceof Error && error.message ? promptMessage(error.message, fallback) : fallback
+function getErrorMessage(
+  error: unknown,
+  fallback = 'Network error, please try again.',
+) {
+  return error instanceof Error && error.message
+    ? promptMessage(error.message, fallback)
+    : fallback
 }
 
 function resetRegisterForm() {
@@ -273,7 +283,8 @@ async function handleLogin() {
       username: loginUsername.value.trim(),
       password: loginPassword.value,
     })
-    if (res.code === 1 && res.data) {//sucess
+    if (res.code === 1 && res.data) {
+      //sucess
       const data = res.data as any
       if (data.twoFactorRequired) {
         twoFactorChallengeToken.value = data.twoFactorChallengeToken || ''
@@ -308,7 +319,10 @@ async function handleTwoFactor() {
   }
   twoFactorLoading.value = true
   try {
-    const res = await authApi.verifyTwoFactor(twoFactorChallengeToken.value, twoFactorCode.value)
+    const res = await authApi.verifyTwoFactor(
+      twoFactorChallengeToken.value,
+      twoFactorCode.value,
+    )
     if (res.code === 1 && res.data) {
       setAuth(res.data as any)
       redirectByRole((res.data as any).role)
@@ -333,9 +347,10 @@ async function handleSendOtp() {
   otpRequestLoading.value = true
   try {
     const res = await authApi.sendEmailOtp(otpEmail.value.trim())
-    otpRequestMessage.value = res.code === 1
-      ? promptMessage(res.data, 'Verification code sent.')
-      : promptMessage(res.msg, 'Failed to send code')
+    otpRequestMessage.value =
+      res.code === 1
+        ? promptMessage(res.data, 'Verification code sent.')
+        : promptMessage(res.msg, 'Failed to send code')
     if (res.code === 1) resetOtpDigits()
   } catch (e) {
     otpRequestMessage.value = getErrorMessage(e, 'Failed to send code')
@@ -357,7 +372,10 @@ async function handleOtpLogin() {
   }
   otpLoginLoading.value = true
   try {
-    const res = await authApi.emailOtpLogin(otpEmail.value.trim(), otpCode.value.trim())
+    const res = await authApi.emailOtpLogin(
+      otpEmail.value.trim(),
+      otpCode.value.trim(),
+    )
     if (res.code === 1 && res.data) {
       setAuth(res.data as any)
       redirectByRole((res.data as any).role)
@@ -391,12 +409,14 @@ async function handleRegister() {
     return
   }
   if (!inferredRegisterRole.value) {
-    registerError.value = 'Please use your XJTLU student or teacher email address.'
+    registerError.value =
+      'Please use your XJTLU student or teacher email address.'
     registerLoading.value = false
     return
   }
   if (!/^\d{6}$/.test(payload.otp)) {
-    registerError.value = 'Please enter the 6-digit verification code sent to your email.'
+    registerError.value =
+      'Please enter the 6-digit verification code sent to your email.'
     registerLoading.value = false
     return
   }
@@ -415,12 +435,18 @@ async function handleRegister() {
     payload.office = regOffice.value.trim()
   }
 
-  if (inferredRegisterRole.value === 'STUDENT' && !DATE_PATTERN.test(payload.enrollmentDate || '')) {
+  if (
+    inferredRegisterRole.value === 'STUDENT' &&
+    !DATE_PATTERN.test(payload.enrollmentDate || '')
+  ) {
     registerError.value = 'Enrollment date must use yyyy-MM-dd format.'
     registerLoading.value = false
     return
   }
-  if (inferredRegisterRole.value === 'STUDENT' && isFutureDate(payload.enrollmentDate)) {
+  if (
+    inferredRegisterRole.value === 'STUDENT' &&
+    isFutureDate(payload.enrollmentDate)
+  ) {
     registerError.value = 'Enrollment date cannot be in the future.'
     registerLoading.value = false
     return
@@ -431,7 +457,8 @@ async function handleRegister() {
     if (res.code === 1 && res.data) {
       setAuth(res.data as any)
       resetRegisterForm()
-      registerSuccess.value = 'Register success. Redirecting to your dashboard...'
+      registerSuccess.value =
+        'Register success. Redirecting to your dashboard...'
       redirectByRole((res.data as any).role)
     } else if (res.code === 1) {
       resetRegisterForm()
@@ -456,7 +483,8 @@ async function handleSendRegisterOtp() {
     return
   }
   if (!inferredRegisterRole.value) {
-    registerError.value = 'Only @student.xjtlu.edu.cn and @xjtlu.edu.cn addresses can receive registration codes.'
+    registerError.value =
+      'Only @student.xjtlu.edu.cn and @xjtlu.edu.cn addresses can receive registration codes.'
     return
   }
 
@@ -464,13 +492,22 @@ async function handleSendRegisterOtp() {
   try {
     const res = await authApi.sendRegisterEmailOtp(regEmail.value.trim())
     if (res.code === 1) {
-      registerSuccess.value = promptMessage(res.msg || res.data, 'Verification code sent.')
+      registerSuccess.value = promptMessage(
+        res.msg || res.data,
+        'Verification code sent.',
+      )
       startRegisterOtpCountdown()
     } else {
-      registerError.value = promptMessage(res.msg, 'Failed to send verification code.')
+      registerError.value = promptMessage(
+        res.msg,
+        'Failed to send verification code.',
+      )
     }
   } catch (e) {
-    registerError.value = getErrorMessage(e, 'Failed to send verification code.')
+    registerError.value = getErrorMessage(
+      e,
+      'Failed to send verification code.',
+    )
   } finally {
     registerOtpSending.value = false
   }
@@ -486,9 +523,13 @@ async function handleResetRequest() {
   resetRequestLoading.value = true
   try {
     const res = await authApi.forgotPassword(resetEmail.value.trim())
-    resetRequestMessage.value = res.code === 1
-      ? promptMessage(res.data, 'If the email exists, a reset link has been sent.')
-      : promptMessage(res.msg, 'Failed to send reset email')
+    resetRequestMessage.value =
+      res.code === 1
+        ? promptMessage(
+            res.data,
+            'If the email exists, a reset link has been sent.',
+          )
+        : promptMessage(res.msg, 'Failed to send reset email')
   } catch (e) {
     resetRequestMessage.value = getErrorMessage(e, 'Failed to send reset email')
   } finally {
@@ -509,7 +550,10 @@ async function handleResetConfirm() {
   }
   resetConfirmLoading.value = true
   try {
-    const res = await authApi.resetPassword(resetToken.value, resetPassword.value)
+    const res = await authApi.resetPassword(
+      resetToken.value,
+      resetPassword.value,
+    )
     if (res.code === 1) {
       resetConfirmMessage.value = 'Password reset successfully. Please log in.'
       resetToken.value = ''
@@ -533,7 +577,9 @@ onMounted(async () => {
     resetToken.value = token
   }
 
-  const isResetRoute = route.path.includes('forgot-password') || route.path.includes('reset-password')
+  const isResetRoute =
+    route.path.includes('forgot-password') ||
+    route.path.includes('reset-password')
   if (route.path === '/register') {
     showPanel('register')
   } else if (isResetRoute || window.location.hash === '#reset' || token) {
@@ -570,14 +616,17 @@ onMounted(async () => {
       <p class="guide-eyebrow">CPT202 Project Selection System</p>
       <h1>Find and manage your final year project in one place.</h1>
       <p class="guide-text">
-        Students can browse available topics and submit applications. Teachers can publish projects,
-        review requests, and keep project capacity under control.
+        Students can browse available topics and submit applications. Teachers
+        can publish projects, review requests, and keep project capacity under
+        control.
       </p>
 
       <div class="guide-points" aria-label="Core features">
         <div>
           <strong>Students</strong>
-          <span>Search projects, track requests, and manage profile details.</span>
+          <span
+            >Search projects, track requests, and manage profile details.</span
+          >
         </div>
         <div>
           <strong>Teachers</strong>
@@ -591,20 +640,27 @@ onMounted(async () => {
     </div>
 
     <div class="guide-visual">
-      <div class="login-card auth-panel-card" :class="{ 'register-mode': currentPanel === 'register' }">
+      <div
+        class="login-card auth-panel-card"
+        :class="{ 'register-mode': currentPanel === 'register' }"
+      >
         <div class="auth-tabs" aria-label="Authentication options">
           <button
             type="button"
             class="auth-tab"
             :class="{ active: currentPanel === 'login' }"
             @click="showPanel('login')"
-          >Login</button>
+          >
+            Login
+          </button>
           <button
             type="button"
             class="auth-tab"
             :class="{ active: currentPanel === 'register' }"
             @click="showPanel('register')"
-          >Register</button>
+          >
+            Register
+          </button>
         </div>
 
         <!-- Login Panel -->
@@ -613,11 +669,27 @@ onMounted(async () => {
           <h3>Please log in to your account</h3>
 
           <form @submit.prevent="handleLogin">
-            <input v-model="loginUsername" type="text" placeholder="Username" required>
-            <input v-model="loginPassword" type="password" placeholder="Password" required>
+            <input
+              v-model="loginUsername"
+              type="text"
+              placeholder="Username"
+              required
+            />
+            <input
+              v-model="loginPassword"
+              type="password"
+              placeholder="Password"
+              required
+            />
 
             <div class="forgot-wrap">
-              <button type="button" class="text-link" @click="showPanel('reset')">Forgot Password?</button>
+              <button
+                type="button"
+                class="text-link"
+                @click="showPanel('reset')"
+              >
+                Forgot Password?
+              </button>
             </div>
 
             <div class="helper">{{ loginError }}</div>
@@ -626,7 +698,9 @@ onMounted(async () => {
             </button>
           </form>
 
-          <button type="button" class="otp-btn" @click="showPanel('emailOtp')">Login with Email OTP</button>
+          <button type="button" class="otp-btn" @click="showPanel('emailOtp')">
+            Login with Email OTP
+          </button>
         </div>
 
         <!-- Email OTP Panel -->
@@ -634,9 +708,18 @@ onMounted(async () => {
           <h2>Email OTP Login</h2>
           <h3>Use your registered email to receive a one-time code</h3>
 
-          <form @submit.prevent="handleSendOtp" class="otp-send-row">
-            <input v-model="otpEmail" type="email" placeholder="Enter your email" required>
-            <button type="submit" class="otp-send-btn" :disabled="otpRequestLoading">
+          <form class="otp-send-row" @submit.prevent="handleSendOtp">
+            <input
+              v-model="otpEmail"
+              type="email"
+              placeholder="Enter your email"
+              required
+            />
+            <button
+              type="submit"
+              class="otp-send-btn"
+              :disabled="otpRequestLoading"
+            >
               {{ otpRequestLoading ? '...' : 'Send' }}
             </button>
           </form>
@@ -645,12 +728,16 @@ onMounted(async () => {
             <span>Verification Code</span>
           </div>
 
-          <form @submit.prevent="handleOtpLogin" class="otp-verify-form">
+          <form class="otp-verify-form" @submit.prevent="handleOtpLogin">
             <div class="otp-inputs" @paste="onOtpPaste">
               <input
                 v-for="(_, i) in 6"
                 :key="i"
-                :ref="el => { if (el) otpRefs[i] = el as HTMLInputElement }"
+                :ref="
+                  (el) => {
+                    if (el) otpRefs[i] = el as HTMLInputElement
+                  }
+                "
                 type="text"
                 inputmode="numeric"
                 pattern="[0-9]"
@@ -659,7 +746,7 @@ onMounted(async () => {
                 :value="otpDigits[i]"
                 @input="onOtpInput(i, $event)"
                 @keydown="onOtpKeydown(i, $event)"
-              >
+              />
             </div>
             <div class="helper otp-helper">{{ otpMessage }}</div>
             <button type="submit" :disabled="otpLoginLoading">
@@ -668,7 +755,9 @@ onMounted(async () => {
           </form>
 
           <div class="forgot-wrap">
-            <button type="button" class="text-link" @click="showPanel('login')">Back to Password Login</button>
+            <button type="button" class="text-link" @click="showPanel('login')">
+              Back to Password Login
+            </button>
           </div>
         </div>
 
@@ -682,7 +771,11 @@ onMounted(async () => {
               <input
                 v-for="(_, i) in 6"
                 :key="i"
-                :ref="el => { if (el) twoFactorRefs[i] = el as HTMLInputElement }"
+                :ref="
+                  (el) => {
+                    if (el) twoFactorRefs[i] = el as HTMLInputElement
+                  }
+                "
                 type="text"
                 inputmode="numeric"
                 maxlength="1"
@@ -690,7 +783,7 @@ onMounted(async () => {
                 :value="twoFactorDigits[i]"
                 @input="onTwoFactorInput(i, $event)"
                 @keydown="onTwoFactorKeydown(i, $event)"
-              >
+              />
             </div>
             <div class="helper">{{ twoFactorMessage }}</div>
             <button type="submit" :disabled="twoFactorLoading">
@@ -699,7 +792,9 @@ onMounted(async () => {
           </form>
 
           <div class="forgot-wrap">
-            <button type="button" class="text-link" @click="showPanel('login')">Use another login method</button>
+            <button type="button" class="text-link" @click="showPanel('login')">
+              Use another login method
+            </button>
           </div>
         </div>
 
@@ -708,9 +803,16 @@ onMounted(async () => {
           <h2>Create Account</h2>
           <h3>Register with your XJTLU email, verify it.</h3>
 
-          <form @submit.prevent="handleRegister" class="register-form">
+          <form class="register-form" @submit.prevent="handleRegister">
             <div class="register-intro full-span">
-              <div class="register-role-chip" :class="inferredRegisterRole ? inferredRegisterRole.toLowerCase() : 'pending'">
+              <div
+                class="register-role-chip"
+                :class="
+                  inferredRegisterRole
+                    ? inferredRegisterRole.toLowerCase()
+                    : 'pending'
+                "
+              >
                 {{ registerRoleLabel }}
               </div>
               <p>{{ registerRoleHint }}</p>
@@ -718,22 +820,42 @@ onMounted(async () => {
 
             <div class="form-field">
               <label class="inline-label">Full Name</label>
-              <input v-model="regFullName" type="text" placeholder="Your full name" required>
+              <input
+                v-model="regFullName"
+                type="text"
+                placeholder="Your full name"
+                required
+              />
             </div>
 
             <div class="form-field">
               <label class="inline-label">Email</label>
-              <input v-model="regEmail" type="email" placeholder="name@student.xjtlu.edu.cn" required>
+              <input
+                v-model="regEmail"
+                type="email"
+                placeholder="name@student.xjtlu.edu.cn"
+                required
+              />
             </div>
 
             <div class="form-field">
               <label class="inline-label">Username</label>
-              <input v-model="regUsername" type="text" placeholder="Choose a username" required>
+              <input
+                v-model="regUsername"
+                type="text"
+                placeholder="Choose a username"
+                required
+              />
             </div>
 
             <div class="form-field">
               <label class="inline-label">Password</label>
-              <input v-model="regPassword" type="password" placeholder="Create a password" required>
+              <input
+                v-model="regPassword"
+                type="password"
+                placeholder="Create a password"
+                required
+              />
             </div>
 
             <div class="field-group field-group-otp">
@@ -746,7 +868,7 @@ onMounted(async () => {
                   maxlength="6"
                   placeholder="Enter 6-digit code"
                   required
-                >
+                />
               </div>
               <button
                 type="button"
@@ -785,53 +907,106 @@ onMounted(async () => {
               </span>
             </div>
 
-            <div class="field-group" v-show="inferredRegisterRole === 'STUDENT'">
+            <div
+              v-show="inferredRegisterRole === 'STUDENT'"
+              class="field-group"
+            >
               <div class="form-field">
                 <label class="inline-label">Student No</label>
-                <input v-model="regStudentNo" type="text" placeholder="Student number" :required="inferredRegisterRole === 'STUDENT'">
+                <input
+                  v-model="regStudentNo"
+                  type="text"
+                  placeholder="Student number"
+                  :required="inferredRegisterRole === 'STUDENT'"
+                />
               </div>
               <div class="form-field">
                 <label class="inline-label">Programme</label>
-                <input v-model="regProgramme" type="text" placeholder="Programme" :required="inferredRegisterRole === 'STUDENT'">
+                <input
+                  v-model="regProgramme"
+                  type="text"
+                  placeholder="Programme"
+                  :required="inferredRegisterRole === 'STUDENT'"
+                />
               </div>
               <div class="form-field">
                 <label class="inline-label">Enrollment Date</label>
-                <input v-model="regEntryDate" type="date" :required="inferredRegisterRole === 'STUDENT'">
+                <input
+                  v-model="regEntryDate"
+                  type="date"
+                  :required="inferredRegisterRole === 'STUDENT'"
+                />
               </div>
               <div class="form-field">
                 <label class="inline-label">Phone</label>
-                <input v-model="regPhone" type="text" placeholder="Optional contact number">
+                <input
+                  v-model="regPhone"
+                  type="text"
+                  placeholder="Optional contact number"
+                />
               </div>
               <div class="form-field full-span">
                 <label class="inline-label">Interests</label>
-                <input v-model="regInterests" type="text" placeholder="Optional interests or research topics">
+                <input
+                  v-model="regInterests"
+                  type="text"
+                  placeholder="Optional interests or research topics"
+                />
               </div>
             </div>
 
-            <div class="field-group" v-show="inferredRegisterRole === 'TEACHER'">
+            <div
+              v-show="inferredRegisterRole === 'TEACHER'"
+              class="field-group"
+            >
               <div class="form-field">
                 <label class="inline-label">Staff No</label>
-                <input v-model="regStaffNo" type="text" placeholder="Staff number" :required="inferredRegisterRole === 'TEACHER'">
+                <input
+                  v-model="regStaffNo"
+                  type="text"
+                  placeholder="Staff number"
+                  :required="inferredRegisterRole === 'TEACHER'"
+                />
               </div>
               <div class="form-field">
                 <label class="inline-label">Department</label>
-                <input v-model="regDepartment" type="text" placeholder="Department" :required="inferredRegisterRole === 'TEACHER'">
+                <input
+                  v-model="regDepartment"
+                  type="text"
+                  placeholder="Department"
+                  :required="inferredRegisterRole === 'TEACHER'"
+                />
               </div>
               <div class="form-field">
                 <label class="inline-label">Title</label>
-                <input v-model="regTitle" type="text" placeholder="Title" :required="inferredRegisterRole === 'TEACHER'">
+                <input
+                  v-model="regTitle"
+                  type="text"
+                  placeholder="Title"
+                  :required="inferredRegisterRole === 'TEACHER'"
+                />
               </div>
               <div class="form-field">
                 <label class="inline-label">Office</label>
-                <input v-model="regOffice" type="text" placeholder="Optional office location">
+                <input
+                  v-model="regOffice"
+                  type="text"
+                  placeholder="Optional office location"
+                />
               </div>
               <div class="form-field full-span">
                 <label class="inline-label">Research Area</label>
-                <input v-model="regResearchArea" type="text" placeholder="Optional research area">
+                <input
+                  v-model="regResearchArea"
+                  type="text"
+                  placeholder="Optional research area"
+                />
               </div>
             </div>
 
-            <div class="general-success" v-if="registerSuccess">{{ registerSuccess }}</div>
+            <div v-if="registerSuccess" class="general-success">
+              {{ registerSuccess }}
+            </div>
             <div class="general-error">{{ registerError }}</div>
             <button class="full-span" type="submit" :disabled="registerLoading">
               {{ registerLoading ? 'Creating Account...' : 'Create Account' }}
@@ -842,10 +1017,21 @@ onMounted(async () => {
         <!-- Reset Password Panel -->
         <div v-show="currentPanel === 'reset'" class="auth-panel active">
           <h2>Reset Password</h2>
-          <h3>{{ hasResetToken ? 'Set a new password for your account' : 'Enter your email to receive a reset link' }}</h3>
+          <h3>
+            {{
+              hasResetToken
+                ? 'Set a new password for your account'
+                : 'Enter your email to receive a reset link'
+            }}
+          </h3>
 
           <form v-if="!hasResetToken" @submit.prevent="handleResetRequest">
-            <input v-model="resetEmail" type="email" placeholder="Email" required>
+            <input
+              v-model="resetEmail"
+              type="email"
+              placeholder="Email"
+              required
+            />
             <div class="helper">{{ resetRequestMessage }}</div>
             <button type="submit" :disabled="resetRequestLoading">
               {{ resetRequestLoading ? 'Sending...' : 'Send Reset Link' }}
@@ -853,8 +1039,18 @@ onMounted(async () => {
           </form>
 
           <form v-else @submit.prevent="handleResetConfirm">
-            <input v-model="resetPassword" type="password" placeholder="New Password" required>
-            <input v-model="resetConfirmPassword" type="password" placeholder="Confirm New Password" required>
+            <input
+              v-model="resetPassword"
+              type="password"
+              placeholder="New Password"
+              required
+            />
+            <input
+              v-model="resetConfirmPassword"
+              type="password"
+              placeholder="Confirm New Password"
+              required
+            />
             <div class="helper">{{ resetConfirmMessage }}</div>
             <button type="submit" :disabled="resetConfirmLoading">
               {{ resetConfirmLoading ? 'Setting...' : 'Set New Password' }}
@@ -862,7 +1058,9 @@ onMounted(async () => {
           </form>
 
           <div class="forgot-wrap">
-            <button type="button" class="text-link" @click="showPanel('login')">Back to Password Login</button>
+            <button type="button" class="text-link" @click="showPanel('login')">
+              Back to Password Login
+            </button>
           </div>
         </div>
       </div>
@@ -900,7 +1098,7 @@ onMounted(async () => {
   width: min(100%, 1040px);
   margin: 0 auto;
   padding: 56px 28px 52px;
-  font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+  font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
   color: var(--text);
   background: var(--bg);
 }
@@ -1039,7 +1237,8 @@ form {
   gap: 10px;
 }
 
-input, select {
+input,
+select {
   width: 100%;
   min-height: 38px;
   padding: 7px 10px;
@@ -1049,15 +1248,19 @@ input, select {
   color: var(--text);
   font: inherit;
   outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-input:focus, select:focus {
+input:focus,
+select:focus {
   border-color: var(--deep);
   box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.14);
 }
 
-label, .inline-label {
+label,
+.inline-label {
   display: block;
   color: var(--muted);
   font-size: 0.82rem;
@@ -1068,7 +1271,8 @@ label, .inline-label {
   margin: 2px 0 2px;
 }
 
-button, .register-link {
+button,
+.register-link {
   width: 100%;
   min-height: 38px;
   padding: 8px 13px;
@@ -1083,7 +1287,9 @@ button, .register-link {
   line-height: 1.2;
   text-align: center;
   text-decoration: none;
-  transition: background-color 0.2s ease, transform 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
 }
 
 button:hover {
@@ -1138,7 +1344,9 @@ button:disabled {
   font: inherit;
   font-weight: 700;
   cursor: pointer;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .otp-btn:hover {
@@ -1208,7 +1416,9 @@ button:disabled {
   background: #fff;
   color: var(--text);
   outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .otp-box:focus {
@@ -1257,7 +1467,11 @@ button:disabled {
   border: 1px solid rgba(90, 43, 152, 0.12);
   border-radius: 16px;
   background:
-    radial-gradient(circle at top right, rgba(36, 179, 255, 0.12), transparent 35%),
+    radial-gradient(
+      circle at top right,
+      rgba(36, 179, 255, 0.12),
+      transparent 35%
+    ),
     linear-gradient(180deg, rgba(90, 43, 152, 0.05), rgba(90, 43, 152, 0.02));
 }
 

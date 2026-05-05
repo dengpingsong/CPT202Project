@@ -27,8 +27,11 @@ function formatDate(value: string | null | undefined): string {
   const date = new Date(value)
   if (isNaN(date.getTime())) return String(value).split('T')[0]
   return date.toLocaleString('zh-CN', {
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
   })
 }
 
@@ -75,19 +78,27 @@ onMounted(loadProjects)
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="6" style="text-align: center; color: #888;">Loading...</td>
+              <td colspan="6" style="text-align: center; color: #888">
+                Loading...
+              </td>
             </tr>
             <tr v-else-if="projects.length === 0">
-              <td colspan="6" style="text-align: center; color: #888;">No projects found</td>
+              <td colspan="6" style="text-align: center; color: #888">
+                No projects found
+              </td>
             </tr>
             <tr v-for="p in projects" :key="p.projectId">
-              <td><strong>{{ p.projectId }}</strong></td>
+              <td>
+                <strong>{{ p.projectId }}</strong>
+              </td>
               <td>{{ p.title || '-' }}</td>
               <td>{{ p.teacherName || '-' }}</td>
               <td>{{ p.categoryName || '-' }}</td>
               <td>
-                <span v-if="p.topicArea" class="tag-pill">{{ p.topicArea }}</span>
-                <span v-else style="color: var(--muted);">-</span>
+                <span v-if="p.topicArea" class="tag-pill">{{
+                  p.topicArea
+                }}</span>
+                <span v-else style="color: var(--muted)">-</span>
               </td>
               <td>
                 <button class="btn-sm btn-detail" @click="openDetail(p)">
@@ -103,7 +114,11 @@ onMounted(loadProjects)
 
     <!-- Detail Modal -->
     <Teleport to="body">
-      <div v-if="showDetail" class="modal-overlay" @click.self="showDetail = false">
+      <div
+        v-if="showDetail"
+        class="modal-overlay"
+        @click.self="showDetail = false"
+      >
         <div class="modal-dialog">
           <div class="modal-header">
             <h2>Project Details</h2>
@@ -118,35 +133,52 @@ onMounted(loadProjects)
             </div>
             <div class="detail-item">
               <span class="detail-label">Teacher</span>
-              <span class="detail-value">{{ selectedProject.teacherName || '-' }}</span>
+              <span class="detail-value">{{
+                selectedProject.teacherName || '-'
+              }}</span>
             </div>
             <div class="detail-item">
               <span class="detail-label">Category</span>
-              <span class="detail-value">{{ selectedProject.categoryName || '-' }}</span>
+              <span class="detail-value">{{
+                selectedProject.categoryName || '-'
+              }}</span>
             </div>
             <div class="detail-item">
               <span class="detail-label">Topic Area</span>
-              <span class="detail-value">{{ selectedProject.topicArea || '-' }}</span>
+              <span class="detail-value">{{
+                selectedProject.topicArea || '-'
+              }}</span>
             </div>
             <div class="detail-item">
               <span class="detail-label">Required Skills</span>
-              <span class="detail-value">{{ selectedProject.requiredSkills || '-' }}</span>
+              <span class="detail-value">{{
+                selectedProject.requiredSkills || '-'
+              }}</span>
             </div>
             <div class="detail-item">
               <span class="detail-label">Quota</span>
-              <span class="detail-value">{{ selectedProject.currentAgreedCount || 0 }}/{{ selectedProject.maxStudents || 0 }}</span>
+              <span class="detail-value"
+                >{{ selectedProject.currentAgreedCount || 0 }}/{{
+                  selectedProject.maxStudents || 0
+                }}</span
+              >
             </div>
             <div class="detail-item">
               <span class="detail-label">Project Status</span>
               <span class="detail-value">
-                <span class="status-pill" :class="statusClass(selectedProject.projectStatus)">
+                <span
+                  class="status-pill"
+                  :class="statusClass(selectedProject.projectStatus)"
+                >
                   {{ normalizeStatus(selectedProject.projectStatus) }}
                 </span>
               </span>
             </div>
             <div class="detail-item">
               <span class="detail-label">Publish Date</span>
-              <span class="detail-value">{{ formatDate(selectedProject.publishDate) }}</span>
+              <span class="detail-value">{{
+                formatDate(selectedProject.publishDate)
+              }}</span>
             </div>
           </div>
           <div v-if="selectedProject?.description" class="detail-block">
@@ -160,39 +192,203 @@ onMounted(loadProjects)
 </template>
 
 <style scoped>
-.page { display: flex; flex-direction: column; gap: 20px; }
-.page-header { display: flex; align-items: center; gap: 12px; }
-.page-header h1 { margin: 0; font-size: 1.8rem; font-weight: 600; color: var(--text); }
-.badge { background: var(--deep); color: #fff; padding: 4px 12px; border-radius: 999px; font-size: 0.85rem; font-weight: 600; }
-.table-wrapper { overflow-x: auto; border-radius: 18px; }
-.data-table { width: 100%; border-collapse: collapse; min-width: 800px; font-size: 0.9rem; }
-.data-table th { text-align: left; padding: 16px; background: #f8f5ff; font-weight: 600; color: var(--deep); border-bottom: 2px solid rgba(90, 43, 152, 0.2); }
-.data-table td { padding: 16px; border-bottom: 1px solid rgba(156, 156, 178, 0.2); }
-.data-table tbody tr:hover { background: rgba(90, 43, 152, 0.03); }
-.tag-pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 0.8rem; background: rgba(90, 43, 152, 0.08); color: var(--deep); }
-.status-pill { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
-.status-available { background: rgba(47, 197, 168, 0.12); color: var(--green); }
-.status-requested { background: rgba(246, 166, 61, 0.12); color: var(--orange); }
-.status-agreed { background: rgba(36, 179, 255, 0.15); color: var(--accent); }
-.status-unavailable { background: rgba(156, 156, 178, 0.2); color: rgba(28, 27, 51, 0.65); }
-.btn-sm { padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--deep); font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: inherit; background: transparent; color: var(--deep); display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s; }
-.btn-sm:hover { background: var(--deep); color: #fff; }
-.summary { margin-top: 16px; font-size: 0.9rem; color: var(--muted); }
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.page-header h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.badge {
+  background: var(--deep);
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.table-wrapper {
+  overflow-x: auto;
+  border-radius: 18px;
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+  font-size: 0.9rem;
+}
+.data-table th {
+  text-align: left;
+  padding: 16px;
+  background: #f8f5ff;
+  font-weight: 600;
+  color: var(--deep);
+  border-bottom: 2px solid rgba(90, 43, 152, 0.2);
+}
+.data-table td {
+  padding: 16px;
+  border-bottom: 1px solid rgba(156, 156, 178, 0.2);
+}
+.data-table tbody tr:hover {
+  background: rgba(90, 43, 152, 0.03);
+}
+.tag-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  background: rgba(90, 43, 152, 0.08);
+  color: var(--deep);
+}
+.status-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.status-available {
+  background: rgba(47, 197, 168, 0.12);
+  color: var(--green);
+}
+.status-requested {
+  background: rgba(246, 166, 61, 0.12);
+  color: var(--orange);
+}
+.status-agreed {
+  background: rgba(36, 179, 255, 0.15);
+  color: var(--accent);
+}
+.status-unavailable {
+  background: rgba(156, 156, 178, 0.2);
+  color: rgba(28, 27, 51, 0.65);
+}
+.btn-sm {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--deep);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  background: transparent;
+  color: var(--deep);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+}
+.btn-sm:hover {
+  background: var(--deep);
+  color: #fff;
+}
+.summary {
+  margin-top: 16px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
 
 /* Modal */
-.modal-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(28, 27, 51, 0.45); z-index: 30; }
-.modal-dialog { width: min(720px, 100%); max-height: 90vh; overflow-y: auto; background: #fff; border-radius: 24px; box-shadow: 0 30px 80px rgba(28, 27, 51, 0.22); padding: 24px 28px 26px; }
-.modal-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
-.modal-header h2 { margin: 0; color: var(--text); font-size: 1.35rem; font-weight: 600; }
-.icon-button { width: 38px; height: 38px; border-radius: 50%; border: 1px solid rgba(90, 43, 152, 0.16); background: rgba(90, 43, 152, 0.06); color: var(--deep); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 1.1rem; }
-.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; background: #f9f5ff; border-radius: 20px; padding: 18px 20px; }
-.detail-item { display: flex; flex-direction: column; }
-.detail-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); font-weight: 600; }
-.detail-value { font-weight: 600; color: var(--text); margin-top: 2px; }
-.detail-block { margin-top: 20px; }
-.detail-block h3 { font-weight: 600; font-size: 1rem; margin-bottom: 10px; color: var(--deep); border-left: 4px solid var(--deep); padding-left: 14px; }
-.detail-text { background: #faf9ff; padding: 16px 20px; border-radius: 18px; line-height: 1.7; color: var(--text); border: 1px solid rgba(90, 43, 152, 0.15); }
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(28, 27, 51, 0.45);
+  z-index: 30;
+}
+.modal-dialog {
+  width: min(720px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 30px 80px rgba(28, 27, 51, 0.22);
+  padding: 24px 28px 26px;
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.modal-header h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+.icon-button {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(90, 43, 152, 0.16);
+  background: rgba(90, 43, 152, 0.06);
+  color: var(--deep);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  background: #f9f5ff;
+  border-radius: 20px;
+  padding: 18px 20px;
+}
+.detail-item {
+  display: flex;
+  flex-direction: column;
+}
+.detail-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.detail-value {
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 2px;
+}
+.detail-block {
+  margin-top: 20px;
+}
+.detail-block h3 {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 10px;
+  color: var(--deep);
+  border-left: 4px solid var(--deep);
+  padding-left: 14px;
+}
+.detail-text {
+  background: #faf9ff;
+  padding: 16px 20px;
+  border-radius: 18px;
+  line-height: 1.7;
+  color: var(--text);
+  border: 1px solid rgba(90, 43, 152, 0.15);
+}
 @media (max-width: 640px) {
-  .detail-grid { grid-template-columns: 1fr; }
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

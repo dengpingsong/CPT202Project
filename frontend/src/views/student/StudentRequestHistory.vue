@@ -35,8 +35,11 @@ function formatDate(value: string | null | undefined): string {
   const date = new Date(value)
   if (isNaN(date.getTime())) return String(value).replace('T', ' ').slice(0, 16)
   return date.toLocaleString('zh-CN', {
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
   })
 }
 
@@ -45,12 +48,14 @@ function lastUpdate(r: any): string {
 }
 
 function fallbackHistory(r: any): any[] {
-  return [{
-    requestId: r.requestId,
-    newStatus: normalizeStatus(r.requestStatus),
-    remark: r.decisionComment || r.notes || '',
-    changedAt: lastUpdate(r),
-  }]
+  return [
+    {
+      requestId: r.requestId,
+      newStatus: normalizeStatus(r.requestStatus),
+      remark: r.decisionComment || r.notes || '',
+      changedAt: lastUpdate(r),
+    },
+  ]
 }
 
 interface TimelineEntry {
@@ -69,9 +74,9 @@ interface TimelineEntry {
 
 const timelineEntries = computed<TimelineEntry[]>(() => {
   const entries: TimelineEntry[] = []
-  requests.value.forEach(r => {
+  requests.value.forEach((r) => {
     const histories = historyGroups.value[r.requestId] || fallbackHistory(r)
-    histories.forEach(h => {
+    histories.forEach((h) => {
       entries.push({
         requestId: r.requestId,
         projectId: r.projectId,
@@ -87,7 +92,11 @@ const timelineEntries = computed<TimelineEntry[]>(() => {
       })
     })
   })
-  return entries.sort((a, b) => new Date(b.changedAt || 0).getTime() - new Date(a.changedAt || 0).getTime())
+  return entries.sort(
+    (a, b) =>
+      new Date(b.changedAt || 0).getTime() -
+      new Date(a.changedAt || 0).getTime(),
+  )
 })
 
 async function loadHistories(reqs: any[]) {
@@ -139,26 +148,49 @@ onMounted(init)
       <div v-else-if="timelineEntries.length === 0" class="timeline-vertical">
         <div class="item">
           <div class="timeline-title">No request history</div>
-          <div class="timeline-desc">Application status changes will appear here after you submit applications.</div>
+          <div class="timeline-desc">
+            Application status changes will appear here after you submit
+            applications.
+          </div>
         </div>
       </div>
 
       <div v-else class="timeline-vertical">
-        <div v-for="entry in timelineEntries" :key="`${entry.requestId}-${entry.changedAt}`" class="item">
+        <div
+          v-for="entry in timelineEntries"
+          :key="`${entry.requestId}-${entry.changedAt}`"
+          class="item"
+        >
           <div class="timeline-date">{{ formatDate(entry.changedAt) }}</div>
-          <div class="timeline-title" :style="{ color: statusColor(entry.status) }">
-            {{ entry.projectTitle }} · Application: {{ statusText(entry.status) }}
+          <div
+            class="timeline-title"
+            :style="{ color: statusColor(entry.status) }"
+          >
+            {{ entry.projectTitle }} · Application:
+            {{ statusText(entry.status) }}
           </div>
           <div class="timeline-desc">
             <div>Submitted: {{ formatDate(entry.submittedAt) }}</div>
             <div>Rank: {{ entry.preferenceRank || '-' }}</div>
             <div v-if="entry.notes">Notes: {{ entry.notes }}</div>
-            <div v-if="entry.remark">Application Status Note: {{ entry.remark }}</div>
-            <div v-if="entry.decisionComment">Feedback: {{ entry.decisionComment }}</div>
-            <div v-if="entry.changedByStudentName">By: {{ entry.changedByStudentName }}</div>
+            <div v-if="entry.remark">
+              Application Status Note: {{ entry.remark }}
+            </div>
+            <div v-if="entry.decisionComment">
+              Feedback: {{ entry.decisionComment }}
+            </div>
+            <div v-if="entry.changedByStudentName">
+              By: {{ entry.changedByStudentName }}
+            </div>
             <router-link
               :to="`/student/projects/${entry.projectId}`"
-              style="color: var(--deep); font-weight: 600; text-decoration: none; display: inline-block; margin-top: 6px;"
+              style="
+                color: var(--deep);
+                font-weight: 600;
+                text-decoration: none;
+                display: inline-block;
+                margin-top: 6px;
+              "
             >
               View Project Details
             </router-link>
@@ -202,7 +234,7 @@ onMounted(init)
 }
 
 .timeline-vertical::before {
-  content: "";
+  content: '';
   position: absolute;
   left: 7px;
   top: 8px;
@@ -221,7 +253,7 @@ onMounted(init)
 }
 
 .timeline-vertical .item::before {
-  content: "";
+  content: '';
   position: absolute;
   left: -26.5px;
   top: 2px;

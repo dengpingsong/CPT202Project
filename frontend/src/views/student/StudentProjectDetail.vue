@@ -20,13 +20,18 @@ const projectId = computed(() => route.params.id as string)
 
 const activeRequest = computed(() => {
   return requests.value.find(
-    r => String(r.projectId) === String(projectId.value)
-      && ['PENDING', 'ACCEPTED', 'REJECTED'].includes(normalizeStatus(r.requestStatus))
+    (r) =>
+      String(r.projectId) === String(projectId.value) &&
+      ['PENDING', 'ACCEPTED', 'REJECTED'].includes(
+        normalizeStatus(r.requestStatus),
+      ),
   )
 })
 
 const hasAccepted = computed(() => {
-  return requests.value.some(r => normalizeStatus(r.requestStatus) === 'ACCEPTED')
+  return requests.value.some(
+    (r) => normalizeStatus(r.requestStatus) === 'ACCEPTED',
+  )
 })
 
 const projectDisplayStatus = computed(() => {
@@ -35,13 +40,19 @@ const projectDisplayStatus = computed(() => {
 })
 
 const buttonState = computed(() => {
-  if (!project.value) return { disabled: true, text: 'Loading...', hint: '', canWithdraw: false }
+  if (!project.value)
+    return { disabled: true, text: 'Loading...', hint: '', canWithdraw: false }
 
   const existing = activeRequest.value
   const existingStatus = normalizeStatus(existing?.requestStatus)
 
   if (existingStatus === 'REJECTED') {
-    return { disabled: true, text: 'Rejected', hint: 'This application was rejected. You cannot re-apply.', canWithdraw: false }
+    return {
+      disabled: true,
+      text: 'Rejected',
+      hint: 'This application was rejected. You cannot re-apply.',
+      canWithdraw: false,
+    }
   }
   if (existing) {
     return {
@@ -53,15 +64,30 @@ const buttonState = computed(() => {
     }
   }
   if (hasAccepted.value) {
-    return { disabled: true, text: 'Already Accepted', hint: 'You have an accepted project. Cannot apply to more.', canWithdraw: false }
+    return {
+      disabled: true,
+      text: 'Already Accepted',
+      hint: 'You have an accepted project. Cannot apply to more.',
+      canWithdraw: false,
+    }
   }
   if (normalizeStatus(project.value.projectStatus) !== 'AVAILABLE') {
-    return { disabled: true, text: 'Not Available', hint: 'This project is not accepting applications.', canWithdraw: false }
+    return {
+      disabled: true,
+      text: 'Not Available',
+      hint: 'This project is not accepting applications.',
+      canWithdraw: false,
+    }
   }
   const current = Number(project.value.currentAgreedCount || 0)
   const max = Number(project.value.maxStudents || 0)
   if (max > 0 && current >= max) {
-    return { disabled: true, text: 'Full', hint: 'This project has reached its maximum capacity.', canWithdraw: false }
+    return {
+      disabled: true,
+      text: 'Full',
+      hint: 'This project has reached its maximum capacity.',
+      canWithdraw: false,
+    }
   }
   return { disabled: false, text: 'Apply', hint: '', canWithdraw: false }
 })
@@ -93,13 +119,18 @@ function statusText(status: string): string {
 
 function formatDate(v: string | null | undefined): string {
   if (!v) return '-'
-  try { return new Date(v).toLocaleString() } catch { return String(v) }
+  try {
+    return new Date(v).toLocaleString()
+  } catch {
+    return String(v)
+  }
 }
 
 function hasDuplicateRank(rank: number): boolean {
   return requests.value.some(
-    r => ['PENDING', 'ACCEPTED'].includes(normalizeStatus(r.requestStatus))
-      && Number(r.preferenceRank) === rank
+    (r) =>
+      ['PENDING', 'ACCEPTED'].includes(normalizeStatus(r.requestStatus)) &&
+      Number(r.preferenceRank) === rank,
   )
 }
 
@@ -127,7 +158,9 @@ async function handleApply() {
 
 async function handleWithdraw() {
   if (!buttonState.value.requestId) return
-  const confirmed = await confirm('Are you sure you want to withdraw this application?')
+  const confirmed = await confirm(
+    'Are you sure you want to withdraw this application?',
+  )
   if (!confirmed) return
   submitting.value = true
   try {
@@ -170,13 +203,23 @@ onMounted(loadData)
       <h1>Project Details</h1>
     </div>
 
-    <div v-if="loading" class="panel-card" style="text-align: center; padding: 40px; color: var(--muted);">
+    <div
+      v-if="loading"
+      class="panel-card"
+      style="text-align: center; padding: 40px; color: var(--muted)"
+    >
       Loading...
     </div>
 
-    <div v-else-if="!project" class="panel-card" style="text-align: center; padding: 40px;">
+    <div
+      v-else-if="!project"
+      class="panel-card"
+      style="text-align: center; padding: 40px"
+    >
       Project not found.
-      <button type="button" class="inline-link" @click="goBack">Back to list</button>
+      <button type="button" class="inline-link" @click="goBack">
+        Back to list
+      </button>
     </div>
 
     <template v-else>
@@ -209,17 +252,27 @@ onMounted(loadData)
           </div>
           <div class="meta-item">
             <span class="meta-label">Quota</span>
-            <span class="meta-value">{{ project.currentAgreedCount || 0 }}/{{ project.maxStudents || 0 }}</span>
+            <span class="meta-value"
+              >{{ project.currentAgreedCount || 0 }}/{{
+                project.maxStudents || 0
+              }}</span
+            >
           </div>
           <div class="meta-item">
             <span class="meta-label">Project Status</span>
             <span class="meta-value">
-              <span class="status-pill" :class="statusClass(projectDisplayStatus)">{{ statusText(projectDisplayStatus) }}</span>
+              <span
+                class="status-pill"
+                :class="statusClass(projectDisplayStatus)"
+                >{{ statusText(projectDisplayStatus) }}</span
+              >
             </span>
           </div>
           <div class="meta-item">
             <span class="meta-label">Publish Date</span>
-            <span class="meta-value">{{ formatDate(project.publishDate) }}</span>
+            <span class="meta-value">{{
+              formatDate(project.publishDate)
+            }}</span>
           </div>
         </div>
 
@@ -263,9 +316,13 @@ onMounted(loadData)
           >
             {{ submitting ? 'Withdrawing...' : 'Withdraw' }}
           </button>
-          <button type="button" class="btn-secondary" @click="goBack">Back</button>
+          <button type="button" class="btn-secondary" @click="goBack">
+            Back
+          </button>
         </div>
-        <div v-if="buttonState.hint" class="footnote">{{ buttonState.hint }}</div>
+        <div v-if="buttonState.hint" class="footnote">
+          {{ buttonState.hint }}
+        </div>
       </div>
     </template>
   </div>
@@ -307,7 +364,10 @@ onMounted(loadData)
   transition: background 0.2s;
 }
 
-.back-link:hover { background: rgba(90, 43, 152, 0.2); text-decoration: none; }
+.back-link:hover {
+  background: rgba(90, 43, 152, 0.2);
+  text-decoration: none;
+}
 
 .inline-link {
   border: 0;
@@ -447,11 +507,26 @@ onMounted(loadData)
   font-weight: 600;
 }
 
-.status-available { background: rgba(47, 197, 168, 0.12); color: var(--green); }
-.status-requested { background: rgba(246, 166, 61, 0.12); color: var(--orange); }
-.status-agreed { background: rgba(36, 179, 255, 0.15); color: var(--accent); }
-.status-rejected { background: rgba(199, 69, 69, 0.12); color: var(--red); }
-.status-unavailable { background: rgba(156, 156, 178, 0.2); color: rgba(28, 27, 51, 0.65); }
+.status-available {
+  background: rgba(47, 197, 168, 0.12);
+  color: var(--green);
+}
+.status-requested {
+  background: rgba(246, 166, 61, 0.12);
+  color: var(--orange);
+}
+.status-agreed {
+  background: rgba(36, 179, 255, 0.15);
+  color: var(--accent);
+}
+.status-rejected {
+  background: rgba(199, 69, 69, 0.12);
+  color: var(--red);
+}
+.status-unavailable {
+  background: rgba(156, 156, 178, 0.2);
+  color: rgba(28, 27, 51, 0.65);
+}
 
 .action-buttons {
   display: flex;
@@ -491,7 +566,10 @@ onMounted(loadData)
   align-items: center;
 }
 
-.btn-secondary:hover { background: var(--bg); text-decoration: none; }
+.btn-secondary:hover {
+  background: var(--bg);
+  text-decoration: none;
+}
 
 .btn-withdraw {
   background: transparent;

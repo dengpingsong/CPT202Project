@@ -10,11 +10,15 @@ export interface ToastItem {
 export const toasts = ref<ToastItem[]>([])
 let toastId = 0
 
-function showToast(message: string, type: ToastItem['type'] = 'info', duration = 2600) {
+function showToast(
+  message: string,
+  type: ToastItem['type'] = 'info',
+  duration = 2600,
+) {
   const id = ++toastId
   toasts.value.push({ id, message, type })
   setTimeout(() => {
-    toasts.value = toasts.value.filter(t => t.id !== id)
+    toasts.value = toasts.value.filter((t) => t.id !== id)
   }, duration)
 }
 
@@ -34,7 +38,7 @@ export const confirmState = ref<{
 }>({ show: false, message: '', title: '', resolve: null })
 
 export function confirm(message: string, title = 'Confirm'): Promise<boolean> {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     confirmState.value = { show: true, message, title, resolve }
   })
 }

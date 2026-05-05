@@ -11,7 +11,7 @@
   --red: #c74545;
   --border: rgba(28, 27, 51, 0.08);
   --border-purple: rgba(90, 43, 152, 0.18);
-  --sans: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+  --sans: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
 }
 
 * {

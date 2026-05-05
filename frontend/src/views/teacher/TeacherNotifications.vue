@@ -36,8 +36,11 @@ function formatDate(value: string | null | undefined): string {
   const date = new Date(value)
   if (isNaN(date.getTime())) return String(value).replace('T', ' ').slice(0, 16)
   return date.toLocaleString('zh-CN', {
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
   })
 }
 
@@ -66,10 +69,14 @@ function notificationTitle(status: string): string {
 function notificationMessage(r: any, status: string): string {
   const student = r.studentName || 'A student'
   const project = r.projectTitle || 'Untitled Project'
-  if (status === 'PENDING') return `${student} submitted an application for "${project}".`
-  if (status === 'WITHDRAWN') return `${student} withdrew their application for "${project}".`
-  if (status === 'ACCEPTED') return `You accepted ${student}'s application for "${project}".`
-  if (status === 'REJECTED') return `You rejected ${student}'s application for "${project}".`
+  if (status === 'PENDING')
+    return `${student} submitted an application for "${project}".`
+  if (status === 'WITHDRAWN')
+    return `${student} withdrew their application for "${project}".`
+  if (status === 'ACCEPTED')
+    return `You accepted ${student}'s application for "${project}".`
+  if (status === 'REJECTED')
+    return `You rejected ${student}'s application for "${project}".`
   return `${student}'s application for "${project}" has been updated.`
 }
 
@@ -109,27 +116,31 @@ interface NotificationItem {
 
 function buildNotifications(requests: any[]): NotificationItem[] {
   const map = readMap()
-  return requests.map(r => {
-    const status = normalizeStatus(r.requestStatus)
-    const time = notificationTime(r)
-    const id = `teacher-request-${r.requestId}-${status}-${time || 'unknown'}`
-    return {
-      id,
-      type: notificationType(status),
-      title: notificationTitle(status),
-      message: notificationMessage(r, status),
-      time,
-      status,
-      read: Boolean(map[id]),
-      requestId: r.requestId,
-    }
-  }).sort((a, b) => {
-    if (a.read !== b.read) return a.read ? 1 : -1
-    return new Date(b.time || 0).getTime() - new Date(a.time || 0).getTime()
-  })
+  return requests
+    .map((r) => {
+      const status = normalizeStatus(r.requestStatus)
+      const time = notificationTime(r)
+      const id = `teacher-request-${r.requestId}-${status}-${time || 'unknown'}`
+      return {
+        id,
+        type: notificationType(status),
+        title: notificationTitle(status),
+        message: notificationMessage(r, status),
+        time,
+        status,
+        read: Boolean(map[id]),
+        requestId: r.requestId,
+      }
+    })
+    .sort((a, b) => {
+      if (a.read !== b.read) return a.read ? 1 : -1
+      return new Date(b.time || 0).getTime() - new Date(a.time || 0).getTime()
+    })
 }
 
-const unreadCount = computed(() => notifications.value.filter(n => !n.read).length)
+const unreadCount = computed(
+  () => notifications.value.filter((n) => !n.read).length,
+)
 
 function markRead(item: NotificationItem) {
   if (item.read) return
@@ -138,7 +149,7 @@ function markRead(item: NotificationItem) {
 }
 
 function markAllRead() {
-  notifications.value.forEach(n => markRead(n))
+  notifications.value.forEach((n) => markRead(n))
 }
 
 function viewDetail(requestId: number) {
@@ -171,19 +182,33 @@ onMounted(loadNotifications)
     <div class="toolbar">
       <span class="status-text">
         <template v-if="loading">Loading...</template>
-        <template v-else-if="unreadCount === 0">No unread notifications</template>
+        <template v-else-if="unreadCount === 0"
+          >No unread notifications</template
+        >
         <template v-else>{{ unreadCount }} unread notification(s)</template>
       </span>
-      <button class="btn-mark-all" :disabled="unreadCount === 0" @click="markAllRead">
+      <button
+        class="btn-mark-all"
+        :disabled="unreadCount === 0"
+        @click="markAllRead"
+      >
         Mark All Read
       </button>
     </div>
 
-    <div v-if="loading" class="panel" style="text-align: center; padding: 40px; color: var(--muted);">
+    <div
+      v-if="loading"
+      class="panel"
+      style="text-align: center; padding: 40px; color: var(--muted)"
+    >
       Loading...
     </div>
 
-    <div v-else-if="notifications.length === 0" class="panel" style="text-align: center; padding: 40px; color: var(--muted);">
+    <div
+      v-else-if="notifications.length === 0"
+      class="panel"
+      style="text-align: center; padding: 40px; color: var(--muted)"
+    >
       No notifications yet.
     </div>
 
@@ -195,7 +220,10 @@ onMounted(loadNotifications)
         :class="{ unread: !n.read }"
         @click="markRead(n)"
       >
-        <div class="notification-icon" :style="{ background: iconBg(n.type), color: iconColor(n.type) }">
+        <div
+          class="notification-icon"
+          :style="{ background: iconBg(n.type), color: iconColor(n.type) }"
+        >
           <i :class="`bi ${iconClass(n.type)}`"></i>
         </div>
         <div class="msg-body">
@@ -210,8 +238,17 @@ onMounted(loadNotifications)
           </div>
         </div>
         <div class="notification-actions">
-          <button v-if="!n.read" class="btn-sm btn-read" @click.stop="markRead(n)">Read</button>
-          <button class="btn-sm btn-detail" @click.stop="viewDetail(n.requestId)">
+          <button
+            v-if="!n.read"
+            class="btn-sm btn-read"
+            @click.stop="markRead(n)"
+          >
+            Read
+          </button>
+          <button
+            class="btn-sm btn-detail"
+            @click.stop="viewDetail(n.requestId)"
+          >
             <i class="bi bi-arrow-right-circle"></i>
           </button>
         </div>
@@ -281,7 +318,9 @@ onMounted(loadNotifications)
   border-radius: 22px;
   border: 1px solid rgba(90, 43, 152, 0.1);
   background: #fcfbff;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
   cursor: pointer;
 }
 
@@ -290,7 +329,11 @@ onMounted(loadNotifications)
 }
 
 .notification-item.unread {
-  background: linear-gradient(180deg, rgba(90, 43, 152, 0.05), rgba(36, 179, 255, 0.03));
+  background: linear-gradient(
+    180deg,
+    rgba(90, 43, 152, 0.05),
+    rgba(36, 179, 255, 0.03)
+  );
 }
 
 .notification-icon {
