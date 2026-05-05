@@ -91,7 +91,7 @@ public class ProjectRequestValidationServiceImpl implements ProjectRequestValida
             history.setOldStatus(oldStatus == null ? null : oldStatus.name());
             history.setNewStatus(RequestStatus.REJECTED.name());
             history.setChangedBy(null);
-            history.setRemark("Automatically rejected because the student was accepted by another project.");
+            history.setRemark("系统自动驳回：该学生已在其他项目中被录取。");
             history.setChangedAt(now);
             requestStatusHistoryRepository.save(history);
         }

@@ -124,11 +124,7 @@ public class AuthServiceImpl implements AuthService {
 
         if (user.getRole() == User.UserRole.STUDENT) {
             StudentProfile studentProfile = new StudentProfile();
-            studentProfile.setStudentNo(registerUserDTO.getStudentNo().trim());
-            studentProfile.setProgramme(registerUserDTO.getProgramme().trim());
-            studentProfile.setEnrollmentDate(registerUserDTO.getEnrollmentDate());
-            studentProfile.setPhone(registerUserDTO.getPhone());
-            studentProfile.setInterests(registerUserDTO.getInterests());
+            BeanUtils.copyProperties(registerUserDTO, studentProfile);
             studentProfile.setUpdatedAt(now);
             studentProfile.setUser(user);
             studentProfileRepository.save(studentProfile);
@@ -362,7 +358,7 @@ public class AuthServiceImpl implements AuthService {
 
     private String buildResetLink(String rawToken) {
         String baseUrl = frontendBaseUrl.endsWith("/") ? frontendBaseUrl.substring(0, frontendBaseUrl.length() - 1) : frontendBaseUrl;
-        return "%s/reset-password?token=%s".formatted(baseUrl, rawToken);
+        return "%s/auth/reset-password?token=%s".formatted(baseUrl, rawToken);
     }
 
     private String generateResetToken() {

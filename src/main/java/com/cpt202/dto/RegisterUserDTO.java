@@ -1,6 +1,5 @@
 package com.cpt202.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.PastOrPresent;
@@ -43,8 +42,7 @@ public class RegisterUserDTO {
     /** 专业。 */
     private String programme;
     /** 入学日期。 */
-    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
-    @PastOrPresent(message = "Enrollment date cannot be in the future.")
+    @PastOrPresent(message = "入学日期不能晚于今天。")
     private LocalDate enrollmentDate;
     /** 联系电话。 */
     private String phone;
