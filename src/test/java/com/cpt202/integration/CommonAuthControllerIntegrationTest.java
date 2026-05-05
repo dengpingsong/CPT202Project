@@ -4,7 +4,7 @@ import com.cpt202.constant.MessageConstants;
 import com.cpt202.constant.RedisKeyConstants;
 import com.cpt202.model.entity.User;
 import com.cpt202.security.TwoFactorLoginChallenge;
-import com.cpt202.service.EmailLoginOtpMailService;
+import com.cpt202.service.EmailOtpMailService;
 import com.cpt202.service.RedisCacheService;
 import com.cpt202.util.TotpUtil;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -50,7 +50,7 @@ class CommonAuthControllerIntegrationTest extends IntegrationTestSupport {
     private RedisCacheService redisCacheService;
 
     @MockBean
-    private EmailLoginOtpMailService emailLoginOtpMailService;
+    private EmailOtpMailService emailOtpMailService;
 
     private ConcurrentMap<String, Object> redisEntries;
 
