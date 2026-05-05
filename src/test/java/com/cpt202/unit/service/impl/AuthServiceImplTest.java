@@ -14,11 +14,7 @@ import com.cpt202.repository.PasswordResetTokenRepository;
 import com.cpt202.repository.StudentProfileRepository;
 import com.cpt202.repository.TeacherProfileRepository;
 import com.cpt202.repository.UserRepository;
-import com.cpt202.service.EmailLoginOtpMailService;
-import com.cpt202.service.JwtTokenService;
-import com.cpt202.service.PasswordResetMailService;
-import com.cpt202.service.RedisCacheService;
-import com.cpt202.service.TwoFactorAuthService;
+import com.cpt202.service.*;
 import com.cpt202.service.impl.AuthServiceImpl;
 import com.cpt202.vo.LoginVO;
 import org.junit.jupiter.api.BeforeEach;
@@ -71,7 +67,7 @@ class AuthServiceImplTest {
     private PasswordResetMailService passwordResetMailService;
 
     @Mock
-    private EmailLoginOtpMailService emailLoginOtpMailService;
+    private EmailOtpMailService emailLoginOtpMailService;
 
     @Mock
     private RedisCacheService redisCacheService;
@@ -104,7 +100,7 @@ class AuthServiceImplTest {
     /** Rejects registration when the requested username already exists. */
     @Test
     void registerShouldRejectDuplicateUsername() {
-        RegisterUserDTO dto = validAdminRegisterDTO();
+        RegisterUserDTO dto = validStudentRegisterDTO();
 
         when(userRepository.existsByUsername(dto.getUsername())).thenReturn(true);
 
@@ -255,9 +251,8 @@ class AuthServiceImplTest {
         RegisterUserDTO dto = new RegisterUserDTO();
         dto.setUsername("student-user");
         dto.setPassword("Password123");
-        dto.setEmail("student@example.com ");
+        dto.setEmail("student@student.xjtlu.edu.cn");
         dto.setFullName("Student User");
-        dto.setRole(User.UserRole.STUDENT);
         dto.setStudentNo("S001");
         dto.setProgramme("Software Engineering");
         dto.setEnrollmentDate(LocalDate.now().minusYears(1));
@@ -266,15 +261,20 @@ class AuthServiceImplTest {
         return dto;
     }
 
-    private RegisterUserDTO validAdminRegisterDTO() {
+    private RegisterUserDTO validTeacherRegisterDTO() {
         RegisterUserDTO dto = new RegisterUserDTO();
-        dto.setUsername("admin-user");
+        dto.setUsername("teacher-user");
         dto.setPassword("Password123");
-        dto.setEmail("admin@example.com");
-        dto.setFullName("Admin User");
-        dto.setRole(User.UserRole.ADMIN);
+        dto.setEmail("teacher@xjtlu.edu.cn");
+        dto.setFullName("Teacher User");
+        dto.setStaffNo("123123");
+        dto.setDepartment("EB123");
+        dto.setTitle("Professor");
+        dto.setPhone("18800001112");
+        dto.setInterests("Testing");
         return dto;
     }
+
 
     private LoginDTO loginDTO(String username, String password) {
         LoginDTO dto = new LoginDTO();
