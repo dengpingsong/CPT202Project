@@ -68,17 +68,13 @@ class CPT202ApplicationTests {
                 .andExpect(redirectedUrl(redirectTarget));
     }
 
-            /** Verifies the main static pages and documentation UI are reachable. */
+    /** Verifies the static HTML entry page and documentation UI are reachable. */
     @ParameterizedTest
     @ValueSource(strings = {
-            "/login/login.html",
-            "/login/register.html",
-            "/admin-review/admin_users.html",
-            "/admin-review/admin_requests.html",
-            "/admin-review/admin_request_history.html",
+            "/index.html",
             "/doc.html"
     })
-    void staticPagesAndDocumentationUiAreReachable(String requestPath) throws Exception {
+    void staticHtmlAndDocumentationUiAreReachable(String requestPath) throws Exception {
         mockMvc.perform(get(requestPath))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML));
