@@ -1,8 +1,8 @@
 package com.cpt202.acceptance;
 
 import com.cpt202.model.entity.User;
-import com.cpt202.service.EmailLoginOtpMailService;
 import com.cpt202.integration.IntegrationTestSupport;
+import com.cpt202.service.EmailOtpMailService;
 import com.cpt202.util.TotpUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +33,7 @@ class CommonAuthAcceptanceTest extends IntegrationTestSupport {
     private static final String FIXED_SECRET = "JBSWY3DPEHPK3PXP";
 
     @MockBean
-    private EmailLoginOtpMailService emailLoginOtpMailService;
+    private EmailOtpMailService emailOtpMailService;
 
     private String emailedOtp;
 
@@ -44,7 +44,7 @@ class CommonAuthAcceptanceTest extends IntegrationTestSupport {
         doAnswer(invocation -> {
             emailedOtp = invocation.getArgument(1, String.class);
             return null;
-        }).when(emailLoginOtpMailService).sendLoginOtpMail(any(User.class), anyString());
+        }).when(emailOtpMailService).sendLoginOtpMail(any(User.class), anyString());
     }
 
     /** Visitor registers as a student and receives an authenticated response. */
