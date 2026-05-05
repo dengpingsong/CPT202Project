@@ -11,8 +11,11 @@ function formatDate(value: string | null | undefined): string {
   const date = new Date(value)
   if (isNaN(date.getTime())) return String(value).replace('T', ' ').slice(0, 16)
   return date.toLocaleString('zh-CN', {
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
   })
 }
 
@@ -54,10 +57,14 @@ onMounted(loadData)
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="7" style="text-align: center; color: #888;">Loading...</td>
+              <td colspan="7" style="text-align: center; color: #888">
+                Loading...
+              </td>
             </tr>
             <tr v-else-if="records.length === 0">
-              <td colspan="7" style="text-align: center; color: #888;">No history records</td>
+              <td colspan="7" style="text-align: center; color: #888">
+                No history records
+              </td>
             </tr>
             <tr v-for="r in records" :key="r.historyId || r.id">
               <td>{{ r.historyId || r.id || '-' }}</td>
@@ -77,14 +84,55 @@ onMounted(loadData)
 </template>
 
 <style scoped>
-.page { display: flex; flex-direction: column; gap: 20px; }
-.page-header { padding: 0; }
-.page-header h1 { margin: 0; font-size: 1.8rem; font-weight: 600; color: var(--text); }
-.panel { background: #fff; border: 1px solid rgba(90, 43, 152, 0.16); border-radius: 18px; padding: 24px 28px; box-shadow: 0 12px 30px rgba(90, 43, 152, 0.05); }
-.table-wrapper { overflow-x: auto; border-radius: 18px; }
-.data-table { width: 100%; border-collapse: collapse; min-width: 700px; font-size: 0.9rem; }
-.data-table th { text-align: left; padding: 16px; background: #f8f5ff; font-weight: 600; color: var(--deep); border-bottom: 2px solid rgba(90, 43, 152, 0.2); }
-.data-table td { padding: 16px; border-bottom: 1px solid rgba(156, 156, 178, 0.2); }
-.data-table tbody tr:hover { background: rgba(90, 43, 152, 0.03); }
-.summary { margin-top: 16px; font-size: 0.9rem; color: var(--muted); }
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.page-header {
+  padding: 0;
+}
+.page-header h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.panel {
+  background: #fff;
+  border: 1px solid rgba(90, 43, 152, 0.16);
+  border-radius: 18px;
+  padding: 24px 28px;
+  box-shadow: 0 12px 30px rgba(90, 43, 152, 0.05);
+}
+.table-wrapper {
+  overflow-x: auto;
+  border-radius: 18px;
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 700px;
+  font-size: 0.9rem;
+}
+.data-table th {
+  text-align: left;
+  padding: 16px;
+  background: #f8f5ff;
+  font-weight: 600;
+  color: var(--deep);
+  border-bottom: 2px solid rgba(90, 43, 152, 0.2);
+}
+.data-table td {
+  padding: 16px;
+  border-bottom: 1px solid rgba(156, 156, 178, 0.2);
+}
+.data-table tbody tr:hover {
+  background: rgba(90, 43, 152, 0.03);
+}
+.summary {
+  margin-top: 16px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
 </style>

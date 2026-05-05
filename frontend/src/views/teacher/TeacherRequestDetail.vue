@@ -46,8 +46,11 @@ function formatDate(value: string | null | undefined): string {
   const date = new Date(value)
   if (isNaN(date.getTime())) return String(value).replace('T', ' ').slice(0, 16)
   return date.toLocaleString('zh-CN', {
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
   })
 }
 
@@ -56,7 +59,8 @@ async function loadData() {
   try {
     const res = await teacherApi.listRequests()
     const requests = Array.isArray(res.data) ? res.data : []
-    request.value = requests.find(r => String(r.requestId) === String(requestId)) || null
+    request.value =
+      requests.find((r) => String(r.requestId) === String(requestId)) || null
     if (!request.value) {
       project.value = null
       studentProfile.value = null
@@ -89,7 +93,9 @@ async function loadData() {
 }
 
 async function handleAccept() {
-  const confirmed = await confirm('Are you sure you want to accept this application?')
+  const confirmed = await confirm(
+    'Are you sure you want to accept this application?',
+  )
   if (!confirmed) return
   processing.value = true
   try {
@@ -134,13 +140,23 @@ onMounted(loadData)
       <h1>Request Details</h1>
     </div>
 
-    <div v-if="loading" class="panel-card" style="text-align: center; padding: 40px; color: var(--muted);">
+    <div
+      v-if="loading"
+      class="panel-card"
+      style="text-align: center; padding: 40px; color: var(--muted)"
+    >
       Loading...
     </div>
 
-    <div v-else-if="!request" class="panel-card" style="text-align: center; padding: 40px;">
+    <div
+      v-else-if="!request"
+      class="panel-card"
+      style="text-align: center; padding: 40px"
+    >
       Request not found.
-      <button type="button" class="inline-link" @click="goBack">Back to list</button>
+      <button type="button" class="inline-link" @click="goBack">
+        Back to list
+      </button>
     </div>
 
     <template v-else>
@@ -156,7 +172,9 @@ onMounted(loadData)
           </div>
           <div class="meta-item">
             <span class="meta-label">Student No</span>
-            <span class="meta-value">{{ studentProfile.studentNo || '-' }}</span>
+            <span class="meta-value">{{
+              studentProfile.studentNo || '-'
+            }}</span>
           </div>
           <div class="meta-item">
             <span class="meta-label">Email</span>
@@ -164,7 +182,9 @@ onMounted(loadData)
           </div>
           <div class="meta-item">
             <span class="meta-label">Programme</span>
-            <span class="meta-value">{{ studentProfile.programme || '-' }}</span>
+            <span class="meta-value">{{
+              studentProfile.programme || '-'
+            }}</span>
           </div>
           <div class="meta-item">
             <span class="meta-label">Phone</span>
@@ -172,7 +192,9 @@ onMounted(loadData)
           </div>
           <div class="meta-item">
             <span class="meta-label">Interests</span>
-            <span class="meta-value">{{ studentProfile.interests || '-' }}</span>
+            <span class="meta-value">{{
+              studentProfile.interests || '-'
+            }}</span>
           </div>
         </div>
       </div>
@@ -190,14 +212,22 @@ onMounted(loadData)
           <div class="meta-item">
             <span class="meta-label">Application Status</span>
             <span class="meta-value">
-              <span class="status-pill" :style="{ color: statusColor(request.requestStatus), background: statusColor(request.requestStatus) + '18' }">
+              <span
+                class="status-pill"
+                :style="{
+                  color: statusColor(request.requestStatus),
+                  background: statusColor(request.requestStatus) + '18',
+                }"
+              >
                 {{ statusText(request.requestStatus) }}
               </span>
             </span>
           </div>
           <div class="meta-item">
             <span class="meta-label">Submitted</span>
-            <span class="meta-value">{{ formatDate(request.submittedAt) }}</span>
+            <span class="meta-value">{{
+              formatDate(request.submittedAt)
+            }}</span>
           </div>
           <div class="meta-item">
             <span class="meta-label">Preference Rank</span>
@@ -225,12 +255,24 @@ onMounted(loadData)
       </div>
 
       <!-- Actions -->
-      <div v-if="normalizeStatus(request.requestStatus) === 'PENDING'" class="panel-card action-panel">
+      <div
+        v-if="normalizeStatus(request.requestStatus) === 'PENDING'"
+        class="panel-card action-panel"
+      >
         <div class="action-buttons">
-          <button class="btn-accept" :disabled="processing" @click="handleAccept">
-            <i class="bi bi-check-lg"></i> {{ processing ? 'Processing...' : 'Accept' }}
+          <button
+            class="btn-accept"
+            :disabled="processing"
+            @click="handleAccept"
+          >
+            <i class="bi bi-check-lg"></i>
+            {{ processing ? 'Processing...' : 'Accept' }}
           </button>
-          <button class="btn-reject" :disabled="processing" @click="openRejectModal">
+          <button
+            class="btn-reject"
+            :disabled="processing"
+            @click="openRejectModal"
+          >
             <i class="bi bi-x-lg"></i> Reject
           </button>
         </div>
@@ -239,7 +281,11 @@ onMounted(loadData)
 
     <!-- Reject Modal -->
     <Teleport to="body">
-      <div v-if="showRejectModal" class="modal-overlay" @click.self="showRejectModal = false">
+      <div
+        v-if="showRejectModal"
+        class="modal-overlay"
+        @click.self="showRejectModal = false"
+      >
         <div class="modal-dialog">
           <div class="modal-header">
             <h2>Reject Application</h2>
@@ -257,8 +303,14 @@ onMounted(loadData)
             ></textarea>
           </div>
           <div class="modal-actions">
-            <button class="btn-secondary" @click="showRejectModal = false">Cancel</button>
-            <button class="btn-reject" :disabled="processing" @click="handleReject">
+            <button class="btn-secondary" @click="showRejectModal = false">
+              Cancel
+            </button>
+            <button
+              class="btn-reject"
+              :disabled="processing"
+              @click="handleReject"
+            >
               {{ processing ? 'Rejecting...' : 'Confirm Reject' }}
             </button>
           </div>

@@ -15,8 +15,11 @@ function formatDate(value: string | null | undefined): string {
   const date = new Date(value)
   if (isNaN(date.getTime())) return String(value).replace('T', ' ').slice(0, 16)
   return date.toLocaleString('zh-CN', {
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
   })
 }
 
@@ -48,8 +51,8 @@ async function loadHistory() {
     const res = await teacherApi.listHistory()
     const requests = Array.isArray(res.data) ? res.data : []
     historyItems.value = requests
-      .filter(r => normalizeStatus(r.requestStatus) !== 'PENDING')
-      .map(r => ({
+      .filter((r) => normalizeStatus(r.requestStatus) !== 'PENDING')
+      .map((r) => ({
         requestId: r.requestId,
         studentName: r.studentName || '-',
         studentId: r.studentId || '-',
@@ -59,7 +62,11 @@ async function loadHistory() {
         decisionComment: r.decisionComment || '',
         changedAt: historyTime(r),
       }))
-      .sort((a, b) => new Date(b.changedAt || 0).getTime() - new Date(a.changedAt || 0).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.changedAt || 0).getTime() -
+          new Date(a.changedAt || 0).getTime(),
+      )
   } catch (e: any) {
     toast.error(e.message || 'Failed to load history')
     historyItems.value = []
@@ -93,15 +100,26 @@ onMounted(loadHistory)
       </div>
 
       <div v-else class="timeline-vertical">
-        <div v-for="item in historyItems" :key="`${item.requestId}-${item.changedAt}`" class="item">
+        <div
+          v-for="item in historyItems"
+          :key="`${item.requestId}-${item.changedAt}`"
+          class="item"
+        >
           <div class="timeline-date">{{ formatDate(item.changedAt) }}</div>
-          <div class="timeline-title" :style="{ color: statusColor(item.status) }">
+          <div
+            class="timeline-title"
+            :style="{ color: statusColor(item.status) }"
+          >
             Request: {{ statusText(item.status) }} — {{ item.projectTitle }}
           </div>
           <div class="timeline-desc">
-            <div>Student: {{ item.studentName }} (ID: {{ item.studentId }})</div>
+            <div>
+              Student: {{ item.studentName }} (ID: {{ item.studentId }})
+            </div>
             <div v-if="item.notes">Notes: {{ item.notes }}</div>
-            <div v-if="item.decisionComment">Feedback: {{ item.decisionComment }}</div>
+            <div v-if="item.decisionComment">
+              Feedback: {{ item.decisionComment }}
+            </div>
           </div>
         </div>
       </div>
@@ -142,7 +160,7 @@ onMounted(loadHistory)
 }
 
 .timeline-vertical::before {
-  content: "";
+  content: '';
   position: absolute;
   left: 7px;
   top: 8px;
@@ -161,7 +179,7 @@ onMounted(loadHistory)
 }
 
 .timeline-vertical .item::before {
-  content: "";
+  content: '';
   position: absolute;
   left: -26.5px;
   top: 2px;

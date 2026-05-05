@@ -116,19 +116,34 @@ onMounted(() => {
       <form class="create-form" @submit.prevent="handleSubmit">
         <div class="form-group">
           <label>Project Title <span class="required">*</span></label>
-          <input v-model="title" type="text" class="form-control" placeholder="e.g. Student Project Allocation System">
+          <input
+            v-model="title"
+            type="text"
+            class="form-control"
+            placeholder="e.g. Student Project Allocation System"
+          />
         </div>
 
         <div class="form-grid-2">
           <div class="form-group">
             <label>Quota <span class="required">*</span></label>
-            <input v-model.number="quota" type="number" min="1" step="1" class="form-control">
+            <input
+              v-model.number="quota"
+              type="number"
+              min="1"
+              step="1"
+              class="form-control"
+            />
           </div>
           <div class="form-group">
             <label>Category <span class="required">*</span></label>
             <select v-model="categoryId" class="form-control">
               <option value="">Select category</option>
-              <option v-for="cat in categories" :key="cat.categoryId" :value="String(cat.categoryId)">
+              <option
+                v-for="cat in categories"
+                :key="cat.categoryId"
+                :value="String(cat.categoryId)"
+              >
                 {{ cat.categoryName }}
               </option>
             </select>
@@ -157,7 +172,12 @@ onMounted(() => {
 
         <div class="form-group">
           <label>Topic Area</label>
-          <input v-model="topicArea" type="text" class="form-control" placeholder="e.g. AI in Education / Data Visualization">
+          <input
+            v-model="topicArea"
+            type="text"
+            class="form-control"
+            placeholder="e.g. AI in Education / Data Visualization"
+          />
         </div>
 
         <div class="form-group">
@@ -168,14 +188,18 @@ onMounted(() => {
                 type="checkbox"
                 :checked="selectedTagIds.has(tag.tagId)"
                 @change="toggleTag(tag.tagId)"
-              >
+              />
               <span>{{ tag.tagName }}</span>
             </label>
-            <span v-if="tags.length === 0" style="color: var(--muted); font-size: 0.9rem;">No tags available</span>
+            <span
+              v-if="tags.length === 0"
+              style="color: var(--muted); font-size: 0.9rem"
+              >No tags available</span
+            >
           </div>
         </div>
 
-        <hr class="divider">
+        <hr class="divider" />
 
         <div class="form-status" :class="formErrorType">{{ formError }}</div>
 
@@ -184,7 +208,9 @@ onMounted(() => {
             <i class="bi bi-rocket-takeoff"></i>
             {{ publishing ? 'Publishing...' : 'Publish' }}
           </button>
-          <button type="button" class="btn-secondary" @click="goBack">Cancel</button>
+          <button type="button" class="btn-secondary" @click="goBack">
+            Cancel
+          </button>
         </div>
       </form>
     </div>
@@ -329,8 +355,12 @@ textarea.form-control {
   color: var(--muted);
 }
 
-.form-status.success { color: #167d68; }
-.form-status.error { color: #b02a37; }
+.form-status.success {
+  color: #167d68;
+}
+.form-status.error {
+  color: #b02a37;
+}
 
 .form-actions {
   display: flex;
@@ -352,8 +382,13 @@ textarea.form-control {
   gap: 8px;
 }
 
-.btn-primary:hover { background: var(--deep); }
-.btn-primary:disabled { background: #c4c4e0; cursor: not-allowed; }
+.btn-primary:hover {
+  background: var(--deep);
+}
+.btn-primary:disabled {
+  background: #c4c4e0;
+  cursor: not-allowed;
+}
 
 .btn-secondary {
   background: transparent;
@@ -369,7 +404,10 @@ textarea.form-control {
   align-items: center;
 }
 
-.btn-secondary:hover { border-color: var(--deep); color: var(--deep); }
+.btn-secondary:hover {
+  border-color: var(--deep);
+  color: var(--deep);
+}
 
 @media (max-width: 768px) {
   .form-grid-2 {

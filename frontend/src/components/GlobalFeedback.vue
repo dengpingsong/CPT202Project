@@ -6,7 +6,12 @@ import { toasts, confirmState, handleConfirm } from '../utils/ui-feedback'
   <!-- Toasts -->
   <div class="toast-stack">
     <TransitionGroup name="toast">
-      <div v-for="t in toasts" :key="t.id" class="toast" :class="`toast-${t.type}`">
+      <div
+        v-for="t in toasts"
+        :key="t.id"
+        class="toast"
+        :class="`toast-${t.type}`"
+      >
         <div class="toast-accent"></div>
         <div class="toast-message">{{ t.message }}</div>
       </div>
@@ -15,15 +20,23 @@ import { toasts, confirmState, handleConfirm } from '../utils/ui-feedback'
 
   <!-- Confirm Dialog -->
   <Teleport to="body">
-    <div v-if="confirmState.show" class="dialog-overlay" @click.self="handleConfirm(false)">
+    <div
+      v-if="confirmState.show"
+      class="dialog-overlay"
+      @click.self="handleConfirm(false)"
+    >
       <div class="dialog">
         <div class="dialog-header">
           <h3 class="dialog-title">{{ confirmState.title }}</h3>
         </div>
         <div class="dialog-body">{{ confirmState.message }}</div>
         <div class="dialog-actions">
-          <button class="btn-dialog-secondary" @click="handleConfirm(false)">Cancel</button>
-          <button class="btn-dialog-primary" @click="handleConfirm(true)">Confirm</button>
+          <button class="btn-dialog-secondary" @click="handleConfirm(false)">
+            Cancel
+          </button>
+          <button class="btn-dialog-primary" @click="handleConfirm(true)">
+            Confirm
+          </button>
         </div>
       </div>
     </div>
@@ -64,15 +77,21 @@ import { toasts, confirmState, handleConfirm } from '../utils/ui-feedback'
   background: #5b8def;
 }
 
-.toast-success .toast-accent { background: #22c55e; }
-.toast-error .toast-accent { background: #ef4444; }
-.toast-warning .toast-accent { background: #f59e0b; }
+.toast-success .toast-accent {
+  background: #22c55e;
+}
+.toast-error .toast-accent {
+  background: #ef4444;
+}
+.toast-warning .toast-accent {
+  background: #f59e0b;
+}
 
 .toast-message {
   font-size: 14px;
   line-height: 1.6;
   color: #1e293b;
-  font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+  font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
 }
 
 .toast-enter-active,
@@ -126,7 +145,7 @@ import { toasts, confirmState, handleConfirm } from '../utils/ui-feedback'
   color: #475569;
   font-size: 14px;
   line-height: 1.7;
-  font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+  font-family: 'Segoe UI', 'Microsoft YaHei', Arial, sans-serif;
 }
 
 .dialog-actions {

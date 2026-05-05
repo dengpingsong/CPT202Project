@@ -13,10 +13,29 @@ const projects = ref<any[]>([])
 const user = getCurrentUser()
 const displayName = computed(() => user.fullName || user.username || 'Student')
 
-const pending = computed(() => requests.value.filter(r => normalizeStatus(r.requestStatus) === 'PENDING').length)
-const accepted = computed(() => requests.value.filter(r => normalizeStatus(r.requestStatus) === 'ACCEPTED').length)
-const rejected = computed(() => requests.value.filter(r => normalizeStatus(r.requestStatus) === 'REJECTED').length)
-const withdrawn = computed(() => requests.value.filter(r => normalizeStatus(r.requestStatus) === 'WITHDRAWN').length)
+const pending = computed(
+  () =>
+    requests.value.filter((r) => normalizeStatus(r.requestStatus) === 'PENDING')
+      .length,
+)
+const accepted = computed(
+  () =>
+    requests.value.filter(
+      (r) => normalizeStatus(r.requestStatus) === 'ACCEPTED',
+    ).length,
+)
+const rejected = computed(
+  () =>
+    requests.value.filter(
+      (r) => normalizeStatus(r.requestStatus) === 'REJECTED',
+    ).length,
+)
+const withdrawn = computed(
+  () =>
+    requests.value.filter(
+      (r) => normalizeStatus(r.requestStatus) === 'WITHDRAWN',
+    ).length,
+)
 const activeCount = computed(() => pending.value + accepted.value)
 
 const statusEntries = computed(() => {
@@ -25,32 +44,38 @@ const statusEntries = computed(() => {
     { label: 'Accepted', value: accepted.value, className: 'tone-accepted' },
     { label: 'Rejected', value: rejected.value, className: 'tone-rejected' },
     { label: 'Withdrawn', value: withdrawn.value, className: 'tone-withdrawn' },
-  ].filter(item => item.value > 0)
+  ].filter((item) => item.value > 0)
 
-  return entries.length ? entries : [{ label: 'Requests', value: 0, className: 'tone-empty' }]
+  return entries.length
+    ? entries
+    : [{ label: 'Requests', value: 0, className: 'tone-empty' }]
 })
 
 const withdrawnProjectIds = computed(() => {
   return new Set(
     requests.value
-      .filter(r => normalizeStatus(r.requestStatus) === 'WITHDRAWN')
-      .map(r => String(r.projectId))
+      .filter((r) => normalizeStatus(r.requestStatus) === 'WITHDRAWN')
+      .map((r) => String(r.projectId)),
   )
 })
 
 const recommendedProjects = computed(() => {
   return projects.value
-    .filter(p => normalizeStatus(p.projectStatus) === 'AVAILABLE')
-    .filter(p => !withdrawnProjectIds.value.has(String(p.projectId)))
+    .filter((p) => normalizeStatus(p.projectStatus) === 'AVAILABLE')
+    .filter((p) => !withdrawnProjectIds.value.has(String(p.projectId)))
     .slice(0, 3)
 })
 
 const recentRequests = computed(() => {
   return [...requests.value]
     .sort((a, b) => {
-      const rankDiff = Number(a.preferenceRank || 999) - Number(b.preferenceRank || 999)
+      const rankDiff =
+        Number(a.preferenceRank || 999) - Number(b.preferenceRank || 999)
       if (rankDiff !== 0) return rankDiff
-      return new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime()
+      return (
+        new Date(b.submittedAt || 0).getTime() -
+        new Date(a.submittedAt || 0).getTime()
+      )
     })
     .slice(0, 3)
 })
@@ -87,7 +112,9 @@ function formatDate(value: string | null | undefined): string {
 }
 
 async function withdrawRequest(requestId: number | string) {
-  const confirmed = await confirm('Are you sure you want to withdraw this application?')
+  const confirmed = await confirm(
+    'Are you sure you want to withdraw this application?',
+  )
   if (!confirmed) return
   try {
     await studentApi.withdrawRequest(requestId)
@@ -106,7 +133,9 @@ async function loadData() {
       studentApi.getProjects(1, 12),
     ])
     requests.value = Array.isArray(reqData.data) ? reqData.data : []
-    projects.value = Array.isArray(projData.data?.records) ? projData.data.records : []
+    projects.value = Array.isArray(projData.data?.records)
+      ? projData.data.records
+      : []
   } catch (e: any) {
     toast.error(e.message || 'Failed to load dashboard data')
   } finally {
@@ -124,9 +153,13 @@ onMounted(loadData)
       <div>
         <h1>Welcome, {{ displayName }}</h1>
         <p class="hero-info">
-          This is your student workspace. You can view current applications, search for projects published by supervisors, or check past request records.
+          This is your student workspace. You can view current applications,
+          search for projects published by supervisors, or check past request
+          records.
         </p>
-        <span class="badge">Active applications: {{ loading ? 'Loading...' : activeCount }}</span>
+        <span class="badge"
+          >Active applications: {{ loading ? 'Loading...' : activeCount }}</span
+        >
       </div>
       <button class="cta" @click="router.push('/student/projects')">
         Quick Apply
@@ -140,7 +173,12 @@ onMounted(loadData)
         <h3>Application Status</h3>
         <div v-if="loading" class="status-summary">Loading...</div>
         <div v-else class="status-list">
-          <span v-for="item in statusEntries" :key="item.label" class="status-chip" :class="item.className">
+          <span
+            v-for="item in statusEntries"
+            :key="item.label"
+            class="status-chip"
+            :class="item.className"
+          >
             <strong>{{ item.value }}</strong>
             <span>{{ item.label }}</span>
           </span>
@@ -161,13 +199,28 @@ onMounted(loadData)
       <h2>Recommended Projects</h2>
       <div class="grid">
         <template v-if="recommendedProjects.length > 0">
-          <article v-for="project in recommendedProjects" :key="project.projectId" class="card">
-            <span class="status-pill" :class="statusClass(project.projectStatus)">
+          <article
+            v-for="project in recommendedProjects"
+            :key="project.projectId"
+            class="card"
+          >
+            <span
+              class="status-pill"
+              :class="statusClass(project.projectStatus)"
+            >
               Project: {{ projectStatusText(project.projectStatus) }}
             </span>
             <h4>{{ project.title || 'Untitled Project' }}</h4>
-            <p class="meta">Category: {{ project.categoryName || '-' }} | Quota: {{ project.currentAgreedCount || 0 }}/{{ project.maxStudents || 0 }}</p>
-            <p class="meta">Supervisor: {{ project.teacherName || '-' }} | Area: {{ project.topicArea || '-' }}</p>
+            <p class="meta">
+              Category: {{ project.categoryName || '-' }} | Quota:
+              {{ project.currentAgreedCount || 0 }}/{{
+                project.maxStudents || 0
+              }}
+            </p>
+            <p class="meta">
+              Supervisor: {{ project.teacherName || '-' }} | Area:
+              {{ project.topicArea || '-' }}
+            </p>
             <button
               @click="router.push(`/student/projects/${project.projectId}`)"
             >
@@ -178,7 +231,9 @@ onMounted(loadData)
         <article v-else class="card">
           <h4>No recommended projects</h4>
           <p class="meta">No projects available at the moment</p>
-          <button class="secondary" @click="router.push('/student/projects')">Browse Projects</button>
+          <button class="secondary" @click="router.push('/student/projects')">
+            Browse Projects
+          </button>
         </article>
       </div>
     </section>
@@ -188,7 +243,7 @@ onMounted(loadData)
       <h3>My Applications</h3>
       <template v-if="recentRequests.length > 0">
         <div v-for="item in recentRequests" :key="item.requestId" class="item">
-          <div style="display: flex; flex-direction: column;">
+          <div style="display: flex; flex-direction: column">
             <div class="application-title-row">
               <strong>{{ item.projectTitle || 'Untitled Project' }}</strong>
               <span class="status" :class="statusClass(item.requestStatus)">
@@ -197,11 +252,22 @@ onMounted(loadData)
             </div>
             <div class="meta-row">
               <span>Submitted: {{ formatDate(item.submittedAt) }}</span>
-              <span>Updated: {{ formatDate(item.reviewedAt || item.withdrawnAt || item.submittedAt) }}</span>
+              <span
+                >Updated:
+                {{
+                  formatDate(
+                    item.reviewedAt || item.withdrawnAt || item.submittedAt,
+                  )
+                }}</span
+              >
               <span>Rank: {{ item.preferenceRank || '-' }}</span>
             </div>
-            <p class="meta" style="margin-top: 8px;">Notes: {{ item.notes || '-' }}</p>
-            <p v-if="item.decisionComment" class="meta" style="margin-top: 4px;">Feedback: {{ item.decisionComment }}</p>
+            <p class="meta" style="margin-top: 8px">
+              Notes: {{ item.notes || '-' }}
+            </p>
+            <p v-if="item.decisionComment" class="meta" style="margin-top: 4px">
+              Feedback: {{ item.decisionComment }}
+            </p>
           </div>
           <div class="application-actions">
             <button
@@ -215,9 +281,11 @@ onMounted(loadData)
         </div>
       </template>
       <div v-else class="item">
-        <div style="display: flex; flex-direction: column;">
-          <strong style="margin-bottom: 6px;">No applications yet</strong>
-          <p class="meta" style="margin-top: 8px;">Your applications will appear here once submitted</p>
+        <div style="display: flex; flex-direction: column">
+          <strong style="margin-bottom: 6px">No applications yet</strong>
+          <p class="meta" style="margin-top: 8px">
+            Your applications will appear here once submitted
+          </p>
         </div>
       </div>
     </section>
@@ -231,7 +299,10 @@ onMounted(loadData)
   gap: 32px;
 }
 
-.hero, .panel, .card, .timeline {
+.hero,
+.panel,
+.card,
+.timeline {
   background: var(--panel, #fff);
   border-radius: 28px;
   padding: 24px 28px;
@@ -244,8 +315,15 @@ onMounted(loadData)
   gap: 32px;
 }
 
-.hero h1 { margin: 0; font-size: 1.9rem; }
-.hero-info { max-width: 520px; color: var(--muted); line-height: 1.6; }
+.hero h1 {
+  margin: 0;
+  font-size: 1.9rem;
+}
+.hero-info {
+  max-width: 520px;
+  color: var(--muted);
+  line-height: 1.6;
+}
 
 .badge {
   display: inline-flex;
@@ -300,7 +378,10 @@ onMounted(loadData)
   letter-spacing: 0.08em;
 }
 
-.panel strong { font-size: 2rem; display: block; }
+.panel strong {
+  font-size: 2rem;
+  display: block;
+}
 
 .status-summary {
   color: var(--text);
@@ -326,7 +407,7 @@ onMounted(loadData)
 }
 
 .status-chip::before {
-  content: "";
+  content: '';
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -345,11 +426,19 @@ onMounted(loadData)
   color: var(--text);
 }
 
-.status-chip.tone-pending::before { background: var(--orange); }
-.status-chip.tone-accepted::before { background: var(--green); }
-.status-chip.tone-rejected::before { background: var(--red); }
+.status-chip.tone-pending::before {
+  background: var(--orange);
+}
+.status-chip.tone-accepted::before {
+  background: var(--green);
+}
+.status-chip.tone-rejected::before {
+  background: var(--red);
+}
 .status-chip.tone-withdrawn::before,
-.status-chip.tone-empty::before { background: var(--muted); }
+.status-chip.tone-empty::before {
+  background: var(--muted);
+}
 
 .grid {
   display: grid;
@@ -369,8 +458,15 @@ onMounted(loadData)
   box-shadow: 0 12px 30px rgba(90, 43, 152, 0.05);
 }
 
-.card h4 { margin: 0; font-size: 1.2rem; }
-.card .meta { font-size: 0.85rem; color: var(--muted); line-height: 1.5; }
+.card h4 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+.card .meta {
+  font-size: 0.85rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
 
 .status-pill {
   align-self: flex-start;
@@ -380,11 +476,26 @@ onMounted(loadData)
   font-weight: 600;
 }
 
-.status-available { background: rgba(47, 197, 168, 0.12); color: var(--green); }
-.status-requested { background: rgba(246, 166, 61, 0.12); color: var(--orange); }
-.status-agreed { background: rgba(36, 179, 255, 0.15); color: var(--accent); }
-.status-rejected { background: rgba(199, 69, 69, 0.12); color: var(--red); }
-.status-unavailable { background: rgba(156, 156, 178, 0.2); color: rgba(28, 27, 51, 0.65); }
+.status-available {
+  background: rgba(47, 197, 168, 0.12);
+  color: var(--green);
+}
+.status-requested {
+  background: rgba(246, 166, 61, 0.12);
+  color: var(--orange);
+}
+.status-agreed {
+  background: rgba(36, 179, 255, 0.15);
+  color: var(--accent);
+}
+.status-rejected {
+  background: rgba(199, 69, 69, 0.12);
+  color: var(--red);
+}
+.status-unavailable {
+  background: rgba(156, 156, 178, 0.2);
+  color: rgba(28, 27, 51, 0.65);
+}
 
 .card button {
   margin-top: auto;
@@ -404,10 +515,20 @@ onMounted(loadData)
   color: #3c2e7b;
 }
 
-.card button:active { transform: translateY(1px); }
+.card button:active {
+  transform: translateY(1px);
+}
 
-h2 { margin: 0 0 8px; font-size: 1.4rem; color: var(--text); }
-h3 { margin: 0 0 16px; font-size: 1.1rem; color: var(--text); }
+h2 {
+  margin: 0 0 8px;
+  font-size: 1.4rem;
+  color: var(--text);
+}
+h3 {
+  margin: 0 0 16px;
+  font-size: 1.1rem;
+  color: var(--text);
+}
 
 .timeline .item {
   display: grid;
@@ -417,7 +538,9 @@ h3 { margin: 0 0 16px; font-size: 1.1rem; color: var(--text); }
   border-bottom: 1px solid rgba(156, 156, 178, 0.25);
 }
 
-.timeline .item:last-child { border-bottom: none; }
+.timeline .item:last-child {
+  border-bottom: none;
+}
 
 .timeline .meta-row {
   display: flex;
@@ -441,7 +564,10 @@ h3 { margin: 0 0 16px; font-size: 1.1rem; color: var(--text); }
   font-size: 0.85rem;
 }
 
-.timeline .meta { font-size: 0.85rem; color: var(--muted); }
+.timeline .meta {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
 
 .application-actions {
   display: flex;
@@ -469,7 +595,10 @@ h3 { margin: 0 0 16px; font-size: 1.1rem; color: var(--text); }
 }
 
 @media (max-width: 960px) {
-  .hero { flex-direction: column; align-items: flex-start; }
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 @media (max-width: 640px) {

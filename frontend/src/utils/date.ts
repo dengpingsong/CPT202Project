@@ -6,9 +6,11 @@ function pad(value: number): string {
 
 function isRealDate(year: number, month: number, day: number): boolean {
   const date = new Date(year, month - 1, day)
-  return date.getFullYear() === year
-    && date.getMonth() === month - 1
-    && date.getDate() === day
+  return (
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day
+  )
 }
 
 function todayDateOnly(): string {
@@ -25,7 +27,9 @@ export function normalizeDateOnly(value: DateValue): string {
     return `${year}-${pad(month)}-${pad(day)}`
   }
 
-  const match = String(value).trim().match(/^(\d{4})-(\d{2})-(\d{2})/)
+  const match = String(value)
+    .trim()
+    .match(/^(\d{4})-(\d{2})-(\d{2})/)
   if (!match) return ''
 
   const year = Number(match[1])

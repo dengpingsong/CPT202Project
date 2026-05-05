@@ -98,7 +98,10 @@ async function loadProjects(page: number) {
     const data = res.data
     projects.value = Array.isArray(data?.records) ? data.records : []
     total.value = Number(data?.total || projects.value.length)
-    totalPages.value = Math.max(1, Number(data?.totalPages || Math.ceil(total.value / pageSize.value) || 1))
+    totalPages.value = Math.max(
+      1,
+      Number(data?.totalPages || Math.ceil(total.value / pageSize.value) || 1),
+    )
     currentPage.value = Math.max(1, Number(data?.pageNum || page))
   } catch (e: any) {
     toast.error(e.message || 'Failed to load projects')
@@ -151,18 +154,30 @@ onMounted(init)
             type="search"
             placeholder="Project name, area, or skill"
             @input="onKeywordInput"
-          >
+          />
         </span>
         <span class="filter-control select-control">
-          <select v-model="categoryId" aria-label="Category" @change="loadProjects(1)">
+          <select
+            v-model="categoryId"
+            aria-label="Category"
+            @change="loadProjects(1)"
+          >
             <option value="">All Categories</option>
-            <option v-for="cat in categories" :key="cat.categoryId" :value="cat.categoryId">
+            <option
+              v-for="cat in categories"
+              :key="cat.categoryId"
+              :value="cat.categoryId"
+            >
               {{ cat.categoryName }}
             </option>
           </select>
         </span>
         <span class="filter-control select-control">
-          <select v-model="statusFilter" aria-label="Project Status" @change="loadProjects(1)">
+          <select
+            v-model="statusFilter"
+            aria-label="Project Status"
+            @change="loadProjects(1)"
+          >
             <option value="">All Project Status</option>
             <option value="AVAILABLE">Available</option>
             <option value="REQUESTED">Requested</option>
@@ -193,7 +208,9 @@ onMounted(init)
             class="tag-btn tag-clear"
             :disabled="selectedTagIds.size === 0"
             @click="clearTagFilters"
-          >Clear tags</button>
+          >
+            Clear tags
+          </button>
         </template>
         <span v-else class="tag-label">No tags available</span>
       </div>
@@ -215,25 +232,41 @@ onMounted(init)
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="8" style="text-align: center; color: #888;">Loading...</td>
+              <td colspan="8" style="text-align: center; color: #888">
+                Loading...
+              </td>
             </tr>
             <tr v-else-if="projects.length === 0">
-              <td colspan="8" style="text-align: center; color: #888;">No projects available</td>
+              <td colspan="8" style="text-align: center; color: #888">
+                No projects available
+              </td>
             </tr>
             <tr v-for="project in projects" :key="project.projectId">
-              <td><strong>{{ project.projectId }}</strong></td>
+              <td>
+                <strong>{{ project.projectId }}</strong>
+              </td>
               <td>{{ project.title }}</td>
               <td>{{ project.teacherName || '-' }}</td>
               <td>{{ project.categoryName || '-' }}</td>
               <td>{{ project.topicArea || '-' }}</td>
-              <td>{{ project.currentAgreedCount || 0 }}/{{ project.maxStudents || 0 }}</td>
               <td>
-                <span class="status-pill" :class="statusClass(project.projectStatus)">
+                {{ project.currentAgreedCount || 0 }}/{{
+                  project.maxStudents || 0
+                }}
+              </td>
+              <td>
+                <span
+                  class="status-pill"
+                  :class="statusClass(project.projectStatus)"
+                >
                   {{ projectStatusText(project.projectStatus) }}
                 </span>
               </td>
               <td>
-                <router-link class="view-btn" :to="`/student/projects/${project.projectId}`">
+                <router-link
+                  class="view-btn"
+                  :to="`/student/projects/${project.projectId}`"
+                >
                   View
                 </router-link>
               </td>
@@ -278,7 +311,9 @@ onMounted(init)
 
 .filters-row {
   display: grid;
-  grid-template-columns: minmax(260px, 1.6fr) minmax(190px, 1fr) minmax(170px, 0.9fr) auto;
+  grid-template-columns:
+    minmax(260px, 1.6fr) minmax(190px, 1fr) minmax(170px, 0.9fr)
+    auto;
   gap: 12px;
   align-items: end;
   margin-bottom: 12px;
@@ -291,7 +326,9 @@ onMounted(init)
   background: #fff;
   display: flex;
   align-items: center;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .filter-control:focus-within {
@@ -432,11 +469,26 @@ onMounted(init)
   font-weight: 600;
 }
 
-.status-available { background: rgba(47, 197, 168, 0.12); color: var(--green); }
-.status-requested { background: rgba(246, 166, 61, 0.12); color: var(--orange); }
-.status-agreed { background: rgba(36, 179, 255, 0.15); color: var(--accent); }
-.status-rejected { background: rgba(199, 69, 69, 0.12); color: var(--red); }
-.status-unavailable { background: rgba(156, 156, 178, 0.2); color: rgba(28, 27, 51, 0.65); }
+.status-available {
+  background: rgba(47, 197, 168, 0.12);
+  color: var(--green);
+}
+.status-requested {
+  background: rgba(246, 166, 61, 0.12);
+  color: var(--orange);
+}
+.status-agreed {
+  background: rgba(36, 179, 255, 0.15);
+  color: var(--accent);
+}
+.status-rejected {
+  background: rgba(199, 69, 69, 0.12);
+  color: var(--red);
+}
+.status-unavailable {
+  background: rgba(156, 156, 178, 0.2);
+  color: rgba(28, 27, 51, 0.65);
+}
 
 .view-btn {
   background: #fff;

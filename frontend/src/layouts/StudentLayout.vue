@@ -5,7 +5,11 @@ const navItems = [
   { to: '/student/dashboard', icon: 'bi bi-kanban', label: 'Dashboard' },
   { to: '/student/projects', icon: 'bi bi-search', label: 'Projects' },
   { to: '/student/history', icon: 'bi bi-clock-history', label: 'History' },
-  { to: '/student/notifications', icon: 'bi bi-chat-dots', label: 'Notifications' },
+  {
+    to: '/student/notifications',
+    icon: 'bi bi-chat-dots',
+    label: 'Notifications',
+  },
   { to: '/student/profile', icon: 'bi bi-person-gear', label: 'Profile' },
 ]
 </script>

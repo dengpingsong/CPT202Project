@@ -41,14 +41,19 @@ function formatDate(value: string | null | undefined): string {
   const date = new Date(value)
   if (isNaN(date.getTime())) return String(value).replace('T', ' ').slice(0, 16)
   return date.toLocaleString('zh-CN', {
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
   })
 }
 
 const filteredRequests = computed(() => {
   if (!statusFilter.value) return requests.value
-  return requests.value.filter(r => normalizeStatus(r.requestStatus) === statusFilter.value)
+  return requests.value.filter(
+    (r) => normalizeStatus(r.requestStatus) === statusFilter.value,
+  )
 })
 
 async function loadRequests() {
@@ -69,7 +74,9 @@ function viewDetail(requestId: number) {
 }
 
 async function handleAccept(requestId: number) {
-  const confirmed = await confirm('Are you sure you want to accept this application?')
+  const confirmed = await confirm(
+    'Are you sure you want to accept this application?',
+  )
   if (!confirmed) return
   try {
     await teacherApi.reviewRequest(requestId, 'ACCEPTED')
@@ -96,7 +103,11 @@ async function handleReject() {
   if (rejectRequestId.value === null) return
   rejecting.value = true
   try {
-    await teacherApi.reviewRequest(rejectRequestId.value, 'REJECTED', rejectComment.value.trim())
+    await teacherApi.reviewRequest(
+      rejectRequestId.value,
+      'REJECTED',
+      rejectComment.value.trim(),
+    )
     toast.success('Application rejected')
     closeRejectModal()
     await loadRequests()
@@ -146,10 +157,14 @@ onMounted(loadRequests)
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="5" style="text-align: center; color: #888;">Loading...</td>
+              <td colspan="5" style="text-align: center; color: #888">
+                Loading...
+              </td>
             </tr>
             <tr v-else-if="filteredRequests.length === 0">
-              <td colspan="5" style="text-align: center; color: #888;">No requests found</td>
+              <td colspan="5" style="text-align: center; color: #888">
+                No requests found
+              </td>
             </tr>
             <tr v-for="r in filteredRequests" :key="r.requestId">
               <td>
@@ -161,13 +176,22 @@ onMounted(loadRequests)
               <td>{{ r.projectTitle || '-' }}</td>
               <td>{{ formatDate(r.submittedAt) }}</td>
               <td>
-                <span class="status-pill" :style="{ color: statusColor(r.requestStatus), background: statusColor(r.requestStatus) + '18' }">
+                <span
+                  class="status-pill"
+                  :style="{
+                    color: statusColor(r.requestStatus),
+                    background: statusColor(r.requestStatus) + '18',
+                  }"
+                >
                   {{ statusText(r.requestStatus) }}
                 </span>
               </td>
               <td>
                 <div class="action-btns">
-                  <button class="btn-sm btn-detail" @click="viewDetail(r.requestId)">
+                  <button
+                    class="btn-sm btn-detail"
+                    @click="viewDetail(r.requestId)"
+                  >
                     <i class="bi bi-eye"></i> Detail
                   </button>
                   <button
@@ -195,7 +219,11 @@ onMounted(loadRequests)
     </div>
 
     <Teleport to="body">
-      <div v-if="showRejectModal" class="modal-overlay" @click.self="closeRejectModal">
+      <div
+        v-if="showRejectModal"
+        class="modal-overlay"
+        @click.self="closeRejectModal"
+      >
         <div class="modal-dialog">
           <div class="modal-header">
             <h2>Reject Application</h2>
@@ -213,8 +241,19 @@ onMounted(loadRequests)
             ></textarea>
           </div>
           <div class="modal-actions">
-            <button type="button" class="btn-secondary" @click="closeRejectModal">Cancel</button>
-            <button type="button" class="btn-reject modal-reject-btn" :disabled="rejecting" @click="handleReject">
+            <button
+              type="button"
+              class="btn-secondary"
+              @click="closeRejectModal"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="btn-reject modal-reject-btn"
+              :disabled="rejecting"
+              @click="handleReject"
+            >
               {{ rejecting ? 'Rejecting...' : 'Confirm Reject' }}
             </button>
           </div>
@@ -260,7 +299,9 @@ onMounted(loadRequests)
   background: #fff;
   display: flex;
   align-items: center;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .filter-control:focus-within {

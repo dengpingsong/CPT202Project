@@ -79,6 +79,11 @@ async function loadProjects() {
   }
 }
 
+function resetFilters() {
+  statusFilter.value = ''
+  void loadProjects()
+}
+
 async function loadReferenceData() {
   try {
     const [catRes, tagRes] = await Promise.all([
@@ -114,7 +119,8 @@ async function openProjectEditor(projectId: number) {
     editCategoryId.value = String(project.categoryId || '')
 
     const normalized = normalizeStatus(project.projectStatus)
-    editProjectStatus.value = normalized === 'REQUESTED' ? 'AVAILABLE' : normalized
+    editProjectStatus.value =
+      normalized === 'REQUESTED' ? 'AVAILABLE' : normalized
     originalProjectStatus.value = editProjectStatus.value
     editStatusRemark.value = ''
 
@@ -171,8 +177,15 @@ async function executeSave() {
     })
 
     // 2. Update status if changed
-    if (originalProjectStatus.value !== editProjectStatus.value || editStatusRemark.value.trim()) {
-      await teacherApi.changeProjectStatus(projectId, editProjectStatus.value, editStatusRemark.value.trim())
+    if (
+      originalProjectStatus.value !== editProjectStatus.value ||
+      editStatusRemark.value.trim()
+    ) {
+      await teacherApi.changeProjectStatus(
+        projectId,
+        editProjectStatus.value,
+        editStatusRemark.value.trim(),
+      )
     }
 
     // 3. Update tags if changed
@@ -200,7 +213,10 @@ async function saveAllChanges() {
   }
 
   // Check if status is changing to AGREED/CLOSED
-  if (originalProjectStatus.value !== editProjectStatus.value && ['AGREED', 'CLOSED'].includes(editProjectStatus.value)) {
+  if (
+    originalProjectStatus.value !== editProjectStatus.value &&
+    ['AGREED', 'CLOSED'].includes(editProjectStatus.value)
+  ) {
     const label = editProjectStatus.value === 'AGREED' ? 'Agreed' : 'Closed'
     statusConfirmMessage.value = `Are you sure you want to change the status to "${label}"? This will take effect immediately.`
     pendingConfirmAction = executeSave
@@ -232,8 +248,11 @@ onMounted(async () => {
   <div class="projects-page">
     <header class="page-header">
       <h1>My Projects</h1>
-      <div style="flex-grow: 1;"></div>
-      <button class="btn-primary" @click="router.push('/teacher/create-project')">
+      <div style="flex-grow: 1"></div>
+      <button
+        class="btn-primary"
+        @click="router.push('/teacher/create-project')"
+      >
         <i class="bi bi-plus-lg"></i> Create Project
       </button>
     </header>
@@ -241,7 +260,11 @@ onMounted(async () => {
     <div class="panel">
       <div class="filters-row">
         <span class="filter-control select-control">
-          <select v-model="statusFilter" aria-label="Project Status" @change="loadProjects()">
+          <select
+            v-model="statusFilter"
+            aria-label="Project Status"
+            @change="loadProjects()"
+          >
             <option value="">All Project Status</option>
             <option value="AVAILABLE">Available</option>
             <option value="REQUESTED">Requested</option>
@@ -249,15 +272,23 @@ onMounted(async () => {
             <option value="CLOSED">Closed</option>
           </select>
         </span>
-        <button class="clear-btn" @click="statusFilter = ''; loadProjects()">
+        <button class="clear-btn" @click="resetFilters">
           <i class="bi bi-arrow-counterclockwise"></i>
           Clear
         </button>
       </div>
 
-      <div v-if="loading" style="color: var(--muted); text-align: center; padding: 24px;">Loading...</div>
+      <div
+        v-if="loading"
+        style="color: var(--muted); text-align: center; padding: 24px"
+      >
+        Loading...
+      </div>
 
-      <div v-else-if="projects.length === 0" style="color: var(--muted); text-align: center; padding: 24px;">
+      <div
+        v-else-if="projects.length === 0"
+        style="color: var(--muted); text-align: center; padding: 24px"
+      >
         No projects found. Create a new project to get started.
       </div>
 
@@ -265,15 +296,27 @@ onMounted(async () => {
         <div v-for="p in projects" :key="p.projectId" class="outline-card">
           <h4>{{ p.title || 'Untitled Project' }}</h4>
           <p class="meta">
-            {{ [p.categoryName, p.topicArea, p.requiredSkills].filter(Boolean).join(' / ') || 'No category' }}
+            {{
+              [p.categoryName, p.topicArea, p.requiredSkills]
+                .filter(Boolean)
+                .join(' / ') || 'No category'
+            }}
           </p>
-          <p class="meta">ID: {{ p.projectId }} | Quota: {{ p.currentAgreedCount || 0 }}/{{ p.maxStudents || 0 }}</p>
-          <div style="flex-grow: 1;">
-            <span class="status-pill" :class="statusClass(p.projectStatus)">{{ statusText(p.projectStatus) }}</span>
+          <p class="meta">
+            ID: {{ p.projectId }} | Quota: {{ p.currentAgreedCount || 0 }}/{{
+              p.maxStudents || 0
+            }}
+          </p>
+          <div style="flex-grow: 1">
+            <span class="status-pill" :class="statusClass(p.projectStatus)">{{
+              statusText(p.projectStatus)
+            }}</span>
           </div>
           <div class="card-actions">
             <button class="btn-card" @click="viewRequests">Requests</button>
-            <button class="btn-card" @click="openProjectEditor(p.projectId)">Edit</button>
+            <button class="btn-card" @click="openProjectEditor(p.projectId)">
+              Edit
+            </button>
           </div>
         </div>
       </div>
@@ -281,7 +324,11 @@ onMounted(async () => {
 
     <!-- Edit Modal -->
     <Teleport to="body">
-      <div v-if="showEditPanel" class="modal-overlay" @click.self="closeEditPanel">
+      <div
+        v-if="showEditPanel"
+        class="modal-overlay"
+        @click.self="closeEditPanel"
+      >
         <div class="edit-modal-dialog">
           <div class="edit-header">
             <h3>Edit Project</h3>
@@ -289,7 +336,9 @@ onMounted(async () => {
               <i class="bi bi-x-lg"></i>
             </button>
           </div>
-          <div class="edit-status" :class="editPanelStatusType">{{ editPanelStatus }}</div>
+          <div class="edit-status" :class="editPanelStatusType">
+            {{ editPanelStatus }}
+          </div>
 
           <div class="edit-modal-body">
             <!-- Project Info -->
@@ -297,11 +346,16 @@ onMounted(async () => {
               <div class="form-grid-2">
                 <div class="form-group">
                   <label>Title</label>
-                  <input v-model="editTitle" type="text" class="form-control">
+                  <input v-model="editTitle" type="text" class="form-control" />
                 </div>
                 <div class="form-group">
                   <label>Max Students</label>
-                  <input v-model.number="editMaxStudents" type="number" min="1" class="form-control">
+                  <input
+                    v-model.number="editMaxStudents"
+                    type="number"
+                    min="1"
+                    class="form-control"
+                  />
                 </div>
               </div>
               <div class="form-grid-2">
@@ -309,27 +363,43 @@ onMounted(async () => {
                   <label>Category</label>
                   <select v-model="editCategoryId" class="form-control">
                     <option value="">Select category</option>
-                    <option v-for="cat in categories" :key="cat.categoryId" :value="String(cat.categoryId)">
+                    <option
+                      v-for="cat in categories"
+                      :key="cat.categoryId"
+                      :value="String(cat.categoryId)"
+                    >
                       {{ cat.categoryName }}
                     </option>
                   </select>
                 </div>
                 <div class="form-group">
                   <label>Topic Area</label>
-                  <input v-model="editTopicArea" type="text" class="form-control">
+                  <input
+                    v-model="editTopicArea"
+                    type="text"
+                    class="form-control"
+                  />
                 </div>
               </div>
               <div class="form-group">
                 <label>Description</label>
-                <textarea v-model="editDescription" rows="4" class="form-control"></textarea>
+                <textarea
+                  v-model="editDescription"
+                  rows="4"
+                  class="form-control"
+                ></textarea>
               </div>
               <div class="form-group">
                 <label>Required Skills</label>
-                <textarea v-model="editRequiredSkills" rows="3" class="form-control"></textarea>
+                <textarea
+                  v-model="editRequiredSkills"
+                  rows="3"
+                  class="form-control"
+                ></textarea>
               </div>
             </form>
 
-            <hr class="divider">
+            <hr class="divider" />
 
             <!-- Status -->
             <form @submit.prevent>
@@ -344,33 +414,52 @@ onMounted(async () => {
                 </div>
                 <div class="form-group">
                   <label>Status Remark</label>
-                  <input v-model="editStatusRemark" type="text" class="form-control" placeholder="Optional">
+                  <input
+                    v-model="editStatusRemark"
+                    type="text"
+                    class="form-control"
+                    placeholder="Optional"
+                  />
                 </div>
               </div>
             </form>
 
-            <hr class="divider">
+            <hr class="divider" />
 
             <!-- Tags -->
             <div class="form-group">
               <label>Project Tags</label>
               <div class="tags-container">
-                <label v-for="tag in tags" :key="tag.tagId" class="tag-checkbox">
+                <label
+                  v-for="tag in tags"
+                  :key="tag.tagId"
+                  class="tag-checkbox"
+                >
                   <input
                     type="checkbox"
                     :checked="editSelectedTagIds.has(tag.tagId)"
                     @change="toggleEditTag(tag.tagId)"
-                  >
+                  />
                   <span>{{ tag.tagName }}</span>
                 </label>
-                <span v-if="tags.length === 0" style="color: var(--muted); font-size: 0.9rem;">No tags available</span>
+                <span
+                  v-if="tags.length === 0"
+                  style="color: var(--muted); font-size: 0.9rem"
+                  >No tags available</span
+                >
               </div>
             </div>
           </div>
 
           <div class="edit-modal-actions">
-            <button class="btn-secondary" @click="closeEditPanel">Cancel</button>
-            <button class="btn-primary" :disabled="saving" @click="saveAllChanges">
+            <button class="btn-secondary" @click="closeEditPanel">
+              Cancel
+            </button>
+            <button
+              class="btn-primary"
+              :disabled="saving"
+              @click="saveAllChanges"
+            >
               {{ saving ? 'Saving...' : 'Save All Changes' }}
             </button>
           </div>
@@ -380,7 +469,11 @@ onMounted(async () => {
 
     <!-- Status Confirm Modal -->
     <Teleport to="body">
-      <div v-if="showStatusConfirm" class="modal-overlay" @click.self="showStatusConfirm = false">
+      <div
+        v-if="showStatusConfirm"
+        class="modal-overlay"
+        @click.self="showStatusConfirm = false"
+      >
         <div class="modal-dialog">
           <div class="modal-header">
             <h2>Confirm Status Change</h2>
@@ -388,10 +481,16 @@ onMounted(async () => {
               <i class="bi bi-x-lg"></i>
             </button>
           </div>
-          <p style="margin: 0 0 18px; color: var(--text); line-height: 1.6;">{{ statusConfirmMessage }}</p>
+          <p style="margin: 0 0 18px; color: var(--text); line-height: 1.6">
+            {{ statusConfirmMessage }}
+          </p>
           <div class="modal-actions">
-            <button class="btn-secondary" @click="showStatusConfirm = false">Cancel</button>
-            <button class="btn-primary" @click="confirmStatusAction">Confirm</button>
+            <button class="btn-secondary" @click="showStatusConfirm = false">
+              Cancel
+            </button>
+            <button class="btn-primary" @click="confirmStatusAction">
+              Confirm
+            </button>
           </div>
         </div>
       </div>
@@ -441,7 +540,9 @@ onMounted(async () => {
   background: #fff;
   display: flex;
   align-items: center;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .filter-control:focus-within {
@@ -502,7 +603,9 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 .outline-card:hover {
@@ -555,10 +658,22 @@ onMounted(async () => {
   font-weight: 600;
 }
 
-.status-available { background: rgba(47, 197, 168, 0.12); color: var(--green); }
-.status-requested { background: rgba(246, 166, 61, 0.12); color: var(--orange); }
-.status-agreed { background: rgba(36, 179, 255, 0.15); color: var(--accent); }
-.status-unavailable { background: rgba(156, 156, 178, 0.2); color: rgba(28, 27, 51, 0.65); }
+.status-available {
+  background: rgba(47, 197, 168, 0.12);
+  color: var(--green);
+}
+.status-requested {
+  background: rgba(246, 166, 61, 0.12);
+  color: var(--orange);
+}
+.status-agreed {
+  background: rgba(36, 179, 255, 0.15);
+  color: var(--accent);
+}
+.status-unavailable {
+  background: rgba(156, 156, 178, 0.2);
+  color: rgba(28, 27, 51, 0.65);
+}
 
 .edit-header {
   display: flex;
@@ -582,8 +697,12 @@ onMounted(async () => {
   color: var(--muted);
 }
 
-.edit-status.success { color: #167d68; }
-.edit-status.error { color: #b02a37; }
+.edit-status.success {
+  color: #167d68;
+}
+.edit-status.error {
+  color: #b02a37;
+}
 
 .form-grid-2 {
   display: grid;
@@ -669,8 +788,13 @@ onMounted(async () => {
   gap: 8px;
 }
 
-.btn-primary:hover { background: var(--deep); }
-.btn-primary:disabled { background: #c4c4e0; cursor: not-allowed; }
+.btn-primary:hover {
+  background: var(--deep);
+}
+.btn-primary:disabled {
+  background: #c4c4e0;
+  cursor: not-allowed;
+}
 
 .btn-secondary {
   background: transparent;
@@ -683,7 +807,10 @@ onMounted(async () => {
   font-family: inherit;
 }
 
-.btn-secondary:hover { border-color: var(--deep); color: var(--deep); }
+.btn-secondary:hover {
+  border-color: var(--deep);
+  color: var(--deep);
+}
 
 /* Modal */
 .modal-overlay {
