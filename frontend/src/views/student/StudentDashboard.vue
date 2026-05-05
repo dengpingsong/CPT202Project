@@ -40,7 +40,7 @@ const withdrawnProjectIds = computed(() => {
 
 const recommendedProjects = computed(() => {
   return projects.value
-    .filter(p => ['AVAILABLE', 'REQUESTED'].includes(normalizeStatus(p.projectStatus)))
+    .filter(p => normalizeStatus(p.projectStatus) === 'AVAILABLE')
     .filter(p => !withdrawnProjectIds.value.has(String(p.projectId)))
     .slice(0, 3)
 })
@@ -182,11 +182,16 @@ onMounted(loadData)
 
     <!-- Recent Requests -->
     <section class="timeline">
-      <h3>Recent Applications</h3>
+      <h3>My Applications</h3>
       <template v-if="recentRequests.length > 0">
         <div v-for="item in recentRequests" :key="item.requestId" class="item">
           <div style="display: flex; flex-direction: column;">
-            <strong style="margin-bottom: 6px;">{{ item.projectTitle || 'Untitled Project' }}</strong>
+            <div class="application-title-row">
+              <strong>{{ item.projectTitle || 'Untitled Project' }}</strong>
+              <span class="status" :class="statusClass(item.requestStatus)">
+                {{ normalizeStatus(item.requestStatus) }}
+              </span>
+            </div>
             <div class="meta-row">
               <span>Submitted: {{ formatDate(item.submittedAt) }}</span>
               <span>Updated: {{ formatDate(item.reviewedAt || item.withdrawnAt || item.submittedAt) }}</span>
@@ -194,13 +199,16 @@ onMounted(loadData)
             </div>
             <p class="meta" style="margin-top: 8px;">Notes: {{ item.notes || '-' }}</p>
             <p v-if="item.decisionComment" class="meta" style="margin-top: 4px;">Feedback: {{ item.decisionComment }}</p>
-            <div v-if="normalizeStatus(item.requestStatus) === 'PENDING'" style="margin-top: 10px;">
-              <button class="withdraw-btn" @click="withdrawRequest(item.requestId)">Withdraw</button>
-            </div>
           </div>
-          <span class="status" :class="statusClass(item.requestStatus)">
-            {{ normalizeStatus(item.requestStatus) }}
-          </span>
+          <div class="application-actions">
+            <button
+              v-if="normalizeStatus(item.requestStatus) === 'PENDING'"
+              class="withdraw-btn"
+              @click="withdrawRequest(item.requestId)"
+            >
+              Withdraw
+            </button>
+          </div>
         </div>
       </template>
       <div v-else class="item">
@@ -416,14 +424,29 @@ h3 { margin: 0 0 16px; font-size: 1.1rem; color: var(--text); }
   color: var(--muted);
 }
 
+.application-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
 .timeline .status {
   font-weight: 600;
-  align-self: center;
   text-transform: uppercase;
   font-size: 0.85rem;
 }
 
 .timeline .meta { font-size: 0.85rem; color: var(--muted); }
+
+.application-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 10px;
+}
 
 .withdraw-btn {
   padding: 8px 14px;
@@ -444,5 +467,15 @@ h3 { margin: 0 0 16px; font-size: 1.1rem; color: var(--text); }
 
 @media (max-width: 960px) {
   .hero { flex-direction: column; align-items: flex-start; }
+}
+
+@media (max-width: 640px) {
+  .timeline .item {
+    grid-template-columns: 1fr;
+  }
+
+  .application-actions {
+    align-items: flex-start;
+  }
 }
 </style>

@@ -1,7 +1,9 @@
 package com.cpt202.service.impl;
 
 import com.cpt202.constant.MessageConstants;
+import com.cpt202.dto.AdminUserUpdateDTO;
 import com.cpt202.exception.NotFoundException;
+import com.cpt202.exception.RuleViolationException;
 import com.cpt202.model.entity.User;
 import com.cpt202.repository.UserRepository;
 import com.cpt202.service.UserAuthStateService;
@@ -9,7 +11,9 @@ import com.cpt202.service.UserAdminService;
 import com.cpt202.vo.UserVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -42,5 +46,32 @@ public class UserAdminServiceImpl implements UserAdminService {
         user.setAccountStatus(accountStatus);
         userRepository.save(user);
         userAuthStateService.evictUserAuthState(userId);
+    }
+
+    /**
+     * 修改用户基础信息。
+     */
+    @Override
+    @Transactional
+    public void updateUser(Long userId, AdminUserUpdateDTO updateDTO) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException(MessageConstants.USER_NOT_FOUND));
+
+        String username = updateDTO.getUsername().trim();
+        String email = updateDTO.getEmail().trim();
+        String fullName = updateDTO.getFullName().trim();
+
+        if (userRepository.existsByUsernameAndUserIdNot(username, userId)) {
+            throw new RuleViolationException(MessageConstants.USERNAME_EXISTS);
+        }
+        if (userRepository.existsByEmailIgnoreCaseAndUserIdNot(email, userId)) {
+            throw new RuleViolationException(MessageConstants.EMAIL_EXISTS);
+        }
+
+        user.setUsername(username);
+        user.setEmail(email);
+        user.setFullName(fullName);
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
     }
 }

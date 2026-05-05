@@ -13,6 +13,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -128,5 +129,49 @@ class CPT202ApplicationTests {
                 .andExpect(jsonPath("$.code").value(1))
                 .andExpect(jsonPath("$.data.studentNo").value("S-DATE-001"))
                 .andExpect(jsonPath("$.data.enrollmentDate").value("2024-09-01"));
+    }
+
+    @Test
+    void adminCanUpdateUserBasicInformation() throws Exception {
+        String registerResponse = mockMvc.perform(post("/api/common/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "admin_edit_test",
+                                  "password": "123456",
+                                  "email": "admin.edit.test@example.com",
+                                  "fullName": "Admin Edit Test",
+                                  "role": "ADMIN"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String token = registerResponse.replaceAll(".*\\\"token\\\":\\\"([^\\\"]+)\\\".*", "$1");
+        String userId = registerResponse.replaceAll(".*\\\"userId\\\":(\\d+).*", "$1");
+
+        mockMvc.perform(put("/api/admin/users/{userId}", userId)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "admin_edit_test_updated",
+                                  "email": "admin.edit.updated@example.com",
+                                  "fullName": "Admin Edit Updated"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1));
+
+        mockMvc.perform(get("/api/admin/users")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1))
+                .andExpect(jsonPath("$.data[?(@.userId == " + userId + ")].username").value("admin_edit_test_updated"))
+                .andExpect(jsonPath("$.data[?(@.userId == " + userId + ")].email").value("admin.edit.updated@example.com"))
+                .andExpect(jsonPath("$.data[?(@.userId == " + userId + ")].fullName").value("Admin Edit Updated"));
     }
 }

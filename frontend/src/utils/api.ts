@@ -201,6 +201,8 @@ export const adminApi = {
   },
   updateUserStatus: (userId: number | string, accountStatus: string) =>
     request(`/admin/users/${userId}/status?accountStatus=${accountStatus}`, { method: 'PUT' }),
+  updateUser: (userId: number | string, payload: { username: string; fullName: string; email: string }) =>
+    request(`/admin/users/${userId}`, { method: 'PUT', body: payload }),
 
   // Projects
   listProjects: () => request('/admin/records/projects'),

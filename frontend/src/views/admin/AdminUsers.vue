@@ -7,6 +7,14 @@ const loading = ref(true)
 const users = ref<any[]>([])
 const roleFilter = ref('')
 const statusFilter = ref('')
+const showEditModal = ref(false)
+const editingUserId = ref<number | null>(null)
+const formUsername = ref('')
+const formFullName = ref('')
+const formEmail = ref('')
+const formStatus = ref('')
+const formStatusType = ref<'success' | 'error' | ''>('')
+const saving = ref(false)
 
 function statusColor(status: string): string {
   const s = String(status || '').toUpperCase()
@@ -23,6 +31,72 @@ async function loadUsers() {
     users.value = []
   } finally {
     loading.value = false
+  }
+}
+
+function setFormStatus(msg: string, type: 'success' | 'error' | '') {
+  formStatus.value = msg
+  formStatusType.value = type
+}
+
+function resetEditForm() {
+  editingUserId.value = null
+  formUsername.value = ''
+  formFullName.value = ''
+  formEmail.value = ''
+  setFormStatus('', '')
+}
+
+function openEditModal(user: any) {
+  editingUserId.value = user.userId
+  formUsername.value = user.username || ''
+  formFullName.value = user.fullName || ''
+  formEmail.value = user.email || ''
+  setFormStatus('Editing mode', '')
+  showEditModal.value = true
+}
+
+function closeEditModal() {
+  showEditModal.value = false
+  resetEditForm()
+}
+
+async function saveUser() {
+  if (!formUsername.value.trim()) {
+    setFormStatus('Username is required.', 'error')
+    return
+  }
+  if (!formFullName.value.trim()) {
+    setFormStatus('Full name is required.', 'error')
+    return
+  }
+  if (!formEmail.value.trim()) {
+    setFormStatus('Email is required.', 'error')
+    return
+  }
+  if (editingUserId.value === null) return
+
+  saving.value = true
+  setFormStatus('Saving...', '')
+  try {
+    const payload = {
+      username: formUsername.value.trim(),
+      fullName: formFullName.value.trim(),
+      email: formEmail.value.trim(),
+    }
+    await adminApi.updateUser(editingUserId.value, payload)
+    const currentUserId = Number(localStorage.getItem('userId') || '0')
+    if (currentUserId === editingUserId.value) {
+      localStorage.setItem('username', payload.username)
+      localStorage.setItem('fullName', payload.fullName)
+    }
+    toast.success('User updated')
+    closeEditModal()
+    await loadUsers()
+  } catch (e: any) {
+    setFormStatus(e.message || 'Failed to update user', 'error')
+  } finally {
+    saving.value = false
   }
 }
 
@@ -101,19 +175,59 @@ onMounted(loadUsers)
                 </span>
               </td>
               <td>
-                <button
-                  class="btn-sm"
-                  :class="String(u.accountStatus).toUpperCase() === 'ACTIVE' ? 'btn-disable' : 'btn-enable'"
-                  @click="toggleStatus(u.userId, u.accountStatus)"
-                >
-                  {{ String(u.accountStatus).toUpperCase() === 'ACTIVE' ? 'Disable' : 'Enable' }}
-                </button>
+                <div class="action-btns">
+                  <button class="btn-sm btn-edit" @click="openEditModal(u)">
+                    <i class="bi bi-pencil"></i>
+                    Edit
+                  </button>
+                  <button
+                    class="btn-sm"
+                    :class="String(u.accountStatus).toUpperCase() === 'ACTIVE' ? 'btn-disable' : 'btn-enable'"
+                    @click="toggleStatus(u.userId, u.accountStatus)"
+                  >
+                    {{ String(u.accountStatus).toUpperCase() === 'ACTIVE' ? 'Disable' : 'Enable' }}
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
       <div class="summary">{{ users.length }} user(s)</div>
+
+      <Teleport to="body">
+        <div v-if="showEditModal" class="modal-overlay" @click.self="closeEditModal">
+          <div class="modal-dialog">
+            <div class="modal-header">
+              <h2>Edit User</h2>
+              <button class="icon-button" type="button" @click="closeEditModal">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <form class="modal-form" @submit.prevent="saveUser">
+              <div class="form-field">
+                <label>Username <span class="required">*</span></label>
+                <input v-model="formUsername" type="text" class="form-control" placeholder="Login username">
+              </div>
+              <div class="form-field">
+                <label>Full Name <span class="required">*</span></label>
+                <input v-model="formFullName" type="text" class="form-control" placeholder="Display name">
+              </div>
+              <div class="form-field">
+                <label>Email <span class="required">*</span></label>
+                <input v-model="formEmail" type="email" class="form-control" placeholder="name@example.com">
+              </div>
+              <div class="form-status" :class="formStatusType">{{ formStatus }}</div>
+              <div class="modal-actions">
+                <button type="button" class="btn-secondary" @click="closeEditModal">Cancel</button>
+                <button type="submit" class="btn-primary" :disabled="saving">
+                  {{ saving ? 'Saving...' : 'Save Changes' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </Teleport>
     </div>
   </div>
 </template>
@@ -134,13 +248,39 @@ onMounted(loadUsers)
 .data-table td { padding: 16px; border-bottom: 1px solid rgba(156, 156, 178, 0.2); }
 .data-table tbody tr:hover { background: rgba(90, 43, 152, 0.03); }
 .status-chip { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
-.btn-sm { padding: 6px 14px; border-radius: 20px; border: 1.5px solid; font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s; background: transparent; }
+.action-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-sm { padding: 6px 14px; border-radius: 20px; border: 1.5px solid; font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s; background: transparent; white-space: nowrap; }
+.btn-edit { border-color: var(--deep); color: var(--deep); }
+.btn-edit:hover { background: var(--deep); color: #fff; }
 .btn-disable { border-color: var(--red); color: var(--red); }
 .btn-disable:hover { background: var(--red); color: #fff; }
 .btn-enable { border-color: var(--green); color: var(--green); }
 .btn-enable:hover { background: var(--green); color: #fff; }
 .summary { margin-top: 16px; font-size: 0.9rem; color: var(--muted); }
+.form-field { display: flex; flex-direction: column; gap: 6px; }
+.form-field label { font-weight: 600; color: var(--text); font-size: 0.9rem; }
+.required { color: var(--red); }
+.form-control { width: 100%; padding: 10px 14px; border: 1.5px solid rgba(90, 43, 152, 0.18); border-radius: 12px; font-size: 0.95rem; font-family: inherit; outline: none; background: #fff; }
+.form-control:focus { border-color: var(--deep); box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.1); }
+.form-status { font-size: 0.9rem; min-height: 22px; color: var(--muted); }
+.form-status.success { color: #167d68; }
+.form-status.error { color: #b02a37; }
+.btn-primary { background: var(--deep); border: none; color: white; padding: 10px 24px; border-radius: 40px; font-weight: 600; font-size: 0.95rem; cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn-primary:hover { background: var(--deep); }
+.btn-primary:disabled { background: #c4c4e0; cursor: not-allowed; }
+.btn-secondary { background: transparent; border: 1.5px solid var(--muted); color: var(--text); padding: 10px 20px; border-radius: 40px; font-weight: 500; cursor: pointer; font-family: inherit; }
+.btn-secondary:hover { border-color: var(--deep); color: var(--deep); }
+.modal-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(28, 27, 51, 0.45); z-index: 30; }
+.modal-dialog { width: min(520px, 100%); background: #fff; border-radius: 24px; box-shadow: 0 30px 80px rgba(28, 27, 51, 0.22); padding: 24px 28px 26px; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.modal-header h2 { margin: 0; color: var(--text); font-size: 1.35rem; font-weight: 600; }
+.modal-form { display: flex; flex-direction: column; gap: 16px; }
+.modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 2px; }
+.icon-button { width: 38px; height: 38px; border-radius: 50%; border: 1px solid rgba(90, 43, 152, 0.16); background: rgba(90, 43, 152, 0.06); color: var(--deep); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 1.1rem; }
 @media (max-width: 760px) {
   .filters-row { grid-template-columns: 1fr; }
+  .modal-actions { flex-direction: column-reverse; }
+  .modal-actions .btn-primary,
+  .modal-actions .btn-secondary { width: 100%; }
 }
 </style>
