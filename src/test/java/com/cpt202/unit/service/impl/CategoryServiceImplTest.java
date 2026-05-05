@@ -9,6 +9,7 @@ import com.cpt202.model.entity.Category;
 import com.cpt202.repository.CategoryRepository;
 import com.cpt202.service.RedisCacheService;
 import com.cpt202.service.impl.CategoryServiceImpl;
+import com.cpt202.validation.CatalogValidationService;
 import com.cpt202.vo.CategoryVO;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -40,6 +42,9 @@ class CategoryServiceImplTest {
 
     @Mock
     private RedisCacheService redisCacheService;
+
+    @Mock
+    private CatalogValidationService catalogValidationService;
 
     @InjectMocks
     private CategoryServiceImpl categoryService;
@@ -110,8 +115,6 @@ class CategoryServiceImplTest {
     void createShouldTrimNamePersistAndEvictCache() {
         CategoryDTO dto = categoryDTO("  AI  ", "Artificial Intelligence");
 
-        when(categoryRepository.existsByCategoryNameIgnoreCase("AI")).thenReturn(false);
-
         categoryService.create(dto);
 
         ArgumentCaptor<Category> categoryCaptor = ArgumentCaptor.forClass(Category.class);
@@ -132,7 +135,8 @@ class CategoryServiceImplTest {
         CategoryDTO dto = categoryDTO("  AI  ", "dup");
 
         when(categoryRepository.findById(3L)).thenReturn(Optional.of(existing));
-        when(categoryRepository.existsByCategoryNameIgnoreCaseAndCategoryIdNot("AI", 3L)).thenReturn(true);
+        doThrow(new RuleViolationException(MessageConstants.CATEGORY_NAME_EXISTS))
+                .when(catalogValidationService).checkCategoryNameUniqueExcludingId("AI", 3L);
 
         RuleViolationException exception = assertThrows(RuleViolationException.class,
                 () -> categoryService.update(3L, dto));
@@ -148,7 +152,6 @@ class CategoryServiceImplTest {
         CategoryDTO dto = categoryDTO("  Cloud  ", "Cloud native");
 
         when(categoryRepository.findById(6L)).thenReturn(Optional.of(existing));
-        when(categoryRepository.existsByCategoryNameIgnoreCaseAndCategoryIdNot("Cloud", 6L)).thenReturn(false);
 
         categoryService.update(6L, dto);
 

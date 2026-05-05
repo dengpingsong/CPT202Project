@@ -14,6 +14,7 @@ import com.cpt202.repository.TeacherProfileRepository;
 import com.cpt202.repository.UserRepository;
 import com.cpt202.service.TwoFactorAuthService;
 import com.cpt202.service.impl.ProfileServiceImpl;
+import com.cpt202.validation.ProfileValidationService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -32,6 +33,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -52,6 +55,9 @@ class ProfileServiceImplTest {
     @Mock
     private TwoFactorAuthService twoFactorAuthService;
 
+    @Mock
+    private ProfileValidationService profileValidationService;
+
     @InjectMocks
     private ProfileServiceImpl profileService;
 
@@ -62,11 +68,13 @@ class ProfileServiceImplTest {
         StudentProfile profile = studentProfile(1L, user);
 
         when(studentProfileRepository.findById(1L)).thenReturn(Optional.of(profile));
+        doThrow(new BusinessException(MessageConstants.NON_STUDENT_PROFILE_ACCESS))
+                .when(profileValidationService).checkUserIsStudent(any(User.class));
 
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> profileService.updateStudentProfile(1L, studentProfileUpdateDTO("student@example.com")));
 
-        assertThat(exception.getMessage()).isEqualTo(MessageConstants.NON_STUDENT_PROFILE_UPDATE);
+        assertThat(exception.getMessage()).isEqualTo(MessageConstants.NON_STUDENT_PROFILE_ACCESS);
         verify(studentProfileRepository, never()).save(any(StudentProfile.class));
     }
 
@@ -79,6 +87,8 @@ class ProfileServiceImplTest {
         dto.setEmail("not-an-email");
 
         when(userRepository.findById(2L)).thenReturn(Optional.of(admin));
+        doThrow(new BusinessException(MessageConstants.EMAIL_FORMAT_INVALID))
+                .when(profileValidationService).checkEmailAvailableForUser(eq("not-an-email"), eq(2L));
 
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> profileService.updateAdminProfile(2L, dto));
@@ -101,7 +111,8 @@ class ProfileServiceImplTest {
         dto.setOffice("A101");
 
         when(teacherProfileRepository.findById(3L)).thenReturn(Optional.of(profile));
-        when(userRepository.existsByEmailIgnoreCaseAndUserIdNot("dup@example.com", 3L)).thenReturn(true);
+        doThrow(new BusinessException(MessageConstants.EMAIL_EXISTS))
+                .when(profileValidationService).checkEmailAvailableForUser(eq("dup@example.com"), eq(3L));
 
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> profileService.updateTeacherProfile(3L, dto));
@@ -117,6 +128,8 @@ class ProfileServiceImplTest {
         ChangePasswordDTO dto = changePasswordDTO("WrongPass", "NewPass123");
 
         when(userRepository.findById(4L)).thenReturn(Optional.of(user));
+        doThrow(new BusinessException(MessageConstants.INCORRECT_OLD_PASSWORD))
+                .when(profileValidationService).checkOldPasswordMatches(any(User.class), eq("WrongPass"));
 
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> profileService.changePassword(4L, dto));
@@ -132,6 +145,8 @@ class ProfileServiceImplTest {
         ChangePasswordDTO dto = changePasswordDTO("SamePass123", "SamePass123");
 
         when(userRepository.findById(5L)).thenReturn(Optional.of(user));
+        doThrow(new BusinessException(MessageConstants.NEW_PASSWORD_SAME_AS_OLD))
+                .when(profileValidationService).checkNewPasswordDiffers(any(User.class), eq("SamePass123"));
 
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> profileService.changePassword(5L, dto));
@@ -164,7 +179,6 @@ class ProfileServiceImplTest {
         StudentProfileUpdateDTO dto = studentProfileUpdateDTO(" trimmed@example.com ");
 
         when(studentProfileRepository.findById(7L)).thenReturn(Optional.of(profile));
-        when(userRepository.existsByEmailIgnoreCaseAndUserIdNot("trimmed@example.com", 7L)).thenReturn(false);
 
         profileService.updateStudentProfile(7L, dto);
 
