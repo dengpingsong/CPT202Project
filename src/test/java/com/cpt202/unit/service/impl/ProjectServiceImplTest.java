@@ -18,6 +18,7 @@ import com.cpt202.repository.ProjectStatusHistoryRepository;
 import com.cpt202.repository.RequestStatusHistoryRepository;
 import com.cpt202.repository.TeacherProfileRepository;
 import com.cpt202.service.impl.ProjectServiceImpl;
+import com.cpt202.validation.ProjectValidationService;
 import com.cpt202.vo.ProjectVO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -61,6 +63,9 @@ class ProjectServiceImplTest {
 
     @Mock
     private RequestStatusHistoryRepository requestStatusHistoryRepository;
+
+    @Mock
+    private ProjectValidationService projectValidationService;
 
     @InjectMocks
     private ProjectServiceImpl projectService;
@@ -101,6 +106,8 @@ class ProjectServiceImplTest {
     void changeStatusShouldRejectManualRequestedTransition() {
         Project project = project(11L, teacherProfile(1L), Project.ProjectStatus.AVAILABLE);
         when(projectRepository.findById(11L)).thenReturn(Optional.of(project));
+        doThrow(new BusinessException(MessageConstants.PROJECT_STATUS_REQUESTED_NOT_ALLOWED_MANUALLY))
+                .when(projectValidationService).checkManualStatusChange(any(Project.class), eq(Project.ProjectStatus.REQUESTED));
 
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> projectService.changeStatus(11L, 1L, statusDTO(Project.ProjectStatus.REQUESTED, "not allowed")));
@@ -114,6 +121,8 @@ class ProjectServiceImplTest {
     void changeStatusShouldRejectArchivedTransition() {
         Project project = project(12L, teacherProfile(2L), Project.ProjectStatus.AVAILABLE);
         when(projectRepository.findById(12L)).thenReturn(Optional.of(project));
+        doThrow(new BusinessException(MessageConstants.PROJECT_STATUS_ARCHIVED_DISABLED))
+                .when(projectValidationService).checkManualStatusChange(any(Project.class), eq(Project.ProjectStatus.ARCHIVED));
 
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> projectService.changeStatus(12L, 2L, statusDTO(Project.ProjectStatus.ARCHIVED, "disabled")));
@@ -127,6 +136,8 @@ class ProjectServiceImplTest {
     void changeStatusShouldRejectReopenOfClosedProject() {
         Project project = project(13L, teacherProfile(3L), Project.ProjectStatus.CLOSED);
         when(projectRepository.findById(13L)).thenReturn(Optional.of(project));
+        doThrow(new BusinessException(MessageConstants.PROJECT_STATUS_TRANSITION_INVALID))
+                .when(projectValidationService).checkManualStatusChange(any(Project.class), eq(Project.ProjectStatus.AVAILABLE));
 
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> projectService.changeStatus(13L, 3L, statusDTO(Project.ProjectStatus.AVAILABLE, "reopen")));

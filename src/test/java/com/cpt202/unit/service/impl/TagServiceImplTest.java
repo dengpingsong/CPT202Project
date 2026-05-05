@@ -9,6 +9,7 @@ import com.cpt202.model.entity.Tag;
 import com.cpt202.repository.TagRepository;
 import com.cpt202.service.RedisCacheService;
 import com.cpt202.service.impl.TagServiceImpl;
+import com.cpt202.validation.CatalogValidationService;
 import com.cpt202.vo.TagVO;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -40,6 +42,9 @@ class TagServiceImplTest {
 
     @Mock
     private RedisCacheService redisCacheService;
+
+    @Mock
+    private CatalogValidationService catalogValidationService;
 
     @InjectMocks
     private TagServiceImpl tagService;
@@ -105,7 +110,8 @@ class TagServiceImplTest {
     void createShouldRejectDuplicateTagName() {
         TagDTO dto = tagDTO("  Java  ", "dup");
 
-        when(tagRepository.existsByTagNameIgnoreCase("Java")).thenReturn(true);
+        doThrow(new RuleViolationException(MessageConstants.TAG_NAME_EXISTS))
+                .when(catalogValidationService).checkTagNameUnique("Java");
 
         RuleViolationException exception = assertThrows(RuleViolationException.class,
                 () -> tagService.create(dto));
@@ -118,8 +124,6 @@ class TagServiceImplTest {
     @Test
     void createShouldTrimNamePersistAndEvictCache() {
         TagDTO dto = tagDTO("  Cloud  ", "Cloud description");
-
-        when(tagRepository.existsByTagNameIgnoreCase("Cloud")).thenReturn(false);
 
         tagService.create(dto);
 
@@ -141,7 +145,6 @@ class TagServiceImplTest {
         TagDTO dto = tagDTO("  Cloud  ", "Cloud native");
 
         when(tagRepository.findById(4L)).thenReturn(Optional.of(existing));
-        when(tagRepository.existsByTagNameIgnoreCaseAndTagIdNot("Cloud", 4L)).thenReturn(false);
 
         tagService.update(4L, dto);
 
