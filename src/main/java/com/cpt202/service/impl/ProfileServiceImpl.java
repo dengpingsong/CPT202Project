@@ -1,6 +1,7 @@
 package com.cpt202.service.impl;
 
 import com.cpt202.constant.MessageConstants;
+import com.cpt202.util.PasswordUtil;
 import com.cpt202.dto.AdminProfileUpdateDTO;
 import com.cpt202.dto.ChangePasswordDTO;
 import com.cpt202.dto.StudentProfileUpdateDTO;
@@ -27,11 +28,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
-import java.util.HexFormat;
 
 /**
  * 用户资料服务实现类。
@@ -46,6 +43,7 @@ public class ProfileServiceImpl implements ProfileService {
     private final UserRepository userRepository;
     private final TwoFactorAuthService twoFactorAuthService;
     private final ProfileValidationService profileValidationService;
+    private final PasswordUtil passwordUtil;
 
     /**
      * 查询学生资料。
@@ -184,7 +182,7 @@ public class ProfileServiceImpl implements ProfileService {
         profileValidationService.checkOldPasswordMatches(user, changePasswordDTO.getOldPassword());
         profileValidationService.checkNewPasswordDiffers(user, changePasswordDTO.getNewPassword());
 
-        String newHash = hashPassword(changePasswordDTO.getNewPassword());
+        String newHash = passwordUtil.hash(changePasswordDTO.getNewPassword());
         user.setPasswordHash(newHash);
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
@@ -213,7 +211,7 @@ public class ProfileServiceImpl implements ProfileService {
         if (currentPassword.isEmpty()) {
             throw new BusinessException(MessageConstants.TWO_FACTOR_DISABLE_PASSWORD_REQUIRED);
         }
-        String currentHash = hashPassword(currentPassword);
+        String currentHash = passwordUtil.hash(currentPassword);
         if (!currentHash.equals(user.getPasswordHash())) {
             throw new BusinessException(MessageConstants.INCORRECT_OLD_PASSWORD);
         }
@@ -226,14 +224,4 @@ public class ProfileServiceImpl implements ProfileService {
     }
 
     // --- Validation logic moved to ProfileValidationService ---
-
-    private String hashPassword(String password) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashBytes = digest.digest(password.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hashBytes);
-        } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("Unable to hash password", ex);
-        }
-    }
 }

@@ -10,6 +10,7 @@ import com.cpt202.repository.ProjectRepository;
 import com.cpt202.repository.ProjectRequestRepository;
 import com.cpt202.repository.RequestStatusHistoryRepository;
 import com.cpt202.service.impl.ProjectRequestValidationServiceImpl;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -49,6 +50,11 @@ class ProjectRequestValidationServiceImplTest {
 
     @InjectMocks
     private ProjectRequestValidationServiceImpl validationService;
+
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(validationService, "requestDeadline", LocalDateTime.of(2026, 5, 29, 23, 59));
+    }
 
     /** Rejects new requests for projects that are already closed. */
     @Test

@@ -1,6 +1,7 @@
 package com.cpt202.validation.impl;
 
 import com.cpt202.constant.MessageConstants;
+import com.cpt202.util.PasswordUtil;
 import com.cpt202.exception.BusinessException;
 import com.cpt202.model.entity.User;
 import com.cpt202.repository.UserRepository;
@@ -8,10 +9,6 @@ import com.cpt202.validation.ProfileValidationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 import java.util.regex.Pattern;
 
 /**
@@ -24,6 +21,7 @@ public class ProfileValidationServiceImpl implements ProfileValidationService {
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
 
     private final UserRepository userRepository;
+    private final PasswordUtil passwordUtil;
 
     @Override
     public void checkEmailAvailableForUser(String email, Long userId) {
@@ -59,25 +57,16 @@ public class ProfileValidationServiceImpl implements ProfileValidationService {
 
     @Override
     public void checkOldPasswordMatches(User user, String oldPassword) {
-        if (!hashPassword(oldPassword).equals(user.getPasswordHash())) {
+        if (!passwordUtil.hash(oldPassword).equals(user.getPasswordHash())) {
             throw new BusinessException(MessageConstants.INCORRECT_OLD_PASSWORD);
         }
     }
 
     @Override
     public void checkNewPasswordDiffers(User user, String newPassword) {
-        if (hashPassword(newPassword).equals(user.getPasswordHash())) {
+        if (passwordUtil.hash(newPassword).equals(user.getPasswordHash())) {
             throw new BusinessException(MessageConstants.NEW_PASSWORD_SAME_AS_OLD);
         }
     }
 
-    private String hashPassword(String password) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashBytes = digest.digest(password.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hashBytes);
-        } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("Unable to hash password", ex);
-        }
-    }
 }

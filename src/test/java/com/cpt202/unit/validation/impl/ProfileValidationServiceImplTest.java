@@ -4,12 +4,15 @@ import com.cpt202.constant.MessageConstants;
 import com.cpt202.exception.BusinessException;
 import com.cpt202.model.entity.User;
 import com.cpt202.repository.UserRepository;
+import com.cpt202.util.PasswordUtil;
 import com.cpt202.validation.impl.ProfileValidationServiceImpl;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -30,6 +33,11 @@ class ProfileValidationServiceImplTest {
 
     @InjectMocks
     private ProfileValidationServiceImpl profileValidationService;
+
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(profileValidationService, "passwordUtil", new PasswordUtil());
+    }
 
     private static String hash(String password) {
         try {
