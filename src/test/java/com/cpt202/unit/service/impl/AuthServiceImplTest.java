@@ -16,6 +16,7 @@ import com.cpt202.repository.TeacherProfileRepository;
 import com.cpt202.repository.UserRepository;
 import com.cpt202.service.*;
 import com.cpt202.service.impl.AuthServiceImpl;
+import com.cpt202.util.PasswordUtil;
 import com.cpt202.validation.AuthValidationService;
 import com.cpt202.vo.LoginVO;
 import org.junit.jupiter.api.BeforeEach;
@@ -86,6 +87,7 @@ class AuthServiceImplTest {
     /** Configures OTP timing properties used by the service under test. */
     @BeforeEach
     void setUp() {
+        ReflectionTestUtils.setField(authService, "passwordUtil", new PasswordUtil());
         ReflectionTestUtils.setField(authService, "emailLoginOtpExpirationMinutes", 5L);
         ReflectionTestUtils.setField(authService, "emailLoginOtpCooldownSeconds", 60L);
     }

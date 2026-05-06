@@ -14,7 +14,9 @@ import com.cpt202.repository.TeacherProfileRepository;
 import com.cpt202.repository.UserRepository;
 import com.cpt202.service.TwoFactorAuthService;
 import com.cpt202.service.impl.ProfileServiceImpl;
+import com.cpt202.util.PasswordUtil;
 import com.cpt202.validation.ProfileValidationService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -60,6 +62,11 @@ class ProfileServiceImplTest {
 
     @InjectMocks
     private ProfileServiceImpl profileService;
+
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(profileService, "passwordUtil", new PasswordUtil());
+    }
 
     /** Rejects student-profile updates when the profile is not owned by a student. */
     @Test

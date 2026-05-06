@@ -2,6 +2,7 @@ package com.cpt202.service.impl;
 
 import com.cpt202.constant.MessageConstants;
 import com.cpt202.constant.RedisKeyConstants;
+import com.cpt202.util.PasswordUtil;
 import com.cpt202.dto.EmailOtpLoginDTO;
 import com.cpt202.dto.EmailOtpRequestDTO;
 import com.cpt202.dto.LoginDTO;
@@ -35,13 +36,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.Duration;
-import java.util.HexFormat;
 import java.util.Base64;
 
 /**
@@ -66,6 +63,7 @@ public class AuthServiceImpl implements AuthService {
     private final RedisCacheService redisCacheService;
     private final TwoFactorAuthService twoFactorAuthService;
     private final AuthValidationService authValidationService;
+    private final PasswordUtil passwordUtil;
 
     @Value("${app.frontend-base-url}")
     private String frontendBaseUrl;
@@ -114,7 +112,7 @@ public class AuthServiceImpl implements AuthService {
         User user = new User();
         BeanUtils.copyProperties(registerUserDTO, user, "password", "email", "otp");
         user.setEmail(normalizedEmail);
-        user.setPasswordHash(hashPassword(registerUserDTO.getPassword()));
+        user.setPasswordHash(passwordUtil.hash(registerUserDTO.getPassword()));
         user.setRole(role);
         user.setAccountStatus(DEFAULT_ACCOUNT_STATUS);
         user.setCreatedAt(now);
@@ -155,7 +153,7 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByUsername(loginDTO.getUsername())
                 .orElseThrow(() -> new BusinessException(MessageConstants.INVALID_CREDENTIALS));
 
-        if (!user.getPasswordHash().equals(hashPassword(loginDTO.getPassword()))) {
+        if (!user.getPasswordHash().equals(passwordUtil.hash(loginDTO.getPassword()))) {
             throw new BusinessException(MessageConstants.INVALID_CREDENTIALS);
         }
 
@@ -319,7 +317,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         User user = passwordResetToken.getUser();
-        user.setPasswordHash(hashPassword(confirmDTO.getNewPassword()));
+        user.setPasswordHash(passwordUtil.hash(confirmDTO.getNewPassword()));
         user.setUpdatedAt(LocalDateTime.now());
         passwordResetToken.setUsedAt(LocalDateTime.now());
         userRepository.save(user);
@@ -374,13 +372,4 @@ public class AuthServiceImpl implements AuthService {
         return String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
     }
 
-    private String hashPassword(String password) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashBytes = digest.digest(password.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hashBytes);
-        } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("Unable to hash password", ex);
-        }
-    }
 }
