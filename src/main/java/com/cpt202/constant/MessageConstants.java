@@ -97,6 +97,13 @@ public final class MessageConstants {
     public static final String STUDENT_RECORD_NOT_FOUND = "Student record not found.";
     public static final String PROJECT_RECORD_NOT_FOUND = "Project record not found.";
 
+    public static final String REQUEST_NOT_PENDING_CANNOT_REVIEW = "该申请当前不是待审核状态，不能重复审批。";
+    public static final String AUTO_REJECT_ALREADY_MATCHED = "System auto-rejected: Already matched elsewhere.";
+    public static final String AUTO_REJECT_ALREADY_MATCHED_REMARK = "系统自动驳回：该学生已在其他项目中被录取。";
+    public static final String REQUEST_SUBMIT_REMARK = "学生提交申请。";
+    public static final String REQUEST_WITHDRAW_REMARK = "学生撤回申请。";
+    public static final String AUTO_CANCEL_PROJECT_CLOSED_REMARK = "系统自动取消：教师关闭了该项目。";
+
     private MessageConstants() {
     }
 }
