@@ -184,6 +184,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         String otp = generateEmailOtp();
+        log.info("[DEV] Login OTP for {} = {}", normalizedEmail, otp);
         String otpKey = RedisKeyConstants.EMAIL_LOGIN_OTP_PREFIX + normalizedEmail.toLowerCase();
         try {
             redisCacheService.set(otpKey, otp, Duration.ofMinutes(emailLoginOtpExpirationMinutes));
