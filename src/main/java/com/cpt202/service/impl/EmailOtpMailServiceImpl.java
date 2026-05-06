@@ -5,6 +5,7 @@ import com.cpt202.exception.BusinessException;
 import com.cpt202.model.entity.User;
 import com.cpt202.service.EmailOtpMailService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
@@ -16,6 +17,7 @@ import org.springframework.util.StringUtils;
  * Sends email OTPs for passwordless login.
  */
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class EmailOtpMailServiceImpl implements EmailOtpMailService {
 
@@ -41,7 +43,8 @@ public class EmailOtpMailServiceImpl implements EmailOtpMailService {
         try {
             mailSender.send(message);
         } catch (MailException ex) {
-            throw new BusinessException(MessageConstants.EMAIL_OTP_MAIL_SEND_FAILED);
+            log.error("Failed to send login OTP mail to {}", user.getEmail(), ex);
+            throw new BusinessException(MessageConstants.EMAIL_OTP_MAIL_SEND_FAILED, ex);
         }
     }
 
@@ -59,7 +62,8 @@ public class EmailOtpMailServiceImpl implements EmailOtpMailService {
         try {
             mailSender.send(message);
         } catch (MailException ex) {
-            throw new BusinessException(MessageConstants.EMAIL_OTP_MAIL_SEND_FAILED);
+            log.error("Failed to send register OTP mail to {}", email, ex);
+            throw new BusinessException(MessageConstants.EMAIL_OTP_MAIL_SEND_FAILED, ex);
         }
     }
 
