@@ -11,11 +11,11 @@ import lombok.Data;
 public class ChangePasswordDTO {
 
     /** The user's current password, used for identity verification. */
-    @NotBlank(message = "旧密码不能为空。")
+    @NotBlank(message = "Old password is required.")
     private String oldPassword;
 
     /** The new password to replace the current one. */
-    @NotBlank(message = "新密码不能为空。")
-    @Size(min = 6, message = "新密码长度不能少于 6 位。")
+    @NotBlank(message = "New password is required.")
+    @Size(min = 6, message = "New password must be at least 6 characters.")
     private String newPassword;
 }

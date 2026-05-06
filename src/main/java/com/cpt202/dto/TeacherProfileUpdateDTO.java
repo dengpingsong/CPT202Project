@@ -18,7 +18,7 @@ public class TeacherProfileUpdateDTO {
 
     /** 教师邮箱。 */
     @NotBlank
-    @Email(message = "邮箱格式不正确。")
+    @Email(message = "Invalid email format.")
     private String email;
 
     /** 所属院系。 */

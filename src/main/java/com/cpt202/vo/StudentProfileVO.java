@@ -1,5 +1,6 @@
 package com.cpt202.vo;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -32,6 +33,7 @@ public class StudentProfileVO {
     /** 专业。 */
     private String programme;
     /** 入学日期。 */
+    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
     private LocalDate enrollmentDate;
     /** 学年（由入学日期动态计算）。 */
     private Integer academicYear;
@@ -42,5 +44,6 @@ public class StudentProfileVO {
     /** 是否已开启双重验证。 */
     private Boolean twoFactorEnabled;
     /** 更新时间。 */
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime updatedAt;
 }

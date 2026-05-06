@@ -25,6 +25,7 @@ import com.cpt202.service.JwtTokenService;
 import com.cpt202.service.PasswordResetMailService;
 import com.cpt202.service.RedisCacheService;
 import com.cpt202.service.TwoFactorAuthService;
+import com.cpt202.validation.AuthValidationService;
 import com.cpt202.vo.LoginVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,12 +39,10 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Duration;
 import java.util.HexFormat;
 import java.util.Base64;
-import java.util.regex.Pattern;
 
 /**
  * 认证服务实现类。
@@ -56,10 +55,7 @@ import java.util.regex.Pattern;
 public class AuthServiceImpl implements AuthService {
 
     private static final String DEFAULT_ACCOUNT_STATUS = "ACTIVE";
-    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
-    private static final String STUDENT_EMAIL_DOMAIN = "student.xjtlu.edu.cn";
-    private static final String TEACHER_EMAIL_DOMAIN = "xjtlu.edu.cn";
     private final UserRepository userRepository;
     private final StudentProfileRepository studentProfileRepository;
     private final TeacherProfileRepository teacherProfileRepository;
@@ -69,6 +65,7 @@ public class AuthServiceImpl implements AuthService {
     private final EmailOtpMailService emailOtpMailService;
     private final RedisCacheService redisCacheService;
     private final TwoFactorAuthService twoFactorAuthService;
+    private final AuthValidationService authValidationService;
 
     @Value("${app.frontend-base-url}")
     private String frontendBaseUrl;
@@ -92,11 +89,11 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public LoginVO register(RegisterUserDTO registerUserDTO) {
         String normalizedEmail = registerUserDTO.getEmail().trim().toLowerCase();
-        validateEmail(normalizedEmail);
+        authValidationService.checkEmailFormat(normalizedEmail);
 
-        User.UserRole role = inferRoleFromEmail(normalizedEmail);
+        User.UserRole role = authValidationService.inferRoleFromEmail(normalizedEmail);
 
-        validateRegisterPayload(registerUserDTO, role);
+        authValidationService.checkRegisterPayload(registerUserDTO, role);
 
         // otp verification
         String submittedOtp = registerUserDTO.getOtp() == null ? "" : registerUserDTO.getOtp().trim();
@@ -110,12 +107,8 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(MessageConstants.EMAIL_OTP_INVALID);
         }
 
-        if (userRepository.existsByUsername(registerUserDTO.getUsername())) {
-            throw new RuleViolationException(MessageConstants.USERNAME_EXISTS);
-        }
-        if (userRepository.existsByEmail(normalizedEmail)) {
-            throw new RuleViolationException(MessageConstants.EMAIL_EXISTS);
-        }
+        authValidationService.checkUsernameUnique(registerUserDTO.getUsername());
+        authValidationService.checkEmailUnique(normalizedEmail);
 
         LocalDateTime now = LocalDateTime.now();
         User user = new User();
@@ -166,9 +159,7 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(MessageConstants.INVALID_CREDENTIALS);
         }
 
-        if (!DEFAULT_ACCOUNT_STATUS.equalsIgnoreCase(user.getAccountStatus())) {
-            throw new BusinessException(MessageConstants.ACCOUNT_UNAVAILABLE_CONTACT_ADMIN);
-        }
+        authValidationService.checkAccountActive(user);
 
         if (Boolean.TRUE.equals(user.getTwoFactorEnabled()) && StringUtils.hasText(user.getTwoFactorSecret())) {
             return buildTwoFactorRequiredLoginVO(user);
@@ -180,7 +171,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void sendEmailLoginOtp(EmailOtpRequestDTO requestDTO) {
         String normalizedEmail = requestDTO.getEmail().trim();
-        validateEmail(normalizedEmail);
+        authValidationService.checkEmailFormat(normalizedEmail);
 
         String cooldownKey = RedisKeyConstants.EMAIL_LOGIN_OTP_COOLDOWN_PREFIX + normalizedEmail.toLowerCase();
         if (redisCacheService.get(cooldownKey, String.class).isPresent()) {
@@ -208,8 +199,8 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void sendEmailRegisterOtp(EmailOtpRequestDTO requestDTO){
         String normalizedEmail = requestDTO.getEmail().trim().toLowerCase();
-        validateEmail(normalizedEmail);
-        validateRegistrableEmailDomain(normalizedEmail);
+        authValidationService.checkEmailFormat(normalizedEmail);
+        authValidationService.checkRegistrableEmailDomain(normalizedEmail);
 
         if (userRepository.existsByEmail(normalizedEmail)) {
             throw new RuleViolationException(MessageConstants.EMAIL_EXISTS);
@@ -240,7 +231,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public LoginVO loginWithEmailOtp(EmailOtpLoginDTO loginDTO) {
         String normalizedEmail = loginDTO.getEmail().trim();
-        validateEmail(normalizedEmail);
+        authValidationService.checkEmailFormat(normalizedEmail);
 
         String submittedOtp = loginDTO.getOtp().trim();
         if (!StringUtils.hasText(submittedOtp)) {
@@ -250,9 +241,7 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmailIgnoreCase(normalizedEmail)
                 .orElseThrow(() -> new BusinessException(MessageConstants.INVALID_CREDENTIALS));
 
-        if (!DEFAULT_ACCOUNT_STATUS.equalsIgnoreCase(user.getAccountStatus())) {
-            throw new BusinessException(MessageConstants.ACCOUNT_UNAVAILABLE_CONTACT_ADMIN);
-        }
+        authValidationService.checkAccountActive(user);
 
         String otpKey = RedisKeyConstants.EMAIL_LOGIN_OTP_PREFIX + normalizedEmail.toLowerCase();
         String storedOtp = redisCacheService.get(otpKey, String.class)
@@ -274,9 +263,7 @@ public class AuthServiceImpl implements AuthService {
             throw new RuleViolationException(MessageConstants.TWO_FACTOR_CODE_REQUIRED);
         }
         User user = twoFactorAuthService.verifyLoginChallenge(challengeToken, code);
-        if (!DEFAULT_ACCOUNT_STATUS.equalsIgnoreCase(user.getAccountStatus())) {
-            throw new BusinessException(MessageConstants.ACCOUNT_UNAVAILABLE_CONTACT_ADMIN);
-        }
+        authValidationService.checkAccountActive(user);
         return buildLoginVO(user);
     }
 
@@ -286,7 +273,7 @@ public class AuthServiceImpl implements AuthService {
         passwordResetTokenRepository.deleteByExpiresAtBefore(LocalDateTime.now());
 
         String normalizedEmail = requestDTO.getEmail().trim();
-        validateEmail(normalizedEmail);
+        authValidationService.checkEmailFormat(normalizedEmail);
 
         User user = userRepository.findByEmailIgnoreCase(normalizedEmail).orElse(null);
         if (user == null || !DEFAULT_ACCOUNT_STATUS.equalsIgnoreCase(user.getAccountStatus())) {
@@ -308,61 +295,7 @@ public class AuthServiceImpl implements AuthService {
         passwordResetMailService.sendPasswordResetMail(user, buildResetLink(rawToken));
     }
 
-    private void validateEmail(String email) {
-        if (!EMAIL_PATTERN.matcher(email).matches()) {
-            throw new RuleViolationException(MessageConstants.EMAIL_FORMAT_INVALID);
-        }
-    }
-
-    private String extractEmailDomain(String email) {
-        int atIndex = email.indexOf('@');
-        return atIndex < 0 ? "" : email.substring(atIndex + 1).toLowerCase();
-    }
-
-    private void validateRegistrableEmailDomain(String email) {
-        String domain = extractEmailDomain(email);
-        if (!STUDENT_EMAIL_DOMAIN.equals(domain) && !TEACHER_EMAIL_DOMAIN.equals(domain)) {
-            throw new RuleViolationException(MessageConstants.EMAIL_DOMAIN_NOT_ALLOWED);
-        }
-    }
-
-    private User.UserRole inferRoleFromEmail(String email) {
-        String domain = extractEmailDomain(email);
-        if (STUDENT_EMAIL_DOMAIN.equals(domain)) {
-            return User.UserRole.STUDENT;
-        }
-        if (TEACHER_EMAIL_DOMAIN.equals(domain)) {
-            return User.UserRole.TEACHER;
-        }
-        throw new RuleViolationException(MessageConstants.EMAIL_DOMAIN_NOT_ALLOWED);
-    }
-
-    private void validateRegisterPayload(RegisterUserDTO dto, User.UserRole role) {
-        if (role == User.UserRole.STUDENT) {
-            if (!StringUtils.hasText(dto.getStudentNo())) {
-                throw new RuleViolationException(MessageConstants.STUDENT_NO_REQUIRED);
-            }
-            if (!StringUtils.hasText(dto.getProgramme())) {
-                throw new RuleViolationException(MessageConstants.STUDENT_PROGRAMME_REQUIRED);
-            }
-            if (dto.getEnrollmentDate() == null) {
-                throw new RuleViolationException(MessageConstants.STUDENT_ENROLLMENT_DATE_REQUIRED);
-            }
-            if (dto.getEnrollmentDate().isAfter(LocalDate.now())) {
-                throw new RuleViolationException(MessageConstants.ENROLLMENT_DATE_CANNOT_BE_FUTURE);
-            }
-        } else if (role == User.UserRole.TEACHER) {
-            if (!StringUtils.hasText(dto.getStaffNo())) {
-                throw new RuleViolationException(MessageConstants.TEACHER_STAFF_NO_REQUIRED);
-            }
-            if (!StringUtils.hasText(dto.getDepartment())) {
-                throw new RuleViolationException(MessageConstants.TEACHER_DEPARTMENT_REQUIRED);
-            }
-            if (!StringUtils.hasText(dto.getTitle())) {
-                throw new RuleViolationException(MessageConstants.TEACHER_TITLE_REQUIRED);
-            }
-        }
-    }
+    // --- Validation logic moved to AuthValidationService ---
 
     @Override
     @Transactional
@@ -390,8 +323,6 @@ public class AuthServiceImpl implements AuthService {
         passwordResetTokenRepository.save(passwordResetToken);
         invalidateOtherActiveTokens(user, passwordResetToken.getResetId(), LocalDateTime.now());
     }
-
-
 
     private LoginVO buildLoginVO(User user) {
         LoginVO loginVO = new LoginVO();

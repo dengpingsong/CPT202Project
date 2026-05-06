@@ -53,3 +53,7 @@ Thumbs.db
 
 # Local environment files
 .env
+
+# Generated frontend static assets
+src/main/resources/static/**
+!src/main/resources/static/.gitkeep

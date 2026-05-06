@@ -10,10 +10,10 @@ import lombok.Data;
 @Data
 public class PasswordResetConfirmDTO {
 
-    @NotBlank(message = "重置令牌不能为空。")
+    @NotBlank(message = "Reset token is required.")
     private String token;
 
     @NotBlank
-    @Size(min = 6, message = "新密码长度不能少于 6 位。")
+    @Size(min = 6, message = "New password must be at least 6 characters.")
     private String newPassword;
 }
