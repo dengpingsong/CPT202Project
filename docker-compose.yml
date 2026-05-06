@@ -63,7 +63,7 @@ services:
       app:
         condition: service_started
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/doc.html && wget --no-check-certificate -q -O /dev/null https://127.0.0.1/doc.html || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/index.html && wget --no-check-certificate -q -O /dev/null https://127.0.0.1/index.html || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 5

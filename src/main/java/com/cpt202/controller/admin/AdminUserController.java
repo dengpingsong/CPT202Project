@@ -1,11 +1,13 @@
 package com.cpt202.controller.admin;
 
 import com.cpt202.dto.AdminUserQueryDTO;
+import com.cpt202.dto.AdminUserUpdateDTO;
 import com.cpt202.result.Result;
 import com.cpt202.service.UserAdminService;
 import com.cpt202.vo.UserVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -49,6 +51,21 @@ public class AdminUserController {
     public Result<Void> updateStatus(@PathVariable Long userId,
                                      @RequestParam String accountStatus) {
         userAdminService.updateStatus(userId, accountStatus);
+        return Result.success();
+    }
+
+    /**
+     * 修改指定用户的基础信息。
+     *
+     * @param userId 用户主键
+     * @param updateDTO 用户基础信息
+     * @return 统一成功响应
+     */
+    @PutMapping("/{userId}")
+    @Operation(summary = "Update user basic information")
+    public Result<Void> updateUser(@PathVariable Long userId,
+                                   @Valid @RequestBody AdminUserUpdateDTO updateDTO) {
+        userAdminService.updateUser(userId, updateDTO);
         return Result.success();
     }
 }

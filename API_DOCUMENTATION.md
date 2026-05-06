@@ -1,10 +1,10 @@
 # CPT202 项目接口文档
 
-版本：`0.1.0`
+版本：`0.2.0`
 
 说明：
 - 版本号采用 GNU 版本规则：`主版本号.次版本号.修订号`
-- `0.1.0` 表示接口骨架已基本成型，但业务实现仍处于早期阶段
+- `0.2.0` 补充了邮箱验证码登录、两步验证（2FA）、忘记密码、管理员个人资料等接口
 
 ## 1. 基本约定
 
@@ -116,6 +116,143 @@
 - 请求方式：`POST`
 - 请求路径：`/api/common/auth/logout`
 - 接口说明：退出登录
+
+成功响应：
+
+```json
+{
+  "code": 1,
+  "msg": null,
+  "data": null
+}
+```
+
+### 2.4 发送邮箱验证码
+
+- 请求方式：`POST`
+- 请求路径：`/api/common/auth/email-otp/send`
+- 接口说明：向指定邮箱发送一次性验证码，用于邮箱验证码登录
+
+请求体：
+
+```json
+{
+  "email": "alice@example.com"
+}
+```
+
+成功响应：
+
+```json
+{
+  "code": 1,
+  "msg": null,
+  "data": null
+}
+```
+
+### 2.5 邮箱验证码登录
+
+- 请求方式：`POST`
+- 请求路径：`/api/common/auth/email-otp/login`
+- 接口说明：使用邮箱 + 验证码登录，作为用户名密码登录的替代方式
+
+请求体：
+
+```json
+{
+  "email": "alice@example.com",
+  "otp": "123456"
+}
+```
+
+成功响应：
+
+```json
+{
+  "code": 1,
+  "msg": null,
+  "data": {
+    "userId": 1,
+    "username": "alice",
+    "fullName": "Alice",
+    "role": "STUDENT",
+    "accountStatus": "ACTIVE",
+    "token": "eyJhbGciOiJIUzI1NiJ9..."
+  }
+}
+```
+
+### 2.6 两步验证登录确认
+
+- 请求方式：`POST`
+- 请求路径：`/api/common/auth/2fa/verify-login`
+- 接口说明：用户开启两步验证后，登录时需额外提交 TOTP 验证码
+
+请求体：
+
+```json
+{
+  "challengeToken": "temp-challenge-token",
+  "code": "123456"
+}
+```
+
+成功响应：
+
+```json
+{
+  "code": 1,
+  "msg": null,
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiJ9...",
+    "userId": 1,
+    "username": "alice",
+    "fullName": "Alice",
+    "role": "STUDENT",
+    "accountStatus": "ACTIVE"
+  }
+}
+```
+
+### 2.7 忘记密码
+
+- 请求方式：`POST`
+- 请求路径：`/api/common/auth/forgot-password`
+- 接口说明：向用户邮箱发送密码重置链接
+
+请求体：
+
+```json
+{
+  "email": "alice@example.com"
+}
+```
+
+成功响应：
+
+```json
+{
+  "code": 1,
+  "msg": null,
+  "data": null
+}
+```
+
+### 2.8 重置密码
+
+- 请求方式：`POST`
+- 请求路径：`/api/common/auth/reset-password`
+- 接口说明：使用邮箱中的重置令牌设置新密码
+
+请求体：
+
+```json
+{
+  "token": "reset-token-from-email",
+  "newPassword": "newpass123"
+}
+```
 
 成功响应：
 
@@ -393,6 +530,50 @@
 - 请求路径：`/api/student/projects/{projectId}`
 - 接口说明：查询项目详情
 
+### 7.3 查询项目标签列表
+
+- 请求方式：`GET`
+- 请求路径：`/api/student/projects/tags`
+- 接口说明：查询所有可用标签，供学生端项目筛选使用
+
+成功响应：
+
+```json
+{
+  "code": 1,
+  "msg": null,
+  "data": [
+    {
+      "tagId": 1,
+      "tagName": "Machine Learning",
+      "description": "ML related"
+    }
+  ]
+}
+```
+
+### 7.4 查询项目分类列表
+
+- 请求方式：`GET`
+- 请求路径：`/api/student/projects/categories`
+- 接口说明：查询所有可用分类，供学生端项目筛选使用
+
+成功响应：
+
+```json
+{
+  "code": 1,
+  "msg": null,
+  "data": [
+    {
+      "categoryId": 1,
+      "categoryName": "AI",
+      "description": "Artificial Intelligence"
+    }
+  ]
+}
+```
+
 ## 8. 学生端申请接口
 
 接口前缀：`/api/student/requests`
@@ -578,6 +759,56 @@
 }
 ```
 
+### 9.4 初始化两步验证
+
+- 请求方式：`POST`
+- 请求路径：`/api/student/profile/me/2fa/setup`
+- 接口说明：生成 TOTP 密钥和二维码，供用户使用 Authenticator 应用扫描绑定
+- 请求头：`Authorization: Bearer <token>`
+
+成功响应：
+
+```json
+{
+  "code": 1,
+  "msg": null,
+  "data": {
+    "secret": "JBSWY3DPEHPK3PXP",
+    "qrCodeUri": "otpauth://totp/CPT202:alice?secret=JBSWY3DPEHPK3PXP&issuer=CPT202"
+  }
+}
+```
+
+### 9.5 启用两步验证
+
+- 请求方式：`POST`
+- 请求路径：`/api/student/profile/me/2fa/enable`
+- 接口说明：提交 TOTP 验证码确认绑定，成功后启用两步验证
+- 请求头：`Authorization: Bearer <token>`
+
+请求体：
+
+```json
+{
+  "code": "123456"
+}
+```
+
+### 9.6 禁用两步验证
+
+- 请求方式：`POST`
+- 请求路径：`/api/student/profile/me/2fa/disable`
+- 接口说明：验证当前密码后关闭两步验证
+- 请求头：`Authorization: Bearer <token>`
+
+请求体：
+
+```json
+{
+  "currentPassword": "123456"
+}
+```
+
 ## 10. 学生端申请历史接口
 
 接口前缀：`/api/student/request-history`
@@ -678,6 +909,50 @@
   "code": 1,
   "msg": null,
   "data": null
+}
+```
+
+### 11.6 查询分类列表
+
+- 请求方式：`GET`
+- 请求路径：`/api/teacher/categories`
+- 接口说明：查询所有分类，供教师创建/编辑项目时选择
+
+成功响应：
+
+```json
+{
+  "code": 1,
+  "msg": null,
+  "data": [
+    {
+      "categoryId": 1,
+      "categoryName": "AI",
+      "description": "Artificial Intelligence"
+    }
+  ]
+}
+```
+
+### 11.7 查询标签列表
+
+- 请求方式：`GET`
+- 请求路径：`/api/teacher/tags`
+- 接口说明：查询所有标签，供教师为项目绑定标签时选择
+
+成功响应：
+
+```json
+{
+  "code": 1,
+  "msg": null,
+  "data": [
+    {
+      "tagId": 1,
+      "tagName": "Machine Learning",
+      "description": "ML related"
+    }
+  ]
 }
 ```
 
@@ -882,6 +1157,153 @@
 }
 ```
 
+### 14.4 初始化两步验证
+
+- 请求方式：`POST`
+- 请求路径：`/api/teacher/profile/me/2fa/setup`
+- 接口说明：生成 TOTP 密钥和二维码
+- 请求头：`Authorization: Bearer <token>`
+
+成功响应：
+
+```json
+{
+  "code": 1,
+  "msg": null,
+  "data": {
+    "secret": "JBSWY3DPEHPK3PXP",
+    "qrCodeUri": "otpauth://totp/CPT202:smith?secret=JBSWY3DPEHPK3PXP&issuer=CPT202"
+  }
+}
+```
+
+### 14.5 启用两步验证
+
+- 请求方式：`POST`
+- 请求路径：`/api/teacher/profile/me/2fa/enable`
+- 接口说明：提交 TOTP 验证码确认绑定
+- 请求头：`Authorization: Bearer <token>`
+
+请求体：
+
+```json
+{
+  "code": "123456"
+}
+```
+
+### 14.6 禁用两步验证
+
+- 请求方式：`POST`
+- 请求路径：`/api/teacher/profile/me/2fa/disable`
+- 接口说明：验证当前密码后关闭两步验证
+- 请求头：`Authorization: Bearer <token>`
+
+请求体：
+
+```json
+{
+  "currentPassword": "123456"
+}
+```
+
+## 15. 管理端个人资料接口
+
+接口前缀：`/api/admin/profile`
+
+### 15.1 查询管理员资料
+
+- 请求方式：`GET`
+- 请求路径：`/api/admin/profile/me`
+- 接口说明：查询当前登录管理员的个人资料
+- 请求头：`Authorization: Bearer <token>`
+
+成功响应：
+
+```json
+{
+  "code": 1,
+  "msg": null,
+  "data": {
+    "userId": 1,
+    "username": "admin",
+    "email": "admin@example.com",
+    "fullName": "Admin",
+    "role": "ADMIN",
+    "accountStatus": "ACTIVE"
+  }
+}
+```
+
+### 15.2 修改管理员资料
+
+- 请求方式：`PUT`
+- 请求路径：`/api/admin/profile/me`
+- 接口说明：修改当前登录管理员的个人资料
+- 请求头：`Authorization: Bearer <token>`
+
+请求体：
+
+```json
+{
+  "fullName": "Admin",
+  "email": "admin@example.com"
+}
+```
+
+### 15.3 修改管理员密码
+
+- 请求方式：`PUT`
+- 请求路径：`/api/admin/profile/me/password`
+- 接口说明：修改当前登录管理员的账号密码
+- 请求头：`Authorization: Bearer <token>`
+
+请求体：
+
+```json
+{
+  "oldPassword": "123456",
+  "newPassword": "newpass123"
+}
+```
+
+### 15.4 初始化两步验证
+
+- 请求方式：`POST`
+- 请求路径：`/api/admin/profile/me/2fa/setup`
+- 接口说明：生成 TOTP 密钥和二维码
+- 请求头：`Authorization: Bearer <token>`
+
+### 15.5 启用两步验证
+
+- 请求方式：`POST`
+- 请求路径：`/api/admin/profile/me/2fa/enable`
+- 接口说明：提交 TOTP 验证码确认绑定
+- 请求头：`Authorization: Bearer <token>`
+
+请求体：
+
+```json
+{
+  "code": "123456"
+}
+```
+
+### 15.6 禁用两步验证
+
+- 请求方式：`POST`
+- 请求路径：`/api/admin/profile/me/2fa/disable`
+- 接口说明：验证当前密码后关闭两步验证
+- 请求头：`Authorization: Bearer <token>`
+
+请求体：
+
+```json
+{
+  "currentPassword": "123456"
+}
+```
+
 ---
 
-当前文档为接口骨架文档，具体错误码、鉴权规则、字段长度限制等可在业务落地后继续补充
+当前文档覆盖项目全部前后端交互接口，具体错误码、鉴权规则、字段长度限制等可在业务落地后继续补充

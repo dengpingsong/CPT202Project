@@ -6,6 +6,7 @@ import com.cpt202.model.entity.User;
 import com.cpt202.service.PasswordResetMailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -37,7 +38,11 @@ public class PasswordResetMailServiceImpl implements PasswordResetMailService {
         message.setTo(user.getEmail());
         message.setSubject("CPT202 Password Reset");
         message.setText(buildMailContent(user, resetLink));
-        mailSender.send(message);
+        try {
+            mailSender.send(message);
+        } catch (MailException ex) {
+            throw new BusinessException(MessageConstants.PASSWORD_RESET_MAIL_SEND_FAILED);
+        }
     }
 
     private String buildMailContent(User user, String resetLink) {
