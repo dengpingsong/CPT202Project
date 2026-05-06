@@ -104,6 +104,11 @@ const router = createRouter({
           component: () => import('../views/teacher/TeacherDashboard.vue'),
         },
         {
+          path: 'analytics',
+          name: 'TeacherAnalytics',
+          component: () => import('../views/teacher/TeacherAnalytics.vue'),
+        },
+        {
           path: 'request/:id',
           name: 'TeacherRequestDetail',
           component: () => import('../views/teacher/TeacherRequestDetail.vue'),
@@ -136,6 +141,11 @@ const router = createRouter({
           path: 'projects',
           name: 'AdminProjects',
           component: () => import('../views/admin/AdminProjects.vue'),
+        },
+        {
+          path: 'analytics',
+          name: 'AdminAnalytics',
+          component: () => import('../views/admin/AdminAnalytics.vue'),
         },
         {
           path: 'users',
