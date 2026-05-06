@@ -191,6 +191,7 @@ public class AuthServiceImpl implements AuthService {
             redisCacheService.set(cooldownKey, "1", Duration.ofSeconds(emailLoginOtpCooldownSeconds));
             emailOtpMailService.sendLoginOtpMail(user, otp);
         } catch (RuntimeException ex) {
+            log.error("Failed to send login OTP for email={}", normalizedEmail, ex);
             redisCacheService.delete(otpKey);
             redisCacheService.delete(cooldownKey);
             throw ex;
@@ -221,6 +222,7 @@ public class AuthServiceImpl implements AuthService {
             redisCacheService.set(cooldownKey, "1", Duration.ofSeconds(emailLoginOtpCooldownSeconds));
             emailOtpMailService.sendRegisterOtpMail(normalizedEmail, otp);
         } catch (RuntimeException ex) {
+            log.error("Failed to send register OTP for email={}", normalizedEmail, ex);
             redisCacheService.delete(otpKey);
             redisCacheService.delete(cooldownKey);
             throw ex;
