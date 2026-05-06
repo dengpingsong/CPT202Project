@@ -16,9 +16,13 @@ public final class MessageConstants {
     public static final String EMAIL_EXISTS = "邮箱已被注册，请更换后重试。";
     public static final String EMAIL_FORMAT_INVALID = "邮箱格式不正确。";
     public static final String EMAIL_DOMAIN_NOT_ALLOWED = "邮箱域名不被支持，请使用 @student.xjtlu.edu.cn（学生）或 @xjtlu.edu.cn（教师）邮箱注册。";
+    public static final String DATA_INTEGRITY_VIOLATION = "数据与现有记录冲突，请检查后重试。";
+    public static final String INVALID_REQUEST_BODY = "请求体格式不正确，请检查日期等字段格式。";
+    public static final String INTERNAL_SERVER_ERROR = "服务器发生未预期错误，请稍后再试。";
     public static final String INVALID_CREDENTIALS = "用户名或密码错误。";
     public static final String EMAIL_OTP_SENT = "如果该邮箱已绑定可用账号，验证码已发送，请注意查收。";
     public static final String EMAIL_OTP_MAIL_NOT_CONFIGURED = "系统尚未配置发信邮箱，暂时无法通过邮箱验证码登录。";
+    public static final String EMAIL_OTP_MAIL_SEND_FAILED = "验证码邮件发送失败，请检查邮件服务配置。";
     public static final String EMAIL_OTP_REQUIRED = "验证码不能为空。";
     public static final String EMAIL_OTP_INVALID = "验证码错误，请重新输入。";
     public static final String EMAIL_OTP_EXPIRED = "验证码已过期，请重新获取。";
@@ -36,6 +40,7 @@ public final class MessageConstants {
     public static final String PASSWORD_RESET_LINK_ALREADY_USED = "重置链接已失效，请重新申请。";
     public static final String PASSWORD_RESET_TOKEN_REQUIRED = "缺少重置令牌。";
     public static final String PASSWORD_RESET_MAIL_NOT_CONFIGURED = "系统尚未配置发信邮箱，暂时无法通过邮件找回密码。";
+    public static final String PASSWORD_RESET_MAIL_SEND_FAILED = "密码重置邮件发送失败，请检查邮件服务配置。";
     public static final String ACCOUNT_UNAVAILABLE_CONTACT_ADMIN = "账户当前不可用，请联系管理员。";
     public static final String STUDENT_NO_REQUIRED = "学生学号不能为空。";
     public static final String STUDENT_PROGRAMME_REQUIRED = "学生专业不能为空。";

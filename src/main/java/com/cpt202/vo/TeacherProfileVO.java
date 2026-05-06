@@ -1,5 +1,6 @@
 package com.cpt202.vo;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -39,5 +40,6 @@ public class TeacherProfileVO {
     /** 是否已开启双重验证。 */
     private Boolean twoFactorEnabled;
     /** 更新时间。 */
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime updatedAt;
 }

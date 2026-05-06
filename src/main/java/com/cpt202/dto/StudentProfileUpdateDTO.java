@@ -21,14 +21,14 @@ public class StudentProfileUpdateDTO {
 
     /** 学生邮箱。 */
     @NotBlank
-    @Email(message = "邮箱格式不正确。")
+    @Email(message = "Invalid email format.")
     private String email;
 
     /** 专业。 */
     private String programme;
     /** 入学日期。 */
     @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
-    @PastOrPresent(message = "入学日期不能晚于今天。")
+    @PastOrPresent(message = "Enrollment date cannot be in the future.")
     private LocalDate enrollmentDate;
     /** 联系电话。 */
     private String phone;

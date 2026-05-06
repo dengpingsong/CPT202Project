@@ -17,6 +17,7 @@ import com.cpt202.repository.TeacherProfileRepository;
 import com.cpt202.repository.UserRepository;
 import com.cpt202.service.ProfileService;
 import com.cpt202.service.TwoFactorAuthService;
+import com.cpt202.validation.ProfileValidationService;
 import com.cpt202.vo.AdminProfileVO;
 import com.cpt202.vo.StudentProfileVO;
 import com.cpt202.vo.TeacherProfileVO;
@@ -31,7 +32,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
-import java.util.regex.Pattern;
 
 /**
  * 用户资料服务实现类。
@@ -41,11 +41,11 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class ProfileServiceImpl implements ProfileService {
 
-    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
     private final StudentProfileRepository studentProfileRepository;
     private final TeacherProfileRepository teacherProfileRepository;
     private final UserRepository userRepository;
     private final TwoFactorAuthService twoFactorAuthService;
+    private final ProfileValidationService profileValidationService;
 
     /**
      * 查询学生资料。
@@ -58,9 +58,7 @@ public class ProfileServiceImpl implements ProfileService {
         StudentProfile profile = studentProfileRepository.findById(studentId)
                 .orElseThrow(() -> new NotFoundException(MessageConstants.STUDENT_PROFILE_NOT_FOUND));
 
-        if (profile.getUser() == null || profile.getUser().getRole() != User.UserRole.STUDENT) {
-            throw new BusinessException(MessageConstants.NON_STUDENT_PROFILE_ACCESS);
-        }
+        profileValidationService.checkUserIsStudent(profile.getUser());
 
         StudentProfileVO profileVO = new StudentProfileVO();
         BeanUtils.copyProperties(profile, profileVO);
@@ -85,14 +83,13 @@ public class ProfileServiceImpl implements ProfileService {
         StudentProfile profile = studentProfileRepository.findById(studentId)
                 .orElseThrow(() -> new NotFoundException(MessageConstants.STUDENT_PROFILE_NOT_FOUND));
 
-        if (profile.getUser() == null || profile.getUser().getRole() != User.UserRole.STUDENT) {
-            throw new BusinessException(MessageConstants.NON_STUDENT_PROFILE_UPDATE);
-        }
+        profileValidationService.checkUserIsStudent(profile.getUser());
 
-        validateEmailForUser(profile.getUser(), studentProfileUpdateDTO.getEmail());
+        profileValidationService.checkEmailAvailableForUser(studentProfileUpdateDTO.getEmail(), profile.getUser().getUserId());
         BeanUtils.copyProperties(studentProfileUpdateDTO, profile, "fullName", "email");
         profile.getUser().setFullName(studentProfileUpdateDTO.getFullName());
         profile.getUser().setEmail(studentProfileUpdateDTO.getEmail().trim());
+        profile.getUser().setUpdatedAt(LocalDateTime.now());
         profile.setUpdatedAt(LocalDateTime.now());
 
         studentProfileRepository.save(profile);
@@ -109,9 +106,7 @@ public class ProfileServiceImpl implements ProfileService {
         TeacherProfile profile = teacherProfileRepository.findById(teacherId)
                 .orElseThrow(() -> new NotFoundException(MessageConstants.TEACHER_PROFILE_NOT_FOUND));
 
-        if (profile.getUser() == null || profile.getUser().getRole() != User.UserRole.TEACHER) {
-            throw new BusinessException(MessageConstants.NON_TEACHER_PROFILE_ACCESS);
-        }
+        profileValidationService.checkUserIsTeacher(profile.getUser());
 
         TeacherProfileVO profileVO = new TeacherProfileVO();
         BeanUtils.copyProperties(profile, profileVO);
@@ -134,14 +129,13 @@ public class ProfileServiceImpl implements ProfileService {
         TeacherProfile profile = teacherProfileRepository.findById(teacherId)
                 .orElseThrow(() -> new NotFoundException(MessageConstants.TEACHER_PROFILE_NOT_FOUND));
 
-        if (profile.getUser() == null || profile.getUser().getRole() != User.UserRole.TEACHER) {
-            throw new BusinessException(MessageConstants.NON_TEACHER_PROFILE_UPDATE);
-        }
+        profileValidationService.checkUserIsTeacher(profile.getUser());
 
-        validateEmailForUser(profile.getUser(), teacherProfileUpdateDTO.getEmail());
+        profileValidationService.checkEmailAvailableForUser(teacherProfileUpdateDTO.getEmail(), profile.getUser().getUserId());
         BeanUtils.copyProperties(teacherProfileUpdateDTO, profile, "fullName", "email");
         profile.getUser().setFullName(teacherProfileUpdateDTO.getFullName());
         profile.getUser().setEmail(teacherProfileUpdateDTO.getEmail().trim());
+        profile.getUser().setUpdatedAt(LocalDateTime.now());
         profile.setUpdatedAt(LocalDateTime.now());
 
         teacherProfileRepository.save(profile);
@@ -152,9 +146,7 @@ public class ProfileServiceImpl implements ProfileService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(MessageConstants.USER_NOT_FOUND));
 
-        if (user.getRole() != User.UserRole.ADMIN) {
-            throw new BusinessException(MessageConstants.NON_ADMIN_PROFILE_ACCESS);
-        }
+        profileValidationService.checkUserIsAdmin(user);
 
         AdminProfileVO profileVO = new AdminProfileVO();
         BeanUtils.copyProperties(user, profileVO);
@@ -168,11 +160,9 @@ public class ProfileServiceImpl implements ProfileService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException(MessageConstants.USER_NOT_FOUND));
 
-        if (user.getRole() != User.UserRole.ADMIN) {
-            throw new BusinessException(MessageConstants.NON_ADMIN_PROFILE_UPDATE);
-        }
+        profileValidationService.checkUserIsAdmin(user);
 
-        validateEmailForUser(user, adminProfileUpdateDTO.getEmail());
+        profileValidationService.checkEmailAvailableForUser(adminProfileUpdateDTO.getEmail(), user.getUserId());
         user.setFullName(adminProfileUpdateDTO.getFullName());
         user.setEmail(adminProfileUpdateDTO.getEmail().trim());
         user.setUpdatedAt(LocalDateTime.now());
@@ -191,16 +181,10 @@ public class ProfileServiceImpl implements ProfileService {
     public void changePassword(Long userId, ChangePasswordDTO changePasswordDTO) {
         User user = getUserRequired(userId);
 
-        String oldHash = hashPassword(changePasswordDTO.getOldPassword());
-        if (!oldHash.equals(user.getPasswordHash())) {
-            throw new BusinessException(MessageConstants.INCORRECT_OLD_PASSWORD);
-        }
+        profileValidationService.checkOldPasswordMatches(user, changePasswordDTO.getOldPassword());
+        profileValidationService.checkNewPasswordDiffers(user, changePasswordDTO.getNewPassword());
 
         String newHash = hashPassword(changePasswordDTO.getNewPassword());
-        if (newHash.equals(user.getPasswordHash())) {
-            throw new BusinessException(MessageConstants.NEW_PASSWORD_SAME_AS_OLD);
-        }
-
         user.setPasswordHash(newHash);
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
@@ -241,6 +225,8 @@ public class ProfileServiceImpl implements ProfileService {
                 .orElseThrow(() -> new NotFoundException(MessageConstants.USER_NOT_FOUND));
     }
 
+    // --- Validation logic moved to ProfileValidationService ---
+
     private String hashPassword(String password) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -248,16 +234,6 @@ public class ProfileServiceImpl implements ProfileService {
             return HexFormat.of().formatHex(hashBytes);
         } catch (NoSuchAlgorithmException ex) {
             throw new IllegalStateException("Unable to hash password", ex);
-        }
-    }
-
-    private void validateEmailForUser(User user, String email) {
-        String trimmedEmail = email == null ? "" : email.trim();
-        if (!EMAIL_PATTERN.matcher(trimmedEmail).matches()) {
-            throw new BusinessException(MessageConstants.EMAIL_FORMAT_INVALID);
-        }
-        if (userRepository.existsByEmailIgnoreCaseAndUserIdNot(trimmedEmail, user.getUserId())) {
-            throw new BusinessException(MessageConstants.EMAIL_EXISTS);
         }
     }
 }
