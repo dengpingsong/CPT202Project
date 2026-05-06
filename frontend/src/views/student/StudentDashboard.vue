@@ -3,6 +3,13 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { studentApi, getCurrentUser } from '../../utils/api'
 import { toast, confirm } from '../../utils/ui-feedback'
+import VChart from 'vue-echarts'
+import { use } from 'echarts/core'
+import { PieChart, BarChart } from 'echarts/charts'
+import { TitleComponent, TooltipComponent, LegendComponent, GridComponent } from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
+
+use([PieChart, BarChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent, CanvasRenderer])
 
 const router = useRouter()
 
@@ -80,6 +87,81 @@ const recentRequests = computed(() => {
     .slice(0, 3)
 })
 
+// --- Chart data ---
+
+const statusChartOption = computed(() => ({
+  tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+  legend: { bottom: 0, textStyle: { color: '#666' } },
+  series: [{
+    type: 'pie',
+    radius: ['40%', '70%'],
+    avoidLabelOverlap: false,
+    itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
+    label: { show: false },
+    emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
+    data: [
+      { value: pending.value, name: 'Pending', itemStyle: { color: '#f6a63d' } },
+      { value: accepted.value, name: 'Accepted', itemStyle: { color: '#2fc5a8' } },
+      { value: rejected.value, name: 'Rejected', itemStyle: { color: '#c54545' } },
+      { value: withdrawn.value, name: 'Withdrawn', itemStyle: { color: '#9c9cb2' } },
+    ].filter(d => d.value > 0),
+  }],
+}))
+
+const categoryChartOption = computed(() => {
+  const counts: Record<string, number> = {}
+  projects.value.forEach(p => {
+    const cat = p.categoryName || 'Uncategorized'
+    counts[cat] = (counts[cat] || 0) + 1
+  })
+  const names = Object.keys(counts)
+  const values = Object.values(counts)
+  return {
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    xAxis: { type: 'category', data: names, axisLabel: { rotate: names.length > 4 ? 30 : 0, color: '#666' } },
+    yAxis: { type: 'value', minInterval: 1, axisLabel: { color: '#666' } },
+    series: [{
+      type: 'bar',
+      data: values,
+      barMaxWidth: 40,
+      itemStyle: {
+        color: '#24b3ff',
+        borderRadius: [6, 6, 0, 0],
+      },
+    }],
+  }
+})
+
+const tagChartOption = computed(() => {
+  const statusCounts: Record<string, number> = {}
+  projects.value.forEach(p => {
+    const s = normalizeStatus(p.projectStatus)
+    statusCounts[s] = (statusCounts[s] || 0) + 1
+  })
+  const statusColorMap: Record<string, string> = {
+    AVAILABLE: '#2fc5a8',
+    REQUESTED: '#f6a63d',
+    AGREED: '#24b3ff',
+    CLOSED: '#9c9cb2',
+    ARCHIVED: '#9c9cb2',
+  }
+  const names = Object.keys(statusCounts)
+  const values = names.map(n => statusCounts[n])
+  return {
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    xAxis: { type: 'category', data: names, axisLabel: { color: '#666' } },
+    yAxis: { type: 'value', minInterval: 1, axisLabel: { color: '#666' } },
+    series: [{
+      type: 'bar',
+      data: values.map((v, i) => ({ value: v, itemStyle: { color: statusColorMap[names[i]] || '#7c5cfc' } })),
+      barMaxWidth: 40,
+      itemStyle: { borderRadius: [6, 6, 0, 0] },
+    }],
+  }
+})
+
 function normalizeStatus(status: string | null | undefined): string {
   return String(status || 'UNKNOWN').toUpperCase()
 }
@@ -130,7 +212,7 @@ async function loadData() {
   try {
     const [reqData, projData] = await Promise.all([
       studentApi.getRequests(),
-      studentApi.getProjects(1, 12),
+      studentApi.getProjects(1, 50),
     ])
     requests.value = Array.isArray(reqData.data) ? reqData.data : []
     projects.value = Array.isArray(projData.data?.records)
@@ -191,6 +273,28 @@ onMounted(loadData)
       <div class="panel">
         <h3>Total Applications</h3>
         <strong>{{ requests.length }}</strong>
+      </div>
+    </section>
+
+    <!-- Charts -->
+    <section class="charts">
+      <h2>Data Overview</h2>
+      <div class="chart-grid">
+        <div class="chart-panel">
+          <h3>Application Status</h3>
+          <div v-if="loading" class="chart-placeholder">Loading...</div>
+          <VChart v-else class="chart" :option="statusChartOption" autoresize />
+        </div>
+        <div class="chart-panel">
+          <h3>Projects by Category</h3>
+          <div v-if="loading" class="chart-placeholder">Loading...</div>
+          <VChart v-else class="chart" :option="categoryChartOption" autoresize />
+        </div>
+        <div class="chart-panel">
+          <h3>Project Status</h3>
+          <div v-if="loading" class="chart-placeholder">Loading...</div>
+          <VChart v-else class="chart" :option="tagChartOption" autoresize />
+        </div>
       </div>
     </section>
 
@@ -302,7 +406,8 @@ onMounted(loadData)
 .hero,
 .panel,
 .card,
-.timeline {
+.timeline,
+.chart-panel {
   background: var(--panel, #fff);
   border-radius: 28px;
   padding: 24px 28px;
@@ -592,6 +697,42 @@ h3 {
 .withdraw-btn:hover {
   background: #f56c6c;
   color: white;
+}
+
+.charts h2 { margin: 0 0 16px; }
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.chart-panel {
+  border: 1px solid rgba(90, 43, 152, 0.16);
+  box-shadow: 0 12px 30px rgba(90, 43, 152, 0.05);
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-panel h3 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+  color: var(--muted);
+}
+
+.chart {
+  flex: 1;
+  min-height: 260px;
+}
+
+.chart-placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 0.95rem;
 }
 
 @media (max-width: 960px) {

@@ -3,6 +3,7 @@ import AppSidebar from '../components/AppSidebar.vue'
 
 const navItems = [
   { to: '/admin/projects', icon: 'bi bi-kanban', label: 'Projects' },
+  { to: '/admin/analytics', icon: 'bi bi-bar-chart-line', label: 'Analytics' },
   { to: '/admin/users', icon: 'bi bi-people', label: 'Users' },
   {
     to: '/admin/requests',
