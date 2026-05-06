@@ -75,7 +75,7 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
 
         request = requestRepository.save(request);
         syncProjectStatusAfterRequestChange(project.getProjectId());
-        saveHistory(request, null, ProjectRequest.RequestStatus.PENDING, student, "学生提交申请。");
+        saveHistory(request, null, ProjectRequest.RequestStatus.PENDING, student, MessageConstants.REQUEST_SUBMIT_REMARK);
     }
 
     /**
@@ -99,7 +99,7 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
 
         ProjectRequest.RequestStatus oldStatus = request.getRequestStatus();
         if (oldStatus != ProjectRequest.RequestStatus.PENDING) {
-            throw new RuleViolationException("该申请当前不是待审核状态，不能重复审批。");
+            throw new RuleViolationException(MessageConstants.REQUEST_NOT_PENDING_CANNOT_REVIEW);
         }
         if (dto.getRequestStatus() == ProjectRequest.RequestStatus.ACCEPTED) {
             long currentAccepted = requestRepository.countByProject_ProjectIdAndRequestStatus(
@@ -154,7 +154,7 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
 
         requestRepository.save(request);
         syncProjectStatusAfterRequestChange(request.getProject().getProjectId());
-        saveHistory(request, oldStatus, ProjectRequest.RequestStatus.WITHDRAWN, request.getStudent(), "学生撤回申请。");
+        saveHistory(request, oldStatus, ProjectRequest.RequestStatus.WITHDRAWN, request.getStudent(), MessageConstants.REQUEST_WITHDRAW_REMARK);
     }
 
     private List<ProjectRequestVO> toProjectRequestVOList(List<ProjectRequest> requests) {

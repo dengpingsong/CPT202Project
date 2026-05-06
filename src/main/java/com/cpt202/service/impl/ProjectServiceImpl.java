@@ -188,7 +188,7 @@ public class ProjectServiceImpl implements ProjectService {
             history.setOldStatus(oldStatus == null ? null : oldStatus.name());
             history.setNewStatus(ProjectRequest.RequestStatus.REJECTED.name());
             history.setChangedBy(null);
-            history.setRemark("系统自动取消：教师关闭了该项目。");
+            history.setRemark(MessageConstants.AUTO_CANCEL_PROJECT_CLOSED_REMARK);
             history.setChangedAt(changedAt);
             requestStatusHistoryRepository.save(history);
         }

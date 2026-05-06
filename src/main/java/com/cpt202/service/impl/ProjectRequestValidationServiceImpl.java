@@ -12,6 +12,7 @@ import com.cpt202.repository.RequestStatusHistoryRepository;
 import com.cpt202.service.ProjectRequestValidationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,10 +32,13 @@ public class ProjectRequestValidationServiceImpl implements ProjectRequestValida
     private final ProjectRepository projectRepository;
     private final RequestStatusHistoryRepository requestStatusHistoryRepository;
 
+    @Value("${app.request-deadline:2026-05-29T23:59:00}")
+    private LocalDateTime requestDeadline;
+
     @Override
     public void validateRequest(Long studentId, Project project) {
         // 1. 截止日期校验
-        LocalDateTime deadline = LocalDateTime.of(2026, 5, 29, 23, 59);
+        LocalDateTime deadline = requestDeadline;
         if (LocalDateTime.now().isAfter(deadline)) {
             throw new RuleViolationException(MessageConstants.REQUEST_DEADLINE_PASSED);
         }
@@ -83,7 +87,7 @@ public class ProjectRequestValidationServiceImpl implements ProjectRequestValida
             RequestStatus oldStatus = request.getRequestStatus();
             LocalDateTime now = LocalDateTime.now();
             request.setRequestStatus(RequestStatus.REJECTED);
-            request.setDecisionComment("System auto-rejected: Already matched elsewhere.");
+            request.setDecisionComment(MessageConstants.AUTO_REJECT_ALREADY_MATCHED);
             request.setUpdatedAt(now);
 
             RequestStatusHistory history = new RequestStatusHistory();
@@ -91,7 +95,7 @@ public class ProjectRequestValidationServiceImpl implements ProjectRequestValida
             history.setOldStatus(oldStatus == null ? null : oldStatus.name());
             history.setNewStatus(RequestStatus.REJECTED.name());
             history.setChangedBy(null);
-            history.setRemark("系统自动驳回：该学生已在其他项目中被录取。");
+            history.setRemark(MessageConstants.AUTO_REJECT_ALREADY_MATCHED_REMARK);
             history.setChangedAt(now);
             requestStatusHistoryRepository.save(history);
         }
