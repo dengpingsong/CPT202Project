@@ -57,3 +57,6 @@ Thumbs.db
 # Generated frontend static assets
 src/main/resources/static/**
 !src/main/resources/static/.gitkeep
+
+# GitHub Wiki (separate repo, not part of the main project)
+wiki/
