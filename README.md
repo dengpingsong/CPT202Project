@@ -78,6 +78,7 @@ CPT202Program/
 | `GET/POST/PUT/DELETE /api/admin/categories` | 分类管理 |
 | `GET/POST/PUT/DELETE /api/admin/tags` | 标签管理 |
 | `GET /api/admin/users` | 用户列表（角色/状态过滤） |
+| `PUT /api/admin/users/{id}` | 修改用户基础信息 |
 | `PUT /api/admin/users/{id}/status` | 修改账号状态 |
 
 ### 选题业务规则（Module8）

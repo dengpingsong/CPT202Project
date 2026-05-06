@@ -16,6 +16,7 @@ import com.cpt202.repository.TeacherProfileRepository;
 import com.cpt202.repository.UserRepository;
 import com.cpt202.service.*;
 import com.cpt202.service.impl.AuthServiceImpl;
+import com.cpt202.validation.AuthValidationService;
 import com.cpt202.vo.LoginVO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -75,6 +77,9 @@ class AuthServiceImplTest {
     @Mock
     private TwoFactorAuthService twoFactorAuthService;
 
+    @Mock
+    private AuthValidationService authValidationService;
+
     @InjectMocks
     private AuthServiceImpl authService;
 
@@ -91,18 +96,27 @@ class AuthServiceImplTest {
         RegisterUserDTO dto = validStudentRegisterDTO();
         dto.setEnrollmentDate(LocalDate.now().plusDays(1));// Set enrollment date to tomorrow
 
+        when(authValidationService.inferRoleFromEmail(dto.getEmail().trim())).thenReturn(User.UserRole.STUDENT);
+        doThrow(new RuleViolationException(MessageConstants.ENROLLMENT_DATE_CANNOT_BE_FUTURE))
+                .when(authValidationService).checkRegisterPayload(any(RegisterUserDTO.class), eq(User.UserRole.STUDENT));
+
         RuleViolationException exception = assertThrows(RuleViolationException.class,
                 () -> authService.register(dto));
 
-        assertThat(exception.getMessage()).isEqualTo(MessageConstants.ENROLLMENT_DATE_CANNOT_BE_FUTURE); // Verify specific message for future enrollment date
+        assertThat(exception.getMessage()).isEqualTo(MessageConstants.ENROLLMENT_DATE_CANNOT_BE_FUTURE);
     }
 
     /** Rejects registration when the requested username already exists. */
     @Test
     void registerShouldRejectDuplicateUsername() {
         RegisterUserDTO dto = validStudentRegisterDTO();
+        dto.setOtp("123456");
+        String otpKey = RedisKeyConstants.EMAIL_REGISTER_OTP_PREFIX + dto.getEmail().trim().toLowerCase();
+        when(redisCacheService.get(otpKey, String.class)).thenReturn(Optional.of("123456"));
 
-        when(userRepository.existsByUsername(dto.getUsername())).thenReturn(true);
+        when(authValidationService.inferRoleFromEmail(dto.getEmail().trim())).thenReturn(User.UserRole.STUDENT);
+        doThrow(new RuleViolationException(MessageConstants.USERNAME_EXISTS))
+                .when(authValidationService).checkUsernameUnique(dto.getUsername());
 
         RuleViolationException exception = assertThrows(RuleViolationException.class,
                 () -> authService.register(dto));
@@ -115,9 +129,11 @@ class AuthServiceImplTest {
     @Test
     void registerStudentShouldCreateProfileAndReturnLoginVo() {
         RegisterUserDTO dto = validStudentRegisterDTO();
+        dto.setOtp("123456");
+        String otpKey = RedisKeyConstants.EMAIL_REGISTER_OTP_PREFIX + dto.getEmail().trim().toLowerCase();
+        when(redisCacheService.get(otpKey, String.class)).thenReturn(Optional.of("123456"));
 
-        when(userRepository.existsByUsername(dto.getUsername())).thenReturn(false);
-        when(userRepository.existsByEmail(dto.getEmail().trim())).thenReturn(false);
+        when(authValidationService.inferRoleFromEmail(dto.getEmail().trim())).thenReturn(User.UserRole.STUDENT);
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User user = invocation.getArgument(0);
             user.setUserId(100L);

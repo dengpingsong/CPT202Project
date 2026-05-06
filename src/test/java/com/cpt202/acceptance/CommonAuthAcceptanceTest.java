@@ -1,8 +1,8 @@
 package com.cpt202.acceptance;
 
 import com.cpt202.model.entity.User;
-import com.cpt202.service.EmailLoginOtpMailService;
 import com.cpt202.integration.IntegrationTestSupport;
+import com.cpt202.service.EmailOtpMailService;
 import com.cpt202.util.TotpUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,37 +33,51 @@ class CommonAuthAcceptanceTest extends IntegrationTestSupport {
     private static final String FIXED_SECRET = "JBSWY3DPEHPK3PXP";
 
     @MockBean
-    private EmailLoginOtpMailService emailLoginOtpMailService;
+    private EmailOtpMailService emailOtpMailService;
 
     private String emailedOtp;
+    private String emailedRegisterOtp;
 
     /** Captures the OTP value emitted by the mocked mail sender. */
     @BeforeEach
     void setUpMailCapture() {
         emailedOtp = null;
+        emailedRegisterOtp = null;
         doAnswer(invocation -> {
             emailedOtp = invocation.getArgument(1, String.class);
             return null;
-        }).when(emailLoginOtpMailService).sendLoginOtpMail(any(User.class), anyString());
+        }).when(emailOtpMailService).sendLoginOtpMail(any(User.class), anyString());
+        doAnswer(invocation -> {
+            emailedRegisterOtp = invocation.getArgument(1, String.class);
+            return null;
+        }).when(emailOtpMailService).sendRegisterOtpMail(anyString(), anyString());
     }
 
     /** Visitor registers as a student and receives an authenticated response. */
     @Test
     void visitorCanRegisterAsStudent() throws Exception {
         String suffix = uniqueSuffix();
+        String email = "acceptance-student-" + suffix + "@student.xjtlu.edu.cn";
+
+        mockMvc.perform(post("/api/common/auth/register/email-otp/send")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("email", email))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1));
+
+        assertThat(emailedRegisterOtp).matches("\\d{6}");
 
         MvcResult registerResult = mockMvc.perform(post("/api/common/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.ofEntries(
                                 Map.entry("username", "acceptance-student-" + suffix),
                                 Map.entry("password", DEFAULT_PASSWORD),
-                                Map.entry("email", "acceptance-student-" + suffix + "@example.com"),
+                                Map.entry("email", email),
+                                Map.entry("otp", emailedRegisterOtp),
                                 Map.entry("fullName", "Acceptance Student " + suffix),
-                                Map.entry("role", "STUDENT"),
                                 Map.entry("studentNo", "AS" + suffix),
                                 Map.entry("programme", "Software Engineering"),
                                 Map.entry("enrollmentDate", "2024-09-01"),
-                                Map.entry("academicYear", 3),
                                 Map.entry("phone", "18800001111"),
                                 Map.entry("interests", "Acceptance Testing")))))
                 .andExpect(status().isOk())
