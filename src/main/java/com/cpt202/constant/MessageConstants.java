@@ -52,6 +52,7 @@ public final class MessageConstants {
     public static final String PROJECT_STATUS_REQUESTED_NOT_ALLOWED_MANUALLY = "教师不能手动将项目状态改为 REQUESTED。";
     public static final String PROJECT_STATUS_ARCHIVED_DISABLED = "当前系统仅保留 CLOSED 状态，请不要再设置 ARCHIVED。";
     public static final String PROJECT_STATUS_TRANSITION_INVALID = "当前项目状态不允许这样修改。";
+    public static final String PROJECT_CLOSE_DATE_INVALID = "项目申请截止时间必须晚于当前时间。";
     public static final String PROJECT_CAPACITY_EXCEEDED = "项目人数已满，无法继续同意申请。";
     public static final String PROJECT_REQUEST_ALREADY_EXISTS = "你已经申请过该项目，不能重复申请。";
     public static final String PROJECT_PREFERENCE_RANK_DUPLICATED = "志愿顺位不能重复，请选择其他顺位。";

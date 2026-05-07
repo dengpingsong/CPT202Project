@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { teacherApi } from '../../utils/api'
 import { toast } from '../../utils/ui-feedback'
+import { toDateTimeLocalValue, toIsoLocalDateTime } from '../../utils/date'
 
 const router = useRouter()
 
@@ -26,6 +27,7 @@ const editCategoryId = ref('')
 const editTopicArea = ref('')
 const editDescription = ref('')
 const editRequiredSkills = ref('')
+const editCloseDate = ref('')
 const editProjectStatus = ref('AVAILABLE')
 const editStatusRemark = ref('')
 const editSelectedTagIds = ref<Set<number>>(new Set())
@@ -116,6 +118,7 @@ async function openProjectEditor(projectId: number) {
     editTopicArea.value = project.topicArea || ''
     editDescription.value = project.description || ''
     editRequiredSkills.value = project.requiredSkills || ''
+    editCloseDate.value = toDateTimeLocalValue(project.closeDate)
     editCategoryId.value = String(project.categoryId || '')
 
     const normalized = normalizeStatus(project.projectStatus)
@@ -137,6 +140,7 @@ async function openProjectEditor(projectId: number) {
 function closeEditPanel() {
   showEditPanel.value = false
   editProjectId.value = ''
+  editCloseDate.value = ''
   setEditStatus('', '')
 }
 
@@ -152,6 +156,7 @@ function validateEditForm(): string {
   if (!editTitle.value.trim()) return 'Title is required.'
   if (!editDescription.value.trim()) return 'Description is required.'
   if (editMaxStudents.value < 1) return 'Max students must be at least 1.'
+  if (!editCloseDate.value) return 'Application deadline is required.'
   return ''
 }
 
@@ -174,6 +179,7 @@ async function executeSave() {
       requiredSkills: editRequiredSkills.value.trim(),
       topicArea: editTopicArea.value.trim(),
       maxStudents: editMaxStudents.value,
+      closeDate: toIsoLocalDateTime(editCloseDate.value),
     })
 
     // 2. Update status if changed
@@ -380,6 +386,14 @@ onMounted(async () => {
                     class="form-control"
                   />
                 </div>
+              </div>
+              <div class="form-group">
+                <label>Application Deadline</label>
+                <input
+                  v-model="editCloseDate"
+                  type="datetime-local"
+                  class="form-control"
+                />
               </div>
               <div class="form-group">
                 <label>Description</label>

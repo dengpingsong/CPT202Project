@@ -8,11 +8,16 @@ import com.cpt202.validation.impl.ProjectValidationServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Answers.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -72,6 +77,28 @@ class ProjectValidationServiceImplTest {
     void checkManualStatusChangeShouldAllowCloseOfClosedProject() {
         assertDoesNotThrow(() -> projectValidationService.checkManualStatusChange(
                 project(Project.ProjectStatus.CLOSED, null), Project.ProjectStatus.CLOSED));
+    }
+
+    @Test
+    void checkProjectCloseDateShouldPassForFutureDate() {
+        LocalDateTime fixedNow = LocalDateTime.of(2026, 5, 1, 12, 0);
+
+        try (MockedStatic<LocalDateTime> mockedTime = mockStatic(LocalDateTime.class, CALLS_REAL_METHODS)) {
+            mockedTime.when(LocalDateTime::now).thenReturn(fixedNow);
+            assertDoesNotThrow(() -> projectValidationService.checkProjectCloseDate(fixedNow.plusDays(1)));
+        }
+    }
+
+    @Test
+    void checkProjectCloseDateShouldRejectPastDate() {
+        LocalDateTime fixedNow = LocalDateTime.of(2026, 5, 1, 12, 0);
+
+        try (MockedStatic<LocalDateTime> mockedTime = mockStatic(LocalDateTime.class, CALLS_REAL_METHODS)) {
+            mockedTime.when(LocalDateTime::now).thenReturn(fixedNow);
+            BusinessException ex = assertThrows(BusinessException.class,
+                    () -> projectValidationService.checkProjectCloseDate(fixedNow.minusMinutes(1)));
+            assertThat(ex.getMessage()).isEqualTo(MessageConstants.PROJECT_CLOSE_DATE_INVALID);
+        }
     }
 
     /* ---- checkProjectOwnership ---- */

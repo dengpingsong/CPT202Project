@@ -88,3 +88,15 @@ export function formatShortDate(value: DateValue): string {
   if (!date) return value ? String(value).slice(0, 10) : '-'
   return `${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 }
+
+export function toDateTimeLocalValue(value: DateValue): string {
+  const date = parseDateTime(value)
+  if (!date) return ''
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+export function toIsoLocalDateTime(value: DateValue): string {
+  const date = parseDateTime(value)
+  if (!date) return ''
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}

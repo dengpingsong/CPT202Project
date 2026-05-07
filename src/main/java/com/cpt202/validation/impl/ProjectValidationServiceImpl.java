@@ -6,6 +6,8 @@ import com.cpt202.model.entity.Project;
 import com.cpt202.validation.ProjectValidationService;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+
 /**
  * 项目领域约束验证服务实现。
  */
@@ -23,6 +25,13 @@ public class ProjectValidationServiceImpl implements ProjectValidationService {
         if (project.getProjectStatus() == Project.ProjectStatus.CLOSED
                 && targetStatus != Project.ProjectStatus.CLOSED) {
             throw new BusinessException(MessageConstants.PROJECT_STATUS_TRANSITION_INVALID);
+        }
+    }
+
+    @Override
+    public void checkProjectCloseDate(LocalDateTime closeDate) {
+        if (closeDate == null || !closeDate.isAfter(LocalDateTime.now())) {
+            throw new BusinessException(MessageConstants.PROJECT_CLOSE_DATE_INVALID);
         }
     }
 

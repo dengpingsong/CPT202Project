@@ -175,6 +175,7 @@ public abstract class IntegrationTestSupport {
                 .currentAgreedCount(0)
                 .projectStatus(Project.ProjectStatus.AVAILABLE)
                 .publishDate(now)
+                .closeDate(now.plusDays(7))
                 .createdAt(now)
                 .updatedAt(now)
                 .build());

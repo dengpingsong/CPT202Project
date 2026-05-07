@@ -12,7 +12,6 @@ import com.cpt202.repository.RequestStatusHistoryRepository;
 import com.cpt202.service.ProjectRequestValidationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,14 +31,12 @@ public class ProjectRequestValidationServiceImpl implements ProjectRequestValida
     private final ProjectRepository projectRepository;
     private final RequestStatusHistoryRepository requestStatusHistoryRepository;
 
-    @Value("${app.request-deadline:2026-05-29T23:59:00}")
-    private LocalDateTime requestDeadline;
-
     @Override
     public void validateRequest(Long studentId, Project project) {
         // 1. 截止日期校验
-        LocalDateTime deadline = requestDeadline;
-        if (LocalDateTime.now().isAfter(deadline)) {
+        if (project != null
+                && project.getCloseDate() != null
+                && LocalDateTime.now().isAfter(project.getCloseDate())) {
             throw new RuleViolationException(MessageConstants.REQUEST_DEADLINE_PASSED);
         }
 
