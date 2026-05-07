@@ -5,10 +5,23 @@ import { toast } from '../../utils/ui-feedback'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
 import { PieChart, BarChart } from 'echarts/charts'
-import { TitleComponent, TooltipComponent, LegendComponent, GridComponent } from 'echarts/components'
+import {
+  TitleComponent,
+  TooltipComponent,
+  LegendComponent,
+  GridComponent,
+} from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 
-use([PieChart, BarChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent, CanvasRenderer])
+use([
+  PieChart,
+  BarChart,
+  TitleComponent,
+  TooltipComponent,
+  LegendComponent,
+  GridComponent,
+  CanvasRenderer,
+])
 
 const loading = ref(true)
 const users = ref<any[]>([])
@@ -20,151 +33,276 @@ function normalizeStatus(status: string | null | undefined): string {
 }
 
 // --- KPIs ---
-const studentCount = computed(() => users.value.filter(u => u.role === 'STUDENT').length)
-const teacherCount = computed(() => users.value.filter(u => u.role === 'TEACHER').length)
-const pendingCount = computed(() => requests.value.filter(r => normalizeStatus(r.requestStatus) === 'PENDING').length)
-const acceptedCount = computed(() => requests.value.filter(r => normalizeStatus(r.requestStatus) === 'ACCEPTED').length)
-const totalCapacity = computed(() => projects.value.reduce((s, p) => s + (p.maxStudents || 0), 0))
-const filledSlots = computed(() => projects.value.reduce((s, p) => s + (p.currentAgreedCount || 0), 0))
+const studentCount = computed(
+  () => users.value.filter((u) => u.role === 'STUDENT').length,
+)
+const teacherCount = computed(
+  () => users.value.filter((u) => u.role === 'TEACHER').length,
+)
+const pendingCount = computed(
+  () =>
+    requests.value.filter((r) => normalizeStatus(r.requestStatus) === 'PENDING')
+      .length,
+)
+const acceptedCount = computed(
+  () =>
+    requests.value.filter(
+      (r) => normalizeStatus(r.requestStatus) === 'ACCEPTED',
+    ).length,
+)
+const totalCapacity = computed(() =>
+  projects.value.reduce((s, p) => s + (p.maxStudents || 0), 0),
+)
+const filledSlots = computed(() =>
+  projects.value.reduce((s, p) => s + (p.currentAgreedCount || 0), 0),
+)
 
 // --- Charts ---
 
 const userRoleChart = computed(() => {
-  const roleColorMap: Record<string, string> = { STUDENT: '#24b3ff', TEACHER: '#7c5cfc', ADMIN: '#f6a63d' }
+  const roleColorMap: Record<string, string> = {
+    STUDENT: '#24b3ff',
+    TEACHER: '#7c5cfc',
+    ADMIN: '#f6a63d',
+  }
   const counts: Record<string, number> = {}
-  users.value.forEach(u => { counts[u.role || 'UNKNOWN'] = (counts[u.role || 'UNKNOWN'] || 0) + 1 })
+  users.value.forEach((u) => {
+    counts[u.role || 'UNKNOWN'] = (counts[u.role || 'UNKNOWN'] || 0) + 1
+  })
   return {
     tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
     legend: { bottom: 0, textStyle: { color: '#666' } },
-    series: [{
-      type: 'pie', radius: ['40%', '70%'],
-      itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
-      label: { show: false },
-      emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
-      data: Object.entries(counts).map(([name, value]) => ({
-        value, name, itemStyle: { color: roleColorMap[name] || '#9c9cb2' },
-      })),
-    }],
+    series: [
+      {
+        type: 'pie',
+        radius: ['40%', '70%'],
+        itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
+        label: { show: false },
+        emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
+        data: Object.entries(counts).map(([name, value]) => ({
+          value,
+          name,
+          itemStyle: { color: roleColorMap[name] || '#9c9cb2' },
+        })),
+      },
+    ],
   }
 })
 
 const userStatusChart = computed(() => {
   const counts: Record<string, number> = {}
-  users.value.forEach(u => { const s = u.accountStatus || 'UNKNOWN'; counts[s] = (counts[s] || 0) + 1 })
+  users.value.forEach((u) => {
+    const s = u.accountStatus || 'UNKNOWN'
+    counts[s] = (counts[s] || 0) + 1
+  })
   const names = Object.keys(counts)
   return {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
     xAxis: { type: 'category', data: names, axisLabel: { color: '#666' } },
     yAxis: { type: 'value', minInterval: 1, axisLabel: { color: '#666' } },
-    series: [{
-      type: 'bar', data: Object.values(counts), barMaxWidth: 40,
-      itemStyle: { color: '#2fc5a8', borderRadius: [6, 6, 0, 0] },
-    }],
+    series: [
+      {
+        type: 'bar',
+        data: Object.values(counts),
+        barMaxWidth: 40,
+        itemStyle: { color: '#2fc5a8', borderRadius: [6, 6, 0, 0] },
+      },
+    ],
   }
 })
 
 const projectStatusChart = computed(() => {
   const counts: Record<string, number> = {}
-  projects.value.forEach(p => { const s = normalizeStatus(p.projectStatus); counts[s] = (counts[s] || 0) + 1 })
-  const colorMap: Record<string, string> = { AVAILABLE: '#2fc5a8', REQUESTED: '#f6a63d', AGREED: '#24b3ff', CLOSED: '#9c9cb2', ARCHIVED: '#9c9cb2' }
+  projects.value.forEach((p) => {
+    const s = normalizeStatus(p.projectStatus)
+    counts[s] = (counts[s] || 0) + 1
+  })
+  const colorMap: Record<string, string> = {
+    AVAILABLE: '#2fc5a8',
+    REQUESTED: '#f6a63d',
+    AGREED: '#24b3ff',
+    CLOSED: '#9c9cb2',
+    ARCHIVED: '#9c9cb2',
+  }
   return {
     tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
     legend: { bottom: 0, textStyle: { color: '#666' } },
-    series: [{
-      type: 'pie', radius: ['40%', '70%'],
-      itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
-      label: { show: false },
-      emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
-      data: Object.entries(counts).map(([name, value]) => ({
-        value, name, itemStyle: { color: colorMap[name] || '#7c5cfc' },
-      })),
-    }],
+    series: [
+      {
+        type: 'pie',
+        radius: ['40%', '70%'],
+        itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
+        label: { show: false },
+        emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
+        data: Object.entries(counts).map(([name, value]) => ({
+          value,
+          name,
+          itemStyle: { color: colorMap[name] || '#7c5cfc' },
+        })),
+      },
+    ],
   }
 })
 
 const requestStatusChart = computed(() => {
   const counts: Record<string, number> = {}
-  requests.value.forEach(r => { const s = normalizeStatus(r.requestStatus); counts[s] = (counts[s] || 0) + 1 })
-  const colorMap: Record<string, string> = { PENDING: '#f6a63d', ACCEPTED: '#2fc5a8', REJECTED: '#c54545', WITHDRAWN: '#9c9cb2' }
+  requests.value.forEach((r) => {
+    const s = normalizeStatus(r.requestStatus)
+    counts[s] = (counts[s] || 0) + 1
+  })
+  const colorMap: Record<string, string> = {
+    PENDING: '#f6a63d',
+    ACCEPTED: '#2fc5a8',
+    REJECTED: '#c54545',
+    WITHDRAWN: '#9c9cb2',
+  }
   return {
     tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
     legend: { bottom: 0, textStyle: { color: '#666' } },
-    series: [{
-      type: 'pie', radius: ['40%', '70%'],
-      itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
-      label: { show: false },
-      emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
-      data: Object.entries(counts).map(([name, value]) => ({
-        value, name, itemStyle: { color: colorMap[name] || '#7c5cfc' },
-      })),
-    }],
+    series: [
+      {
+        type: 'pie',
+        radius: ['40%', '70%'],
+        itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
+        label: { show: false },
+        emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
+        data: Object.entries(counts).map(([name, value]) => ({
+          value,
+          name,
+          itemStyle: { color: colorMap[name] || '#7c5cfc' },
+        })),
+      },
+    ],
   }
 })
 
 const categoryChart = computed(() => {
   const counts: Record<string, number> = {}
-  projects.value.forEach(p => { const c = p.categoryName || 'Uncategorized'; counts[c] = (counts[c] || 0) + 1 })
+  projects.value.forEach((p) => {
+    const c = p.categoryName || 'Uncategorized'
+    counts[c] = (counts[c] || 0) + 1
+  })
   const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1])
   return {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-    xAxis: { type: 'category', data: sorted.map(e => e[0]), axisLabel: { rotate: sorted.length > 4 ? 30 : 0, color: '#666' } },
+    xAxis: {
+      type: 'category',
+      data: sorted.map((e) => e[0]),
+      axisLabel: { rotate: sorted.length > 4 ? 30 : 0, color: '#666' },
+    },
     yAxis: { type: 'value', minInterval: 1, axisLabel: { color: '#666' } },
-    series: [{
-      type: 'bar', data: sorted.map(e => e[1]), barMaxWidth: 40,
-      itemStyle: { color: '#24b3ff', borderRadius: [6, 6, 0, 0] },
-    }],
+    series: [
+      {
+        type: 'bar',
+        data: sorted.map((e) => e[1]),
+        barMaxWidth: 40,
+        itemStyle: { color: '#24b3ff', borderRadius: [6, 6, 0, 0] },
+      },
+    ],
   }
 })
 
 const teacherProjectChart = computed(() => {
   const counts: Record<string, number> = {}
-  projects.value.forEach(p => { const t = p.teacherName || 'Unknown'; counts[t] = (counts[t] || 0) + 1 })
-  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10)
+  projects.value.forEach((p) => {
+    const t = p.teacherName || 'Unknown'
+    counts[t] = (counts[t] || 0) + 1
+  })
+  const sorted = Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
   return {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
     xAxis: { type: 'value', minInterval: 1, axisLabel: { color: '#666' } },
-    yAxis: { type: 'category', data: sorted.map(e => e[0]), axisLabel: { color: '#666', width: 120, overflow: 'truncate' } },
-    series: [{
-      type: 'bar', data: sorted.map(e => e[1]), barMaxWidth: 28,
-      itemStyle: { color: '#7c5cfc', borderRadius: [0, 6, 6, 0] },
-    }],
+    yAxis: {
+      type: 'category',
+      data: sorted.map((e) => e[0]),
+      axisLabel: { color: '#666', width: 120, overflow: 'truncate' },
+    },
+    series: [
+      {
+        type: 'bar',
+        data: sorted.map((e) => e[1]),
+        barMaxWidth: 28,
+        itemStyle: { color: '#7c5cfc', borderRadius: [0, 6, 6, 0] },
+      },
+    ],
   }
 })
 
 const programmeChart = computed(() => {
   const counts: Record<string, number> = {}
-  requests.value.forEach(r => { const p = r.studentProgramme || 'Unknown'; counts[p] = (counts[p] || 0) + 1 })
+  requests.value.forEach((r) => {
+    const p = r.studentProgramme || 'Unknown'
+    counts[p] = (counts[p] || 0) + 1
+  })
   const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1])
   return {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-    xAxis: { type: 'category', data: sorted.map(e => e[0]), axisLabel: { rotate: sorted.length > 3 ? 30 : 0, color: '#666' } },
+    xAxis: {
+      type: 'category',
+      data: sorted.map((e) => e[0]),
+      axisLabel: { rotate: sorted.length > 3 ? 30 : 0, color: '#666' },
+    },
     yAxis: { type: 'value', minInterval: 1, axisLabel: { color: '#666' } },
-    series: [{
-      type: 'bar', data: sorted.map(e => e[1]), barMaxWidth: 40,
-      itemStyle: { color: '#f6a63d', borderRadius: [6, 6, 0, 0] },
-    }],
+    series: [
+      {
+        type: 'bar',
+        data: sorted.map((e) => e[1]),
+        barMaxWidth: 40,
+        itemStyle: { color: '#f6a63d', borderRadius: [6, 6, 0, 0] },
+      },
+    ],
   }
 })
 
 const fillRateChart = computed(() => {
-  const data = projects.value.map(p => {
-    const max = p.maxStudents || 1
-    const current = p.currentAgreedCount || 0
-    return { name: p.title || 'Untitled', rate: Math.round((current / max) * 100), current, max }
-  }).sort((a, b) => b.rate - a.rate).slice(0, 10)
+  const data = projects.value
+    .map((p) => {
+      const max = p.maxStudents || 1
+      const current = p.currentAgreedCount || 0
+      return {
+        name: p.title || 'Untitled',
+        rate: Math.round((current / max) * 100),
+        current,
+        max,
+      }
+    })
+    .sort((a, b) => b.rate - a.rate)
+    .slice(0, 10)
   return {
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: (params: any) => { const d = params[0]; const item = data[d.dataIndex]; return `${item.name}<br/>Fill Rate: ${item.rate}% (${item.current}/${item.max})` } },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      formatter: (params: any) => {
+        const d = params[0]
+        const item = data[d.dataIndex]
+        return `${item.name}<br/>Fill Rate: ${item.rate}% (${item.current}/${item.max})`
+      },
+    },
     grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-    xAxis: { type: 'value', max: 100, axisLabel: { formatter: '{value}%', color: '#666' } },
-    yAxis: { type: 'category', data: data.map(d => d.name), axisLabel: { color: '#666', width: 120, overflow: 'truncate' } },
-    series: [{
-      type: 'bar', data: data.map(d => d.rate), barMaxWidth: 28,
-      itemStyle: { color: '#2fc5a8', borderRadius: [0, 6, 6, 0] },
-    }],
+    xAxis: {
+      type: 'value',
+      max: 100,
+      axisLabel: { formatter: '{value}%', color: '#666' },
+    },
+    yAxis: {
+      type: 'category',
+      data: data.map((d) => d.name),
+      axisLabel: { color: '#666', width: 120, overflow: 'truncate' },
+    },
+    series: [
+      {
+        type: 'bar',
+        data: data.map((d) => d.rate),
+        barMaxWidth: 28,
+        itemStyle: { color: '#2fc5a8', borderRadius: [0, 6, 6, 0] },
+      },
+    ],
   }
 })
 
@@ -200,27 +338,39 @@ onMounted(loadData)
       <div class="kpi-card">
         <span class="kpi-label">Total Users</span>
         <strong class="kpi-value">{{ loading ? '...' : users.length }}</strong>
-        <span class="kpi-sub">{{ studentCount }} students / {{ teacherCount }} teachers</span>
+        <span class="kpi-sub"
+          >{{ studentCount }} students / {{ teacherCount }} teachers</span
+        >
       </div>
       <div class="kpi-card">
         <span class="kpi-label">Total Projects</span>
-        <strong class="kpi-value">{{ loading ? '...' : projects.length }}</strong>
+        <strong class="kpi-value">{{
+          loading ? '...' : projects.length
+        }}</strong>
       </div>
       <div class="kpi-card">
         <span class="kpi-label">Total Requests</span>
-        <strong class="kpi-value">{{ loading ? '...' : requests.length }}</strong>
+        <strong class="kpi-value">{{
+          loading ? '...' : requests.length
+        }}</strong>
       </div>
       <div class="kpi-card">
         <span class="kpi-label">Pending Review</span>
-        <strong class="kpi-value kpi-orange">{{ loading ? '...' : pendingCount }}</strong>
+        <strong class="kpi-value kpi-orange">{{
+          loading ? '...' : pendingCount
+        }}</strong>
       </div>
       <div class="kpi-card">
         <span class="kpi-label">Accepted</span>
-        <strong class="kpi-value kpi-green">{{ loading ? '...' : acceptedCount }}</strong>
+        <strong class="kpi-value kpi-green">{{
+          loading ? '...' : acceptedCount
+        }}</strong>
       </div>
       <div class="kpi-card">
         <span class="kpi-label">Slots Filled</span>
-        <strong class="kpi-value kpi-blue">{{ loading ? '...' : `${filledSlots}/${totalCapacity}` }}</strong>
+        <strong class="kpi-value kpi-blue">{{
+          loading ? '...' : `${filledSlots}/${totalCapacity}`
+        }}</strong>
       </div>
     </section>
 
@@ -241,12 +391,22 @@ onMounted(loadData)
         <div class="chart-panel">
           <h3>Project Status</h3>
           <div v-if="loading" class="chart-placeholder">Loading...</div>
-          <VChart v-else class="chart" :option="projectStatusChart" autoresize />
+          <VChart
+            v-else
+            class="chart"
+            :option="projectStatusChart"
+            autoresize
+          />
         </div>
         <div class="chart-panel">
           <h3>Request Status</h3>
           <div v-if="loading" class="chart-placeholder">Loading...</div>
-          <VChart v-else class="chart" :option="requestStatusChart" autoresize />
+          <VChart
+            v-else
+            class="chart"
+            :option="requestStatusChart"
+            autoresize
+          />
         </div>
         <div class="chart-panel chart-wide">
           <h3>Projects by Category</h3>
@@ -256,7 +416,12 @@ onMounted(loadData)
         <div class="chart-panel chart-wide">
           <h3>Projects per Teacher (Top 10)</h3>
           <div v-if="loading" class="chart-placeholder">Loading...</div>
-          <VChart v-else class="chart" :option="teacherProjectChart" autoresize />
+          <VChart
+            v-else
+            class="chart"
+            :option="teacherProjectChart"
+            autoresize
+          />
         </div>
         <div class="chart-panel chart-wide">
           <h3>Requests by Programme</h3>
@@ -287,7 +452,11 @@ onMounted(loadData)
   color: var(--text);
 }
 
-h2 { margin: 0 0 16px; font-size: 1.4rem; color: var(--text); }
+h2 {
+  margin: 0 0 16px;
+  font-size: 1.4rem;
+  color: var(--text);
+}
 
 /* KPI cards */
 .kpi-grid {
@@ -325,12 +494,20 @@ h2 { margin: 0 0 16px; font-size: 1.4rem; color: var(--text); }
   color: var(--muted);
 }
 
-.kpi-orange { color: var(--orange); }
-.kpi-green { color: var(--green); }
-.kpi-blue { color: var(--accent); }
+.kpi-orange {
+  color: var(--orange);
+}
+.kpi-green {
+  color: var(--green);
+}
+.kpi-blue {
+  color: var(--accent);
+}
 
 /* Charts */
-.charts h2 { margin: 0 0 16px; }
+.charts h2 {
+  margin: 0 0 16px;
+}
 
 .chart-grid {
   display: grid;
