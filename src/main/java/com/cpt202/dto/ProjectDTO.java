@@ -2,7 +2,10 @@ package com.cpt202.dto;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+
+import java.time.LocalDateTime;
 
 /**
  * 项目新增/修改参数。
@@ -13,7 +16,7 @@ import lombok.Data;
 public class ProjectDTO {
 
     /** 项目所属分类主键。 */
-    @jakarta.validation.constraints.NotNull
+    @NotNull
     private Long categoryId;
 
     /** 项目标题。 */
@@ -32,4 +35,8 @@ public class ProjectDTO {
     /** 项目允许的最大参与人数。 */
     @Min(1)
     private Integer maxStudents;
+
+    /** 学生申请该项目的截止时间。 */
+    @NotNull
+    private LocalDateTime closeDate;
 }

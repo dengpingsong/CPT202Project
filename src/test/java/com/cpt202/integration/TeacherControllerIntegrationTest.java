@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -118,7 +119,8 @@ class TeacherControllerIntegrationTest extends IntegrationTestSupport {
                                 "description", "New Description",
                                 "requiredSkills", "Spring Boot",
                                 "topicArea", "Web",
-                                "maxStudents", 3))))
+                                "maxStudents", 3,
+                                "closeDate", LocalDateTime.now().plusDays(7).withSecond(0).withNano(0)))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1))
                 .andExpect(jsonPath("$.data.title").value(createdTitle));
@@ -151,7 +153,8 @@ class TeacherControllerIntegrationTest extends IntegrationTestSupport {
                                 "description", "Updated Description",
                                 "requiredSkills", "Spring Data",
                                 "topicArea", "Persistence",
-                                "maxStudents", 4))))
+                                "maxStudents", 4,
+                                "closeDate", LocalDateTime.now().plusDays(10).withSecond(0).withNano(0)))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1));
 

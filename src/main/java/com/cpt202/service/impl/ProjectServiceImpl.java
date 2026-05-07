@@ -109,6 +109,7 @@ public class ProjectServiceImpl implements ProjectService {
     public ProjectVO create(Long teacherId, ProjectDTO projectDTO) {
         TeacherProfile teacher = teacherProfileRepository.findById(teacherId)
                 .orElseThrow(() -> new NotFoundException(MessageConstants.TEACHER_NOT_FOUND));
+        projectValidationService.checkProjectCloseDate(projectDTO.getCloseDate());
 
         LocalDateTime now = LocalDateTime.now();
         Project project = new Project();
@@ -132,6 +133,10 @@ public class ProjectServiceImpl implements ProjectService {
     @Transactional
     public void update(Long projectId, Long teacherId, ProjectDTO projectDTO) {
         Project project = getOwnedProjectEntity(projectId, teacherId);
+        if (project.getProjectStatus() != Project.ProjectStatus.CLOSED
+                && project.getProjectStatus() != Project.ProjectStatus.ARCHIVED) {
+            projectValidationService.checkProjectCloseDate(projectDTO.getCloseDate());
+        }
         BeanUtils.copyProperties(projectDTO, project, "categoryId");
         project.setCategory(categoryRepository.findById(projectDTO.getCategoryId())
                 .orElseThrow(() -> new NotFoundException(MessageConstants.PROJECT_CATEGORY_NOT_FOUND)));

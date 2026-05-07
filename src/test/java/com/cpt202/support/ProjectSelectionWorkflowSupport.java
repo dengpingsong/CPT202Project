@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -79,7 +80,8 @@ public abstract class ProjectSelectionWorkflowSupport extends IntegrationTestSup
                                 "description", description,
                                 "requiredSkills", "Java, Spring Boot",
                                 "topicArea", "Release Readiness",
-                                "maxStudents", maxStudents))))
+                                "maxStudents", maxStudents,
+                                "closeDate", LocalDateTime.now().plusDays(7).withSecond(0).withNano(0)))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1))
                 .andExpect(jsonPath("$.data.title").value(projectTitle))

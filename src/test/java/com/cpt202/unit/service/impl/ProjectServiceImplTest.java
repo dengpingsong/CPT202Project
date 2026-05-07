@@ -30,6 +30,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -97,6 +98,7 @@ class ProjectServiceImplTest {
         assertThat(persisted.getProjectStatus()).isEqualTo(Project.ProjectStatus.AVAILABLE);
         assertThat(persisted.getCurrentAgreedCount()).isZero();
         assertThat(persisted.getPublishDate()).isNotNull();
+        assertThat(persisted.getCloseDate()).isEqualTo(dto.getCloseDate());
         assertThat(saved.getProjectId()).isEqualTo(99L);
         assertThat(saved.getTitle()).isEqualTo("New Project");
     }
@@ -203,6 +205,7 @@ class ProjectServiceImplTest {
         dto.setRequiredSkills("Java");
         dto.setTopicArea("Backend");
         dto.setMaxStudents(maxStudents);
+        dto.setCloseDate(LocalDateTime.now().plusDays(7));
         return dto;
     }
 

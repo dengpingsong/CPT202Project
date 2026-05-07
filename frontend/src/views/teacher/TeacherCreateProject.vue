@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { teacherApi } from '../../utils/api'
 import { toast } from '../../utils/ui-feedback'
 import { useSmartBack } from '../../utils/navigation'
+import { toIsoLocalDateTime } from '../../utils/date'
 
 const router = useRouter()
 const { goBack } = useSmartBack('/teacher/projects', '/teacher')
@@ -14,6 +15,7 @@ const categoryId = ref('')
 const description = ref('')
 const requirements = ref('')
 const topicArea = ref('')
+const applicationDeadline = ref('')
 const categories = ref<any[]>([])
 const tags = ref<any[]>([])
 const selectedTagIds = ref<Set<number>>(new Set())
@@ -68,6 +70,10 @@ async function handleSubmit() {
     setError('Quota must be at least 1.', 'error')
     return
   }
+  if (!applicationDeadline.value) {
+    setError('Application deadline is required.', 'error')
+    return
+  }
 
   publishing.value = true
   setError('Publishing...', '')
@@ -80,6 +86,7 @@ async function handleSubmit() {
       requiredSkills: requirements.value.trim(),
       topicArea: topicArea.value.trim(),
       maxStudents: quota.value,
+      closeDate: toIsoLocalDateTime(applicationDeadline.value),
     })
 
     const project = res.data
@@ -148,6 +155,15 @@ onMounted(() => {
               </option>
             </select>
           </div>
+        </div>
+
+        <div class="form-group">
+          <label>Application Deadline <span class="required">*</span></label>
+          <input
+            v-model="applicationDeadline"
+            type="datetime-local"
+            class="form-control"
+          />
         </div>
 
         <div class="form-group">
