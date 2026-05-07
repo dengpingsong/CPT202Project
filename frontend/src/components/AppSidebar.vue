@@ -64,12 +64,10 @@ function isActive(path: string): boolean {
 <style scoped>
 @import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css');
 
-/* ── Layout ── */
 .layout {
   min-height: 100vh;
 }
 
-/* ── Sidebar: fixed, vertically centered, blends into page ── */
 .sidebar {
   position: fixed;
   left: 0;
@@ -90,7 +88,6 @@ function isActive(path: string): boolean {
   width: 220px;
 }
 
-/* ── Nav: vertically centered ── */
 .nav-group {
   display: flex;
   flex-direction: column;
@@ -100,7 +97,6 @@ function isActive(path: string): boolean {
   padding: 48px 0;
 }
 
-/* ── Nav items ── */
 .nav-item {
   border: none;
   background: transparent;
@@ -113,7 +109,7 @@ function isActive(path: string): boolean {
   display: flex;
   align-items: center;
   gap: 14px;
-  justify-content: center; /* collapsed: icon centered */
+  justify-content: center;
   text-decoration: none;
   white-space: nowrap;
   outline: none;
@@ -124,11 +120,11 @@ function isActive(path: string): boolean {
 }
 
 .nav-item:focus-visible {
-  background: rgba(28, 27, 51, 0.06); /* subtle keyboard hint */
+  background: rgba(28, 27, 51, 0.06);
 }
 
 .layout.sidebar-expanded .nav-item {
-  justify-content: flex-start; /* expanded: icon + text left-aligned */
+  justify-content: flex-start;
 }
 
 .nav-item:hover {
@@ -143,7 +139,6 @@ function isActive(path: string): boolean {
   color: var(--deep);
 }
 
-/* ── Icon ── */
 .nav-icon {
   font-size: 1.25rem;
   min-width: 24px;
@@ -151,7 +146,6 @@ function isActive(path: string): boolean {
   flex-shrink: 0;
 }
 
-/* ── Label: hidden in collapsed, fades in on expand ── */
 .nav-label {
   opacity: 0;
   max-width: 0;
@@ -167,7 +161,6 @@ function isActive(path: string): boolean {
   max-width: 150px;
 }
 
-/* ── Footer / Logout ── */
 .sidebar-footer {
   margin-top: auto;
 }
@@ -210,7 +203,6 @@ function isActive(path: string): boolean {
   color: var(--text);
 }
 
-/* ── Main content: shifts with sidebar width ── */
 .main {
   margin-left: 72px;
   padding: 32px;
@@ -220,41 +212,52 @@ function isActive(path: string): boolean {
   background: var(--bg);
   min-height: 100vh;
   overflow-x: hidden;
-  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .layout.sidebar-expanded .main {
   margin-left: 220px;
 }
 
-/* ── Mobile: keep original horizontal logic ── */
 @media (max-width: 960px) {
   .sidebar {
-    position: relative;
-    flex-direction: row;
-    gap: 8px;
-    padding: 12px;
-    width: 100%;
-    height: auto;
+    padding: 16px 10px;
   }
+
   .layout.sidebar-expanded .sidebar {
-    width: 100%;
+    width: 72px;
   }
+
   .main {
-    margin-left: 0;
+    margin-left: 72px;
+    padding: 20px 16px 20px 20px;
   }
+
   .layout.sidebar-expanded .main {
-    margin-left: 0;
+    margin-left: 72px;
   }
+
   .sidebar-footer {
     margin-top: 0;
   }
+
+  .nav-item,
+  .logout-btn {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
   .nav-label {
     display: none;
   }
+
+  .layout.sidebar-expanded .nav-item,
+  .layout.sidebar-expanded .logout-btn {
+    justify-content: center;
+  }
+
   .nav-group {
     justify-content: flex-start;
-    padding: 0;
+    padding: 24px 0;
   }
 }
 </style>
