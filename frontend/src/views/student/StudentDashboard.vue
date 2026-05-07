@@ -6,10 +6,23 @@ import { toast, confirm } from '../../utils/ui-feedback'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
 import { PieChart, BarChart } from 'echarts/charts'
-import { TitleComponent, TooltipComponent, LegendComponent, GridComponent } from 'echarts/components'
+import {
+  TitleComponent,
+  TooltipComponent,
+  LegendComponent,
+  GridComponent,
+} from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 
-use([PieChart, BarChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent, CanvasRenderer])
+use([
+  PieChart,
+  BarChart,
+  TitleComponent,
+  TooltipComponent,
+  LegendComponent,
+  GridComponent,
+  CanvasRenderer,
+])
 
 const router = useRouter()
 
@@ -92,25 +105,43 @@ const recentRequests = computed(() => {
 const statusChartOption = computed(() => ({
   tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
   legend: { bottom: 0, textStyle: { color: '#666' } },
-  series: [{
-    type: 'pie',
-    radius: ['40%', '70%'],
-    avoidLabelOverlap: false,
-    itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
-    label: { show: false },
-    emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
-    data: [
-      { value: pending.value, name: 'Pending', itemStyle: { color: '#f6a63d' } },
-      { value: accepted.value, name: 'Accepted', itemStyle: { color: '#2fc5a8' } },
-      { value: rejected.value, name: 'Rejected', itemStyle: { color: '#c54545' } },
-      { value: withdrawn.value, name: 'Withdrawn', itemStyle: { color: '#9c9cb2' } },
-    ].filter(d => d.value > 0),
-  }],
+  series: [
+    {
+      type: 'pie',
+      radius: ['40%', '70%'],
+      avoidLabelOverlap: false,
+      itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
+      label: { show: false },
+      emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
+      data: [
+        {
+          value: pending.value,
+          name: 'Pending',
+          itemStyle: { color: '#f6a63d' },
+        },
+        {
+          value: accepted.value,
+          name: 'Accepted',
+          itemStyle: { color: '#2fc5a8' },
+        },
+        {
+          value: rejected.value,
+          name: 'Rejected',
+          itemStyle: { color: '#c54545' },
+        },
+        {
+          value: withdrawn.value,
+          name: 'Withdrawn',
+          itemStyle: { color: '#9c9cb2' },
+        },
+      ].filter((d) => d.value > 0),
+    },
+  ],
 }))
 
 const categoryChartOption = computed(() => {
   const counts: Record<string, number> = {}
-  projects.value.forEach(p => {
+  projects.value.forEach((p) => {
     const cat = p.categoryName || 'Uncategorized'
     counts[cat] = (counts[cat] || 0) + 1
   })
@@ -119,23 +150,29 @@ const categoryChartOption = computed(() => {
   return {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-    xAxis: { type: 'category', data: names, axisLabel: { rotate: names.length > 4 ? 30 : 0, color: '#666' } },
+    xAxis: {
+      type: 'category',
+      data: names,
+      axisLabel: { rotate: names.length > 4 ? 30 : 0, color: '#666' },
+    },
     yAxis: { type: 'value', minInterval: 1, axisLabel: { color: '#666' } },
-    series: [{
-      type: 'bar',
-      data: values,
-      barMaxWidth: 40,
-      itemStyle: {
-        color: '#24b3ff',
-        borderRadius: [6, 6, 0, 0],
+    series: [
+      {
+        type: 'bar',
+        data: values,
+        barMaxWidth: 40,
+        itemStyle: {
+          color: '#24b3ff',
+          borderRadius: [6, 6, 0, 0],
+        },
       },
-    }],
+    ],
   }
 })
 
 const tagChartOption = computed(() => {
   const statusCounts: Record<string, number> = {}
-  projects.value.forEach(p => {
+  projects.value.forEach((p) => {
     const s = normalizeStatus(p.projectStatus)
     statusCounts[s] = (statusCounts[s] || 0) + 1
   })
@@ -147,18 +184,23 @@ const tagChartOption = computed(() => {
     ARCHIVED: '#9c9cb2',
   }
   const names = Object.keys(statusCounts)
-  const values = names.map(n => statusCounts[n])
+  const values = names.map((n) => statusCounts[n])
   return {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
     xAxis: { type: 'category', data: names, axisLabel: { color: '#666' } },
     yAxis: { type: 'value', minInterval: 1, axisLabel: { color: '#666' } },
-    series: [{
-      type: 'bar',
-      data: values.map((v, i) => ({ value: v, itemStyle: { color: statusColorMap[names[i]] || '#7c5cfc' } })),
-      barMaxWidth: 40,
-      itemStyle: { borderRadius: [6, 6, 0, 0] },
-    }],
+    series: [
+      {
+        type: 'bar',
+        data: values.map((v, i) => ({
+          value: v,
+          itemStyle: { color: statusColorMap[names[i]] || '#7c5cfc' },
+        })),
+        barMaxWidth: 40,
+        itemStyle: { borderRadius: [6, 6, 0, 0] },
+      },
+    ],
   }
 })
 
@@ -288,7 +330,12 @@ onMounted(loadData)
         <div class="chart-panel">
           <h3>Projects by Category</h3>
           <div v-if="loading" class="chart-placeholder">Loading...</div>
-          <VChart v-else class="chart" :option="categoryChartOption" autoresize />
+          <VChart
+            v-else
+            class="chart"
+            :option="categoryChartOption"
+            autoresize
+          />
         </div>
         <div class="chart-panel">
           <h3>Project Status</h3>
@@ -699,7 +746,9 @@ h3 {
   color: white;
 }
 
-.charts h2 { margin: 0 0 16px; }
+.charts h2 {
+  margin: 0 0 16px;
+}
 
 .chart-grid {
   display: grid;
