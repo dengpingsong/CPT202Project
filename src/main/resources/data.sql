@@ -81,18 +81,18 @@ INSERT INTO project_request (request_id, project_id, student_id, reviewed_by, pr
     (5010, 4015, 1009, NULL, 1, 'I am interested in student services products.',             'WITHDRAWN', NULL,                                '2026-04-12 09:45:00', NULL,                   '2026-04-13 17:00:00', '2026-04-13 17:00:00');
 
 INSERT INTO request_status_history (history_id, request_id, old_status, new_status, changed_by, remark, changed_at) VALUES
-    (6001, 5001, NULL,        'PENDING',   1003, '学生提交申请。',                 '2026-04-05 14:00:00'),
-    (6002, 5002, NULL,        'PENDING',   1006, '学生提交申请。',                 '2026-04-06 10:00:00'),
+    (6001, 5001, NULL,        'PENDING',   1003, 'Student submitted the request.',                 '2026-04-05 14:00:00'),
+    (6002, 5002, NULL,        'PENDING',   1006, 'Student submitted the request.',                 '2026-04-06 10:00:00'),
     (6003, 5002, 'PENDING',   'ACCEPTED',  NULL, 'Strong backend background.',   '2026-04-07 09:00:00'),
-    (6004, 5003, NULL,        'PENDING',   1007, '学生提交申请。',                 '2026-04-06 12:00:00'),
+    (6004, 5003, NULL,        'PENDING',   1007, 'Student submitted the request.',                 '2026-04-06 12:00:00'),
     (6005, 5003, 'PENDING',   'REJECTED',  NULL, 'Need stronger Java background.', '2026-04-08 09:30:00'),
-    (6006, 5004, NULL,        'PENDING',   1008, '学生提交申请。',                 '2026-04-07 15:00:00'),
-    (6007, 5005, NULL,        'PENDING',   1009, '学生提交申请。',                 '2026-04-08 16:00:00'),
+    (6006, 5004, NULL,        'PENDING',   1008, 'Student submitted the request.',                 '2026-04-07 15:00:00'),
+    (6007, 5005, NULL,        'PENDING',   1009, 'Student submitted the request.',                 '2026-04-08 16:00:00'),
     (6008, 5005, 'PENDING',   'ACCEPTED',  NULL, 'Good match for the topic.',    '2026-04-10 11:00:00'),
-    (6009, 5006, NULL,        'PENDING',   1003, '学生提交申请。',                 '2026-04-09 09:00:00'),
+    (6009, 5006, NULL,        'PENDING',   1003, 'Student submitted the request.',                 '2026-04-09 09:00:00'),
     (6010, 5006, 'PENDING',   'REJECTED',  NULL, 'Position already filled.',     '2026-04-12 09:30:00'),
-    (6011, 5007, NULL,        'PENDING',   1006, '学生提交申请。',                 '2026-04-10 14:00:00'),
-    (6012, 5008, NULL,        'PENDING',   1007, '学生提交申请。',                 '2026-04-11 10:30:00'),
-    (6013, 5009, NULL,        'PENDING',   1008, '学生提交申请。',                 '2026-04-11 11:15:00'),
-    (6014, 5010, NULL,        'PENDING',   1009, '学生提交申请。',                 '2026-04-12 09:45:00'),
-    (6015, 5010, 'PENDING',   'WITHDRAWN', 1009, '学生撤回申请。',                 '2026-04-13 17:00:00');
+    (6011, 5007, NULL,        'PENDING',   1006, 'Student submitted the request.',                 '2026-04-10 14:00:00'),
+    (6012, 5008, NULL,        'PENDING',   1007, 'Student submitted the request.',                 '2026-04-11 10:30:00'),
+    (6013, 5009, NULL,        'PENDING',   1008, 'Student submitted the request.',                 '2026-04-11 11:15:00'),
+    (6014, 5010, NULL,        'PENDING',   1009, 'Student submitted the request.',                 '2026-04-12 09:45:00'),
+    (6015, 5010, 'PENDING',   'WITHDRAWN', 1009, 'Student withdrew the request.',                 '2026-04-13 17:00:00');

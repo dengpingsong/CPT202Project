@@ -42,7 +42,7 @@ public class RegisterUserDTO {
     /** 专业。 */
     private String programme;
     /** 入学日期。 */
-    @PastOrPresent(message = "入学日期不能晚于今天。")
+    @PastOrPresent(message = "Enrollment date cannot be in the future.")
     private LocalDate enrollmentDate;
     /** 联系电话。 */
     private String phone;
