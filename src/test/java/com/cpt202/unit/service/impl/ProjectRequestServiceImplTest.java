@@ -123,7 +123,7 @@ class ProjectRequestServiceImplTest {
         RuleViolationException exception = assertThrows(RuleViolationException.class,
                 () -> projectRequestService.review(31L, teacherId, reviewDTO));
 
-        assertThat(exception.getMessage()).contains("不是待审核状态");
+        assertThat(exception.getMessage()).contains("not in pending status");
         verify(requestRepository, never()).save(any(ProjectRequest.class));
     }
 

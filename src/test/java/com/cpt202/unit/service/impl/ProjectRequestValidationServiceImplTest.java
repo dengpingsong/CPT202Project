@@ -161,7 +161,7 @@ class ProjectRequestValidationServiceImplTest {
         assertThat(savedRequests.get(1).getRequestStatus()).isEqualTo(ProjectRequest.RequestStatus.REJECTED);
         assertThat(savedRequests.get(1).getDecisionComment()).isEqualTo("System auto-rejected: Already matched elsewhere.");
         assertThat(historyCaptor.getValue().getNewStatus()).isEqualTo(ProjectRequest.RequestStatus.REJECTED.name());
-        assertThat(historyCaptor.getValue().getRemark()).isEqualTo("系统自动驳回：该学生已在其他项目中被录取。");
+        assertThat(historyCaptor.getValue().getRemark()).isEqualTo("System auto-rejected: The student has been accepted into another project.");
 
         Project savedProject = projectCaptor.getValue();
         assertThat(savedProject.getProjectStatus()).isEqualTo(Project.ProjectStatus.CLOSED);

@@ -188,7 +188,7 @@ class ProjectServiceImplTest {
         assertThat(requestHistoryCaptor.getAllValues()).hasSize(2);
         assertThat(requestHistoryCaptor.getAllValues()).allSatisfy(history -> {
             assertThat(history.getNewStatus()).isEqualTo(ProjectRequest.RequestStatus.REJECTED.name());
-            assertThat(history.getRemark()).isEqualTo("系统自动取消：教师关闭了该项目。");
+            assertThat(history.getRemark()).isEqualTo("System auto-cancelled: The teacher closed the project.");
         });
 
         ProjectStatusHistory history = projectHistoryCaptor.getValue();
