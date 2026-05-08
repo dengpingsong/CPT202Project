@@ -57,8 +57,8 @@ class HistoryServiceImplTest {
     void getRequestHistoryShouldMapStudentIdentityAndStatuses() {
         StudentProfile student = student(2L, "Student Two");
         ProjectRequest request = request(12L, student);
-        RequestStatusHistory submitted = history("PENDING", "学生提交申请。", student);
-        RequestStatusHistory withdrawn = history("WITHDRAWN", "学生撤回申请。", student);
+        RequestStatusHistory submitted = history("PENDING", "Student submitted the request.", student);
+        RequestStatusHistory withdrawn = history("WITHDRAWN", "Student withdrew the request.", student);
 
         when(projectRequestRepository.findById(12L)).thenReturn(Optional.of(request));
         when(requestStatusHistoryRepository.findByRequest_RequestIdOrderByChangedAtAsc(12L))
@@ -72,7 +72,7 @@ class HistoryServiceImplTest {
         assertThat(results.get(0).getChangedByStudentId()).isEqualTo(2L);
         assertThat(results.get(0).getChangedByStudentName()).isEqualTo("Student Two");
         assertThat(results.get(1).getNewStatus()).isEqualTo("WITHDRAWN");
-        assertThat(results.get(1).getRemark()).isEqualTo("学生撤回申请。");
+        assertThat(results.get(1).getRemark()).isEqualTo("Student withdrew the request.");
     }
 
     private ProjectRequest request(Long requestId, StudentProfile student) {
