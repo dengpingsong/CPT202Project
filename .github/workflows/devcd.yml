@@ -147,7 +147,7 @@ jobs:
             hostname
             curl -fsS ifconfig.me || true
             mkdir -p /opt/cpt202-dev
-            docker network create cpt202-network || true
+            docker network create cpt202-network-dev || true
             docker volume create cpt202-mysql-data-dev || true
             NGINX_CONFIG_CHANGED=0
             NGINX_CERT_CHANGED=0
