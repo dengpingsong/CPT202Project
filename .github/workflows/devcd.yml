@@ -213,14 +213,18 @@ jobs:
             cd /opt/cpt202-dev
             docker rm -f cpt202-nginx-dev cpt202program-dev cpt202-mysql-dev || true
             echo "=== Cleaning up containers using dev ports (one-time migration from old names) ==="
-            for port in 8081 9001; do
+            for port in 8081 8082 8443 9001; do
               OLD_CID=$(docker ps -q --filter "publish=$port")
               if [ -n "$OLD_CID" ]; then
                 echo "Removing container $OLD_CID using port $port"
                 docker rm -f "$OLD_CID" || true
               fi
             done
-            docker compose --env-file /opt/cpt202-dev/.env -f docker-compose.yml -f docker-compose.dev.yml up -d --remove-orphans
+            echo "=== Merging compose files ==="
+            umask 077
+            docker compose --env-file /opt/cpt202-dev/.env -f docker-compose.yml -f docker-compose.dev.yml config > /tmp/docker-compose-merged.yml
+            docker compose --env-file /opt/cpt202-dev/.env -f /tmp/docker-compose-merged.yml up -d --remove-orphans
+            rm -f /tmp/docker-compose-merged.yml
 
             echo "=== Waiting for containers to stabilize ==="
             sleep 10
@@ -267,7 +271,7 @@ jobs:
 
             ls -la /opt/cpt202-dev
             ls -la /opt/cpt202-dev/nginx
-            docker compose --env-file /opt/cpt202-dev/.env -f docker-compose.yml -f docker-compose.dev.yml ps
+            docker ps -a --filter name=cpt202 --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}'
             rm -f /opt/cpt202-dev/.env
             CURRENT_APP_IMAGE="cpt202program:${{ github.event.workflow_run.head_sha }}"
             docker image ls --format '{{.Repository}}:{{.Tag}}' | grep '^cpt202program:' | grep -Fvx "$CURRENT_APP_IMAGE" | xargs -r docker image rm -f || true
