@@ -116,6 +116,7 @@ jobs:
           SPRING_DATA_REDIS_PORT: ${{ secrets.SPRING_DATA_REDIS_PORT }}
           SPRING_DATA_REDIS_DATABASE: ${{ secrets.SPRING_DATA_REDIS_DATABASE }}
           SPRING_DATA_REDIS_PASSWORD: ${{ secrets.SPRING_DATA_REDIS_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
           test -n "$ALIYUN_HOST" || { echo "::error::Missing secret ALIYUN_HOST"; exit 1; }
           test -n "$ALIYUN_USERNAME" || { echo "::error::Missing secret ALIYUN_USERNAME"; exit 1; }
@@ -128,6 +129,7 @@ jobs:
           test -n "$SPRING_DATA_REDIS_PORT" || { echo "::error::Missing secret SPRING_DATA_REDIS_PORT"; exit 1; }
           test -n "$SPRING_DATA_REDIS_DATABASE" || { echo "::error::Missing secret SPRING_DATA_REDIS_DATABASE"; exit 1; }
           test -n "$SPRING_DATA_REDIS_PASSWORD" || { echo "::error::Missing secret SPRING_DATA_REDIS_PASSWORD"; exit 1; }
+          test -n "$JWT_SECRET" || { echo "::error::Missing secret JWT_SECRET"; exit 1; }
           test -n "$SPRING_MAIL_USERNAME" || echo "::warning::SPRING_MAIL_USERNAME not set; password reset emails will be disabled"
           test -n "$SPRING_MAIL_PASSWORD" || echo "::warning::SPRING_MAIL_PASSWORD not set; password reset emails will be disabled"
           test -n "$APP_FRONTEND_BASE_URL" || echo "::warning::APP_FRONTEND_BASE_URL not set; reset links will fall back to localhost"
@@ -146,7 +148,7 @@ jobs:
             curl -fsS ifconfig.me || true
             mkdir -p /opt/cpt202-dev
             docker network create cpt202-network || true
-            docker volume create cpt202-mysql-data || true
+            docker volume create cpt202-mysql-data-dev || true
             NGINX_CONFIG_CHANGED=0
             NGINX_CERT_CHANGED=0
 
@@ -198,6 +200,7 @@ jobs:
             SPRING_DATA_REDIS_PORT=${{ secrets.SPRING_DATA_REDIS_PORT }}
             SPRING_DATA_REDIS_DATABASE=${{ secrets.SPRING_DATA_REDIS_DATABASE }}
             SPRING_DATA_REDIS_PASSWORD=${{ secrets.SPRING_DATA_REDIS_PASSWORD }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
             EOF
             MAIL_USERNAME_VAL='${{ secrets.SPRING_MAIL_USERNAME }}'
             [ -n "$MAIL_USERNAME_VAL" ] && echo "SPRING_MAIL_USERNAME=$MAIL_USERNAME_VAL" >> /opt/cpt202-dev/.env || true
@@ -208,18 +211,18 @@ jobs:
             chmod 600 /opt/cpt202-dev/.env
 
             cd /opt/cpt202-dev
-            docker rm -f cpt202-nginx cpt202program cpt202-mysql || true
+            docker rm -f cpt202-nginx-dev cpt202program-dev cpt202-mysql-dev || true
             docker compose --env-file /opt/cpt202-dev/.env -f docker-compose.yml -f docker-compose.dev.yml up -d --remove-orphans
 
-            until curl -fsS http://127.0.0.1/index.html | grep -q '<div id="app"></div>'; do
+            until curl -fsS http://127.0.0.1:8082/index.html | grep -q '<div id="app"></div>'; do
               sleep 5
             done
-            until curl -kfsS https://127.0.0.1/index.html | grep -q '<div id="app"></div>'; do
+            until curl -kfsS https://127.0.0.1:8443/index.html | grep -q '<div id="app"></div>'; do
               sleep 5
             done
 
             if [ "$NGINX_CONFIG_CHANGED" -eq 1 ] || [ "$NGINX_CERT_CHANGED" -eq 1 ]; then
-              docker exec cpt202-nginx nginx -s reload
+              docker exec cpt202-nginx-dev nginx -s reload
             fi
 
             ls -la /opt/cpt202-dev

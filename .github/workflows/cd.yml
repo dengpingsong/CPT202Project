@@ -115,6 +115,7 @@ jobs:
           SPRING_DATA_REDIS_PORT: ${{ secrets.SPRING_DATA_REDIS_PORT }}
           SPRING_DATA_REDIS_DATABASE: ${{ secrets.SPRING_DATA_REDIS_DATABASE }}
           SPRING_DATA_REDIS_PASSWORD: ${{ secrets.SPRING_DATA_REDIS_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
           test -n "$ALIYUN_HOST" || { echo "::error::Missing secret ALIYUN_HOST"; exit 1; }
           test -n "$ALIYUN_USERNAME" || { echo "::error::Missing secret ALIYUN_USERNAME"; exit 1; }
@@ -127,6 +128,7 @@ jobs:
           test -n "$SPRING_DATA_REDIS_PORT" || { echo "::error::Missing secret SPRING_DATA_REDIS_PORT"; exit 1; }
           test -n "$SPRING_DATA_REDIS_DATABASE" || { echo "::error::Missing secret SPRING_DATA_REDIS_DATABASE"; exit 1; }
           test -n "$SPRING_DATA_REDIS_PASSWORD" || { echo "::error::Missing secret SPRING_DATA_REDIS_PASSWORD"; exit 1; }
+          test -n "$JWT_SECRET" || { echo "::error::Missing secret JWT_SECRET"; exit 1; }
           test -n "$SPRING_MAIL_USERNAME" || echo "::warning::SPRING_MAIL_USERNAME not set; password reset emails will be disabled"
           test -n "$SPRING_MAIL_PASSWORD" || echo "::warning::SPRING_MAIL_PASSWORD not set; password reset emails will be disabled"
           test -n "$APP_FRONTEND_BASE_URL" || echo "::warning::APP_FRONTEND_BASE_URL not set; reset links will fall back to localhost"
@@ -197,6 +199,7 @@ jobs:
             SPRING_DATA_REDIS_PORT=${{ secrets.SPRING_DATA_REDIS_PORT }}
             SPRING_DATA_REDIS_DATABASE=${{ secrets.SPRING_DATA_REDIS_DATABASE }}
             SPRING_DATA_REDIS_PASSWORD=${{ secrets.SPRING_DATA_REDIS_PASSWORD }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
             EOF
             MAIL_USERNAME_VAL='${{ secrets.SPRING_MAIL_USERNAME }}'
             [ -n "$MAIL_USERNAME_VAL" ] && echo "SPRING_MAIL_USERNAME=$MAIL_USERNAME_VAL" >> /opt/cpt202/.env || true
