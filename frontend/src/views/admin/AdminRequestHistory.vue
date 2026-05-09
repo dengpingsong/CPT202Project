@@ -1,10 +1,33 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted } from 'vue'
+import AppPagination from '../../components/AppPagination.vue'
+import { useResponsivePageResult } from '../../composables/useResponsivePageResult'
 import { adminApi } from '../../utils/api'
 import { toast } from '../../utils/ui-feedback'
 
-const loading = ref(true)
-const records = ref<any[]>([])
+const {
+  tableWrapperRef,
+  loading,
+  records,
+  currentPage,
+  pageSize,
+  total,
+  totalPages,
+  visiblePages,
+  initialize,
+  loadPage: loadData,
+} = useResponsivePageResult<any>({
+  loadPage: async ({ pageNum, pageSize }) => {
+    const res = await adminApi.listRequestHistoryRecordsPage({ pageNum, pageSize })
+    return res.data
+  },
+  onLoadError: (error) => {
+    const message = error instanceof Error ? error.message : 'Failed to load history'
+    toast.error(message)
+  },
+})
+
+void tableWrapperRef
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return '-'
@@ -19,20 +42,9 @@ function formatDate(value: string | null | undefined): string {
   })
 }
 
-async function loadData() {
-  loading.value = true
-  try {
-    const res = await adminApi.listRequestHistoryRecords()
-    records.value = Array.isArray(res.data) ? res.data : []
-  } catch (e: any) {
-    toast.error(e.message || 'Failed to load history')
-    records.value = []
-  } finally {
-    loading.value = false
-  }
-}
-
-onMounted(loadData)
+onMounted(() => {
+  void initialize()
+})
 </script>
 
 <template>
@@ -42,7 +54,7 @@ onMounted(loadData)
     </header>
 
     <div class="panel">
-      <div class="table-wrapper">
+      <div ref="tableWrapperRef" class="table-wrapper">
         <table class="data-table">
           <thead>
             <tr>
@@ -78,7 +90,16 @@ onMounted(loadData)
           </tbody>
         </table>
       </div>
-      <div class="summary">{{ records.length }} record(s)</div>
+      <AppPagination
+        v-if="total > 0"
+        :current-page="currentPage"
+        :total-pages="totalPages"
+        :total-items="total"
+        :page-size="pageSize"
+        :pages="visiblePages"
+        item-label="history records"
+        @change="loadData"
+      />
     </div>
   </div>
 </template>

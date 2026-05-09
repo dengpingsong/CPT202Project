@@ -49,6 +49,79 @@ interface ApiResponse<T = any> {
   data?: T
 }
 
+type ApiSuccessResponse<T> = ApiResponse<T> & { data: T }
+
+export interface PageQuery {
+  pageNum: number
+  pageSize: number
+}
+
+export interface PageResult<T = any> {
+  total: number
+  records: T[]
+  pageNum: number
+  pageSize: number
+  totalPages: number
+}
+
+function toPositiveInt(value: unknown, fallback: number): number {
+  const normalized = Number(value)
+  if (!Number.isFinite(normalized) || normalized < 1) return fallback
+  return Math.floor(normalized)
+}
+
+function toPageNumber(value: unknown, totalPages: number, fallback: number): number {
+  return Math.min(totalPages, toPositiveInt(value, fallback))
+}
+
+function isPageResultPayload<T>(
+  payload: PageResult<T> | T[] | null | undefined,
+): payload is PageResult<T> {
+  return Boolean(payload && !Array.isArray(payload) && 'records' in payload)
+}
+
+export function normalizePageResult<T = any>(
+  payload: PageResult<T> | T[] | null | undefined,
+  fallback: Partial<PageQuery> = {},
+): PageResult<T> {
+  const fallbackPageSize = toPositiveInt(fallback.pageSize, 10)
+  const fallbackPageNum = toPositiveInt(fallback.pageNum, 1)
+
+  if (isPageResultPayload(payload)) {
+    const records = Array.isArray(payload.records) ? payload.records : []
+    const pageSize = toPositiveInt(payload.pageSize, fallbackPageSize)
+    const total = Math.max(records.length, Number(payload.total) || records.length)
+    const totalPages = Math.max(
+      1,
+      toPositiveInt(payload.totalPages, Math.ceil(total / pageSize) || 1),
+    )
+    const pageNum = toPageNumber(payload.pageNum, totalPages, fallbackPageNum)
+
+    return {
+      total,
+      records,
+      pageNum,
+      pageSize,
+      totalPages,
+    }
+  }
+
+  const records = Array.isArray(payload) ? payload : []
+  const pageSize = fallbackPageSize
+  const total = records.length
+  const totalPages = Math.max(1, Math.ceil(total / pageSize) || 1)
+  const pageNum = toPageNumber(fallbackPageNum, totalPages, 1)
+  const start = (pageNum - 1) * pageSize
+
+  return {
+    total,
+    records: records.slice(start, start + pageSize),
+    pageNum,
+    pageSize,
+    totalPages,
+  }
+}
+
 const client = axios.create({
   baseURL: BASE_URL,
   timeout: 15000,
@@ -95,6 +168,18 @@ async function request<T = any>(
     const message =
       error.response?.data?.msg || error.message || 'Request failed.'
     throw new Error(message)
+  }
+}
+
+async function requestPageResult<T = any>(
+  url: string,
+  page: Partial<PageQuery> = {},
+  options: { method?: string; body?: any } = {},
+) : Promise<ApiSuccessResponse<PageResult<T>>> {
+  const result = await request<PageResult<T> | T[]>(url, options)
+  return {
+    ...result,
+    data: normalizePageResult(result.data, page),
   }
 }
 
@@ -159,7 +244,10 @@ export const studentApi = {
     tagIds.forEach((tagId: number | string) =>
       params.append('tagIds', String(tagId)),
     )
-    return request(`/student/projects?${params.toString()}`)
+    return requestPageResult(`/student/projects?${params.toString()}`, {
+      pageNum,
+      pageSize,
+    })
   },
   getProfile: () => request('/student/profile/me'),
   updateProfile: (payload: Record<string, any>) =>
@@ -260,6 +348,20 @@ export const adminApi = {
     const query = params.toString()
     return request(`/admin/users${query ? `?${query}` : ''}`)
   },
+  listUsersPage: (
+    role?: string,
+    accountStatus?: string,
+    page: Partial<PageQuery> = {},
+  ) => {
+    const params = new URLSearchParams()
+    if (role) params.set('role', role)
+    if (accountStatus) params.set('accountStatus', accountStatus)
+    const query = params.toString()
+    return requestPageResult(
+      `/admin/users${query ? `?${query}` : ''}`,
+      page,
+    )
+  },
   updateUserStatus: (userId: number | string, accountStatus: string) =>
     request(`/admin/users/${userId}/status?accountStatus=${accountStatus}`, {
       method: 'PUT',
@@ -271,6 +373,8 @@ export const adminApi = {
 
   // Projects
   listProjects: () => request('/admin/records/projects'),
+  listProjectsPage: (page: Partial<PageQuery> = {}) =>
+    requestPageResult('/admin/records/projects', page),
   listProjectTags: (projectId: number | string) =>
     request(`/admin/projects/${projectId}/tags`),
 
@@ -281,10 +385,26 @@ export const adminApi = {
     const query = params.toString()
     return request(`/admin/records/requests${query ? `?${query}` : ''}`)
   },
+  listRequestRecordsPage: (
+    status?: string,
+    page: Partial<PageQuery> = {},
+  ) => {
+    const params = new URLSearchParams()
+    if (status) params.set('status', status)
+    const query = params.toString()
+    return requestPageResult(
+      `/admin/records/requests${query ? `?${query}` : ''}`,
+      page,
+    )
+  },
   listRequestHistoryRecords: () => request('/admin/records/request-history'),
+  listRequestHistoryRecordsPage: (page: Partial<PageQuery> = {}) =>
+    requestPageResult('/admin/records/request-history', page),
 
   // Categories
   listCategories: () => request('/admin/categories'),
+  listCategoriesPage: (page: Partial<PageQuery> = {}) =>
+    requestPageResult('/admin/categories', page),
   createCategory: (payload: { categoryName: string; description?: string }) =>
     request('/admin/categories', { method: 'POST', body: payload }),
   updateCategory: (
@@ -300,6 +420,8 @@ export const adminApi = {
 
   // Tags
   listTags: () => request('/admin/tags'),
+  listTagsPage: (page: Partial<PageQuery> = {}) =>
+    requestPageResult('/admin/tags', page),
   createTag: (payload: { tagName: string; description?: string }) =>
     request('/admin/tags', { method: 'POST', body: payload }),
   updateTag: (

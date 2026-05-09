@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
+import AppPagination from '../../components/AppPagination.vue'
+import { useResponsivePageResult } from '../../composables/useResponsivePageResult'
 import { adminApi } from '../../utils/api'
 import { toast, confirm } from '../../utils/ui-feedback'
 
-const loading = ref(true)
-const tags = ref<any[]>([])
 const formName = ref('')
 const formDescription = ref('')
 const editingId = ref<number | null>(null)
@@ -12,6 +12,30 @@ const formStatus = ref('')
 const formStatusType = ref<'success' | 'error' | ''>('')
 const saving = ref(false)
 const showFormModal = ref(false)
+
+const {
+  tableWrapperRef,
+  loading,
+  records: tags,
+  currentPage,
+  pageSize,
+  total,
+  totalPages,
+  visiblePages,
+  initialize,
+  loadPage: loadTags,
+} = useResponsivePageResult<any>({
+  loadPage: async ({ pageNum, pageSize }) => {
+    const res = await adminApi.listTagsPage({ pageNum, pageSize })
+    return res.data
+  },
+  onLoadError: (error) => {
+    const message = error instanceof Error ? error.message : 'Failed to load tags'
+    toast.error(message)
+  },
+})
+
+void tableWrapperRef
 
 function setFormStatus(msg: string, type: 'success' | 'error' | '') {
   formStatus.value = msg
@@ -43,19 +67,6 @@ function closeFormModal() {
   resetForm()
 }
 
-async function loadTags() {
-  loading.value = true
-  try {
-    const res = await adminApi.listTags()
-    tags.value = Array.isArray(res.data) ? res.data : []
-  } catch (e: any) {
-    toast.error(e.message || 'Failed to load tags')
-    tags.value = []
-  } finally {
-    loading.value = false
-  }
-}
-
 async function handleSave() {
   if (!formName.value.trim()) {
     setFormStatus('Tag name is required.', 'error')
@@ -79,7 +90,7 @@ async function handleSave() {
       toast.success('Tag created')
     }
     closeFormModal()
-    await loadTags()
+    await loadTags(currentPage.value)
   } catch (e: any) {
     setFormStatus(e.message || 'Failed to save tag', 'error')
   } finally {
@@ -96,13 +107,15 @@ async function handleDelete(tagId: number, name: string) {
     await adminApi.deleteTag(tagId)
     toast.success('Tag deleted')
     if (editingId.value === tagId) resetForm()
-    await loadTags()
+    await loadTags(currentPage.value)
   } catch (e: any) {
     toast.error(e.message || 'Failed to delete tag')
   }
 }
 
-onMounted(loadTags)
+onMounted(() => {
+  void initialize()
+})
 </script>
 
 <template>
@@ -116,7 +129,7 @@ onMounted(loadTags)
     </header>
 
     <div class="panel">
-      <div class="table-wrapper">
+      <div ref="tableWrapperRef" class="table-wrapper">
         <table class="data-table">
           <thead>
             <tr>
@@ -160,6 +173,17 @@ onMounted(loadTags)
           </tbody>
         </table>
       </div>
+
+      <AppPagination
+        v-if="total > 0"
+        :current-page="currentPage"
+        :total-pages="totalPages"
+        :total-items="total"
+        :page-size="pageSize"
+        :pages="visiblePages"
+        item-label="tags"
+        @change="loadTags"
+      />
 
       <Teleport to="body">
         <div
