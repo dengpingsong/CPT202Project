@@ -28,8 +28,7 @@ public class AdminCategoryController {
     private final CategoryService categoryService;
     private final CallbackAuthService callbackAuthService;
 
-    public AdminCategoryController(CategoryService categoryService,
-                                   CallbackAuthService callbackAuthService) {
+    public AdminCategoryController(CategoryService categoryService) {
         this.categoryService = categoryService;
         this.callbackAuthService = callbackAuthService;
     }
@@ -91,9 +90,7 @@ public class AdminCategoryController {
     @PutMapping("/{categoryId}")
     @Operation(summary = "Update a category")
     public Result<Void> update(@PathVariable Long categoryId,
-                               @Valid @RequestBody CategoryDTO categoryDTO,
-                               @RequestHeader("Authorization") String authorization) {
-        callbackAuthService.requireAuth(authorization, User.UserRole.ADMIN);
+                               @Valid @RequestBody CategoryDTO categoryDTO) {
         log.info("Update category: {}, payload: {}", categoryId, categoryDTO);
         categoryService.update(categoryId, categoryDTO);
         return Result.success();

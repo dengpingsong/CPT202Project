@@ -1,6 +1,7 @@
 package com.cpt202.vo;
 
 import com.cpt202.model.entity.ProjectRequest;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -29,6 +30,16 @@ public class ProjectRequestVO {
     private Long studentId;
     /** 学生姓名。 */
     private String studentName;
+    /** 学生学号。 */
+    private String studentNo;
+    /** 学生邮箱。 */
+    private String studentEmail;
+    /** 学生专业。 */
+    private String studentProgramme;
+    /** 学生联系电话。 */
+    private String studentPhone;
+    /** 学生兴趣方向。 */
+    private String studentInterests;
     /** 审核教师主键。 */
     private Long reviewedByTeacherId;
     /** 志愿顺位。 */
@@ -40,9 +51,12 @@ public class ProjectRequestVO {
     /** 审核意见。 */
     private String decisionComment;
     /** 提交时间。 */
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime submittedAt;
     /** 审核时间。 */
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime reviewedAt;
     /** 撤回时间。 */
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime withdrawnAt;
 }

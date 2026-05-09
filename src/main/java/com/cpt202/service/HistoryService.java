@@ -16,6 +16,6 @@ public interface HistoryService {
      * @param requestId 申请主键
      * @return 申请状态历史列表
      */
-    List<RequestStatusHistoryVO> getRequestHistory(Long requestId);
+    List<RequestStatusHistoryVO> getRequestHistory(Long requestId, Long studentId);
 
 }

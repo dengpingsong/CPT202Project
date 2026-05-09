@@ -29,4 +29,8 @@ public class LoginVO {
     private String accountStatus;
     /** JWT 访问令牌。 */
     private String token;
+    /** 是否需要继续完成双重验证。 */
+    private Boolean twoFactorRequired;
+    /** 双重验证登录挑战令牌。 */
+    private String twoFactorChallengeToken;
 }

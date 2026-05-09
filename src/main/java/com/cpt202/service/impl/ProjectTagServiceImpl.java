@@ -1,5 +1,6 @@
 package com.cpt202.service.impl;
 
+import com.cpt202.constant.MessageConstants;
 import com.cpt202.exception.BusinessException;
 import com.cpt202.exception.NotFoundException;
 import com.cpt202.model.entity.Project;
@@ -15,12 +16,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
  * 项目标签服务实现类。
- * <p>
  * 负责查询项目已绑定标签，以及处理项目标签重绑定。
  */
 @Service
@@ -36,14 +37,15 @@ public class ProjectTagServiceImpl implements ProjectTagService {
      */
     @Override
     public List<ProjectTagVO> listProjectTags(Long projectId) {
-        return projectTagRepository.findByProject_ProjectIdOrderByTag_TagIdAsc(projectId)
-                .stream()
-                .map(projectTag -> ProjectTagVO.builder()
-                        .projectId(projectTag.getProject().getProjectId())
-                        .tagId(projectTag.getTag().getTagId())
-                        .tagName(projectTag.getTag().getTagName())
-                        .build())
-                .collect(Collectors.toList());
+        List<ProjectTag> projectTags = projectTagRepository.findByProject_ProjectIdOrderByTag_TagIdAsc(projectId);
+        List<ProjectTagVO> tagVos = new ArrayList<>(projectTags.size());
+        for (ProjectTag projectTag : projectTags) {
+            tagVos.add(new ProjectTagVO(
+                    projectTag.getProject().getProjectId(),
+                    projectTag.getTag().getTagId(),
+                    projectTag.getTag().getTagName()));
+        }
+        return tagVos;
     }
 
     /**
@@ -53,24 +55,25 @@ public class ProjectTagServiceImpl implements ProjectTagService {
     @Transactional
     public void bindProjectTags(Long projectId, Long teacherId, List<Long> tagIds) {
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new NotFoundException("项目不存在。"));
+                .orElseThrow(() -> new NotFoundException(MessageConstants.PROJECT_NOT_FOUND));
         if (project.getTeacher() == null || !teacherId.equals(project.getTeacher().getTeacherId())) {
-            throw new BusinessException("不能修改其他教师名下项目的标签。");
+            throw new BusinessException(MessageConstants.CANNOT_UPDATE_OTHER_TEACHER_TAGS);
         }
 
         List<Tag> tags = tagRepository.findAllById(tagIds);
         if (tags.size() != tagIds.size()) {
-            throw new NotFoundException("部分标签不存在。");
+            throw new NotFoundException(MessageConstants.PARTIAL_TAGS_NOT_FOUND);
         }
 
         projectTagRepository.deleteByProject_ProjectId(projectId);
-        List<ProjectTag> projectTags = tags.stream()
-                .map(tag -> ProjectTag.builder()
-                        .id(new ProjectTagId(projectId, tag.getTagId()))
-                        .project(project)
-                        .tag(tag)
-                        .build())
-                .toList();
+        List<ProjectTag> projectTags = new ArrayList<>(tags.size());
+        for (Tag tag : tags) {
+            ProjectTag projectTag = new ProjectTag();
+            projectTag.setId(new ProjectTagId(projectId, tag.getTagId()));
+            projectTag.setProject(project);
+            projectTag.setTag(tag);
+            projectTags.add(projectTag);
+        }
         projectTagRepository.saveAll(projectTags);
     }
 }

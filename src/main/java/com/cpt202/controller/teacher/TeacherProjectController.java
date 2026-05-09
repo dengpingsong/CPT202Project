@@ -1,5 +1,6 @@
 package com.cpt202.controller.teacher;
 
+import com.cpt202.context.BaseContext;
 import com.cpt202.dto.ProjectDTO;
 import com.cpt202.dto.ProjectStatusUpdateDTO;
 import com.cpt202.dto.TeacherProjectQueryDTO;
@@ -30,8 +31,7 @@ public class TeacherProjectController {
     private final ProjectService projectService;
     private final CallbackAuthService callbackAuthService;
 
-    public TeacherProjectController(ProjectService projectService,
-                                    CallbackAuthService callbackAuthService) {
+    public TeacherProjectController(ProjectService projectService) {
         this.projectService = projectService;
         this.callbackAuthService = callbackAuthService;
     }
@@ -44,11 +44,8 @@ public class TeacherProjectController {
      */
     @GetMapping
     @Operation(summary = "List teacher projects")
-    public Result<List<ProjectVO>> list(@Valid TeacherProjectQueryDTO queryDTO,
-                                        @RequestHeader("Authorization") String authorization) {
-        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
-        ensureCurrentTeacher(queryDTO.getTeacherId(), authContext);
-        return Result.success(projectService.listTeacherProjects(queryDTO.getTeacherId(), queryDTO.getStatus()));
+    public Result<List<ProjectVO>> list(@Valid TeacherProjectQueryDTO queryDTO) {
+        return Result.success(projectService.listTeacherProjects(BaseContext.getCurrentUserId(), queryDTO.getStatus()));
     }
 
     /**
@@ -60,28 +57,20 @@ public class TeacherProjectController {
      */
     @GetMapping("/{projectId}")
     @Operation(summary = "Get teacher project details")
-    public Result<ProjectVO> getById(@PathVariable Long projectId,
-                                     @RequestHeader("Authorization") String authorization) {
-        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
-        ProjectVO project = projectService.getProject(projectId);
-        ensureCurrentTeacher(project.getTeacherId(), authContext);
-        return Result.success(project);
+    public Result<ProjectVO> getById(@PathVariable Long projectId) {
+        return Result.success(projectService.getOwnedProject(projectId, BaseContext.getCurrentUserId()));
     }
 
     /**
      * 新增项目。
      *
      * @param projectDTO 项目新增参数
-     * @return 统一成功响应
+     * @return 新增后的项目展示对象
      */
     @PostMapping
     @Operation(summary = "Create a project")
-    public Result<Void> create(@Valid @RequestBody ProjectDTO projectDTO,
-                               @RequestHeader("Authorization") String authorization) {
-        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
-        ensureCurrentTeacher(projectDTO.getTeacherId(), authContext);
-        projectService.create(projectDTO);
-        return Result.success();
+    public Result<ProjectVO> create(@Valid @RequestBody ProjectDTO projectDTO) {
+        return Result.success(projectService.create(BaseContext.getCurrentUserId(), projectDTO));
     }
 
     /**
@@ -94,11 +83,8 @@ public class TeacherProjectController {
     @PutMapping("/{projectId}")
     @Operation(summary = "Update a project")
     public Result<Void> update(@PathVariable Long projectId,
-                               @Valid @RequestBody ProjectDTO projectDTO,
-                               @RequestHeader("Authorization") String authorization) {
-        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
-        ensureCurrentTeacher(projectDTO.getTeacherId(), authContext);
-        projectService.update(projectId, projectDTO);
+                               @Valid @RequestBody ProjectDTO projectDTO) {
+        projectService.update(projectId, BaseContext.getCurrentUserId(), projectDTO);
         return Result.success();
     }
 
@@ -112,11 +98,8 @@ public class TeacherProjectController {
     @PutMapping("/{projectId}/status")
     @Operation(summary = "Change project status")
     public Result<Void> changeStatus(@PathVariable Long projectId,
-                                     @Valid @RequestBody ProjectStatusUpdateDTO projectStatusUpdateDTO,
-                                     @RequestHeader("Authorization") String authorization) {
-        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
-        ensureCurrentTeacher(projectStatusUpdateDTO.getTeacherId(), authContext);
-        projectService.changeStatus(projectId, projectStatusUpdateDTO);
+                                     @Valid @RequestBody ProjectStatusUpdateDTO projectStatusUpdateDTO) {
+        projectService.changeStatus(projectId, BaseContext.getCurrentUserId(), projectStatusUpdateDTO);
         return Result.success();
     }
 

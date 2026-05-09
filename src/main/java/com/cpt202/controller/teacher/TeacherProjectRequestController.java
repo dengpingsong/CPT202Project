@@ -1,5 +1,6 @@
 package com.cpt202.controller.teacher;
 
+import com.cpt202.context.BaseContext;
 import com.cpt202.dto.ProjectRequestReviewDTO;
 import com.cpt202.dto.TeacherProjectRequestQueryDTO;
 import com.cpt202.exception.UnauthorizedAccessException;
@@ -28,8 +29,7 @@ public class TeacherProjectRequestController {
     private final ProjectRequestService projectRequestService;
     private final CallbackAuthService callbackAuthService;
 
-    public TeacherProjectRequestController(ProjectRequestService projectRequestService,
-                                           CallbackAuthService callbackAuthService) {
+    public TeacherProjectRequestController(ProjectRequestService projectRequestService) {
         this.projectRequestService = projectRequestService;
         this.callbackAuthService = callbackAuthService;
     }
@@ -42,11 +42,8 @@ public class TeacherProjectRequestController {
      */
     @GetMapping
     @Operation(summary = "List teacher requests for review")
-    public Result<List<ProjectRequestVO>> list(@Valid TeacherProjectRequestQueryDTO queryDTO,
-                                               @RequestHeader("Authorization") String authorization) {
-        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
-        ensureCurrentTeacher(queryDTO.getTeacherId(), authContext);
-        return Result.success(projectRequestService.listTeacherRequests(queryDTO.getTeacherId(), queryDTO.getStatus()));
+    public Result<List<ProjectRequestVO>> list(@Valid TeacherProjectRequestQueryDTO queryDTO) {
+        return Result.success(projectRequestService.listTeacherRequests(BaseContext.getCurrentUserId(), queryDTO.getStatus()));
     }
 
     /**
@@ -59,11 +56,8 @@ public class TeacherProjectRequestController {
     @PutMapping("/{requestId}/review")
     @Operation(summary = "Review a project request")
     public Result<Void> review(@PathVariable Long requestId,
-                               @Valid @RequestBody ProjectRequestReviewDTO projectRequestReviewDTO,
-                               @RequestHeader("Authorization") String authorization) {
-        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
-        ensureCurrentTeacher(projectRequestReviewDTO.getTeacherId(), authContext);
-        projectRequestService.review(requestId, projectRequestReviewDTO);
+                               @Valid @RequestBody ProjectRequestReviewDTO projectRequestReviewDTO) {
+        projectRequestService.review(requestId, BaseContext.getCurrentUserId(), projectRequestReviewDTO);
         return Result.success();
     }
 
