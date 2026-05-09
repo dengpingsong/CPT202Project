@@ -212,6 +212,14 @@ jobs:
 
             cd /opt/cpt202-dev
             docker rm -f cpt202-nginx-dev cpt202program-dev cpt202-mysql-dev || true
+            echo "=== Cleaning up containers using dev ports (one-time migration from old names) ==="
+            for port in 8081 9001; do
+              OLD_CID=$(docker ps -q --filter "publish=$port")
+              if [ -n "$OLD_CID" ]; then
+                echo "Removing container $OLD_CID using port $port"
+                docker rm -f "$OLD_CID" || true
+              fi
+            done
             docker compose --env-file /opt/cpt202-dev/.env -f docker-compose.yml -f docker-compose.dev.yml up -d --remove-orphans
 
             echo "=== Waiting for containers to stabilize ==="
