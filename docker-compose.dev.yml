@@ -19,8 +19,8 @@ services:
     networks: !override
       - cpt202-network-dev
     ports: !override
-      - "8082:80"
-      - "8443:443"
+      - "8090:80"
+      - "9002:443"
 
 volumes:
   cpt202-mysql-data-dev:
@@ -29,4 +29,3 @@ volumes:
 networks:
   cpt202-network-dev:
     external: true
-
