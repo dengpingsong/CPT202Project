@@ -213,7 +213,7 @@ jobs:
             cd /opt/cpt202-dev
             docker rm -f cpt202-nginx-dev cpt202program-dev cpt202-mysql-dev || true
             echo "=== Cleaning up containers using dev ports (one-time migration from old names) ==="
-            for port in 8081 8082 8443 9001; do
+            for port in 8081 8090 9001 9002; do
               OLD_CID=$(docker ps -q --filter "publish=$port")
               if [ -n "$OLD_CID" ]; then
                 echo "Removing container $OLD_CID using port $port"
@@ -240,7 +240,7 @@ jobs:
             echo "=== Waiting for app to serve index.html (max 5 min) ==="
             ATTEMPTS=0
             MAX_ATTEMPTS=60
-            until curl -fsS http://127.0.0.1:8082/index.html | grep -q '<div id="app"></div>'; do
+            until curl -fsS http://127.0.0.1:8090/index.html | grep -q '<div id="app"></div>'; do
               ATTEMPTS=$((ATTEMPTS + 1))
               if [ "$ATTEMPTS" -ge "$MAX_ATTEMPTS" ]; then
                 echo "ERROR: App failed to become healthy after $MAX_ATTEMPTS attempts"
@@ -256,7 +256,7 @@ jobs:
 
             echo "=== Waiting for HTTPS healthcheck (max 2 min) ==="
             ATTEMPTS=0
-            until curl -kfsS https://127.0.0.1:8443/index.html | grep -q '<div id="app"></div>'; do
+            until curl -kfsS https://127.0.0.1:9002/index.html | grep -q '<div id="app"></div>'; do
               ATTEMPTS=$((ATTEMPTS + 1))
               if [ "$ATTEMPTS" -ge 24 ]; then
                 echo "WARNING: HTTPS healthcheck timed out, continuing anyway"
