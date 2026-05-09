@@ -8,11 +8,13 @@ services:
       - cpt202-mysql-data-dev:/var/lib/mysql
   app:
     container_name: cpt202program-dev
-    ports:
+    # !override replaces base ports instead of appending. Without it,
+    # dev app would also bind host 8080 (from base) and collide with prod.
+    ports: !override
       - "8081:8080"
   nginx:
     container_name: cpt202-nginx-dev
-    ports:
+    ports: !override
       - "8082:80"
       - "8443:443"
 
