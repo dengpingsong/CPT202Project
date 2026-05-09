@@ -2,8 +2,6 @@ package com.cpt202.controller.teacher;
 
 import com.cpt202.context.BaseContext;
 import com.cpt202.dto.ProjectTagBindDTO;
-import com.cpt202.exception.UnauthorizedAccessException;
-import com.cpt202.model.entity.User;
 import com.cpt202.result.Result;
 import com.cpt202.service.ProjectService;
 import com.cpt202.service.ProjectTagService;
@@ -59,19 +57,10 @@ public class TeacherProjectTagController {
     @PutMapping("/{projectId}")
     @Operation(summary = "Bind tags to a project")
     public Result<Void> bindProjectTags(@PathVariable Long projectId,
-                                        @Valid @RequestBody ProjectTagBindDTO bindDTO,
-                                        @RequestHeader("Authorization") String authorization) {
-        AuthContext authContext = callbackAuthService.requireAuth(authorization, User.UserRole.TEACHER);
-        ensureCurrentTeacher(bindDTO.getTeacherId(), authContext);
+                                        @Valid @RequestBody ProjectTagBindDTO bindDTO) {
         log.info("Bind project tags, projectId: {}, teacherId: {}, tagIds: {}",
                 projectId, BaseContext.getCurrentUserId(), bindDTO.getTagIds());
         projectTagService.bindProjectTags(projectId, BaseContext.getCurrentUserId(), bindDTO.getTagIds());
         return Result.success();
-    }
-
-    private void ensureCurrentTeacher(Long teacherId, AuthContext authContext) {
-        if (!authContext.userId().equals(teacherId)) {
-            throw new UnauthorizedAccessException("不能修改其他教师名下项目的标签。");
-        }
     }
 }
