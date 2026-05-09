@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
+import AppPagination from '../../components/AppPagination.vue'
+import { useResponsivePageResult } from '../../composables/useResponsivePageResult'
 import { adminApi } from '../../utils/api'
 import { toast } from '../../utils/ui-feedback'
 
-const loading = ref(true)
-const users = ref<any[]>([])
 const roleFilter = ref('')
 const statusFilter = ref('')
 const showEditModal = ref(false)
@@ -16,31 +16,43 @@ const formStatus = ref('')
 const formStatusType = ref<'success' | 'error' | ''>('')
 const saving = ref(false)
 
+const {
+  tableWrapperRef,
+  loading,
+  records: users,
+  currentPage,
+  pageSize,
+  total,
+  totalPages,
+  visiblePages,
+  initialize,
+  loadPage: loadUsers,
+} = useResponsivePageResult<any>({
+  loadPage: async ({ pageNum, pageSize }) => {
+    const res = await adminApi.listUsersPage(
+      roleFilter.value || undefined,
+      statusFilter.value || undefined,
+      { pageNum, pageSize },
+    )
+    return res.data
+  },
+  onLoadError: (error) => {
+    const message = error instanceof Error ? error.message : 'Failed to load users'
+    toast.error(message)
+  },
+})
+
+void tableWrapperRef
+
 function statusColor(status: string): string {
   const s = String(status || '').toUpperCase()
   return s === 'ACTIVE' ? 'var(--green)' : 'var(--red)'
 }
 
-async function loadUsers() {
-  loading.value = true
-  try {
-    const res = await adminApi.listUsers(
-      roleFilter.value || undefined,
-      statusFilter.value || undefined,
-    )
-    users.value = Array.isArray(res.data) ? res.data : []
-  } catch (e: any) {
-    toast.error(e.message || 'Failed to load users')
-    users.value = []
-  } finally {
-    loading.value = false
-  }
-}
-
 function resetFilters() {
   roleFilter.value = ''
   statusFilter.value = ''
-  void loadUsers()
+  void loadUsers(1)
 }
 
 function setFormStatus(msg: string, type: 'success' | 'error' | '') {
@@ -101,7 +113,7 @@ async function saveUser() {
     }
     toast.success('User updated')
     closeEditModal()
-    await loadUsers()
+    await loadUsers(currentPage.value)
   } catch (e: any) {
     setFormStatus(e.message || 'Failed to update user', 'error')
   } finally {
@@ -115,13 +127,15 @@ async function toggleStatus(userId: number, currentStatus: string) {
   try {
     await adminApi.updateUserStatus(userId, newStatus)
     toast.success(`User ${newStatus === 'ACTIVE' ? 'enabled' : 'disabled'}`)
-    await loadUsers()
+    await loadUsers(currentPage.value)
   } catch (e: any) {
     toast.error(e.message || 'Failed to update user status')
   }
 }
 
-onMounted(loadUsers)
+onMounted(() => {
+  void initialize()
+})
 </script>
 
 <template>
@@ -133,7 +147,7 @@ onMounted(loadUsers)
     <div class="panel">
       <div class="filters-row">
         <span class="filter-control select-control">
-          <select v-model="roleFilter" aria-label="Role" @change="loadUsers()">
+          <select v-model="roleFilter" aria-label="Role" @change="loadUsers(1)">
             <option value="">All Roles</option>
             <option value="ADMIN">Admin</option>
             <option value="TEACHER">Teacher</option>
@@ -144,7 +158,7 @@ onMounted(loadUsers)
           <select
             v-model="statusFilter"
             aria-label="Account Status"
-            @change="loadUsers()"
+            @change="loadUsers(1)"
           >
             <option value="">All Account Status</option>
             <option value="ACTIVE">Active</option>
@@ -157,7 +171,7 @@ onMounted(loadUsers)
         </button>
       </div>
 
-      <div class="table-wrapper">
+      <div ref="tableWrapperRef" class="table-wrapper">
         <table class="data-table">
           <thead>
             <tr>
@@ -225,7 +239,16 @@ onMounted(loadUsers)
           </tbody>
         </table>
       </div>
-      <div class="summary">{{ users.length }} user(s)</div>
+      <AppPagination
+        v-if="total > 0"
+        :current-page="currentPage"
+        :total-pages="totalPages"
+        :total-items="total"
+        :page-size="pageSize"
+        :pages="visiblePages"
+        item-label="users"
+        @change="loadUsers"
+      />
 
       <Teleport to="body">
         <div

@@ -1,12 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { studentApi } from '../../utils/api'
-import { toast } from '../../utils/ui-feedback'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import AppPagination from '../../components/AppPagination.vue'
+import { useResponsivePageResult } from '../../composables/useResponsivePageResult'
+import { normalizePageResult, studentApi } from '../../utils/api'
+import { toast } from '../../utils/ui-feedback'
 
-// State
-const loading = ref(true)
-const projects = ref<any[]>([])
 const tags = ref<any[]>([])
 const categories = ref<any[]>([])
 const selectedTagIds = ref<Set<string>>(new Set())
@@ -15,22 +13,36 @@ const keyword = ref('')
 const categoryId = ref('')
 const statusFilter = ref('')
 
-const currentPage = ref(1)
-const pageSize = ref(8)
-const total = ref(0)
-const totalPages = ref(1)
-
 let keywordTimer: ReturnType<typeof setTimeout> | null = null
 
-// Computed
-const visiblePages = computed(() => {
-  const tp = totalPages.value
-  const cp = currentPage.value
-  if (tp <= 5) return Array.from({ length: tp }, (_, i) => i + 1)
-  if (cp <= 3) return [1, 2, 3, 4, 5]
-  if (cp >= tp - 2) return [tp - 4, tp - 3, tp - 2, tp - 1, tp]
-  return [cp - 2, cp - 1, cp, cp + 1, cp + 2]
+const {
+  tableWrapperRef,
+  loading,
+  records: projects,
+  currentPage,
+  pageSize,
+  total,
+  totalPages,
+  visiblePages,
+  initialize,
+  loadPage: loadProjects,
+} = useResponsivePageResult<any>({
+  loadPage: async ({ pageNum, pageSize }) => {
+    const res = await studentApi.getProjects(pageNum, pageSize, {
+      keyword: keyword.value.trim(),
+      categoryId: categoryId.value,
+      status: statusFilter.value,
+      tagIds: Array.from(selectedTagIds.value),
+    })
+    return normalizePageResult(res.data, { pageNum, pageSize })
+  },
+  onLoadError: (error) => {
+    const message = error instanceof Error ? error.message : 'Failed to load projects'
+    toast.error(message)
+  },
 })
+
+void tableWrapperRef
 
 // Helpers
 function normalizeStatus(status: string | null | undefined): string {
@@ -58,7 +70,9 @@ function projectStatusText(status: string | null | undefined): string {
 
 function onKeywordInput() {
   if (keywordTimer) clearTimeout(keywordTimer)
-  keywordTimer = setTimeout(() => loadProjects(1), 250)
+  keywordTimer = setTimeout(() => {
+    void loadProjects(1)
+  }, 250)
 }
 
 function toggleTag(tagId: string) {
@@ -69,12 +83,12 @@ function toggleTag(tagId: string) {
   }
   // Force reactivity
   selectedTagIds.value = new Set(selectedTagIds.value)
-  loadProjects(1)
+  void loadProjects(1)
 }
 
 function clearTagFilters() {
   selectedTagIds.value = new Set()
-  loadProjects(1)
+  void loadProjects(1)
 }
 
 function clearAllFilters() {
@@ -82,34 +96,7 @@ function clearAllFilters() {
   categoryId.value = ''
   statusFilter.value = ''
   selectedTagIds.value = new Set()
-  loadProjects(1)
-}
-
-// Data loading
-async function loadProjects(page: number) {
-  loading.value = true
-  try {
-    const res = await studentApi.getProjects(page, pageSize.value, {
-      keyword: keyword.value.trim(),
-      categoryId: categoryId.value,
-      status: statusFilter.value,
-      tagIds: Array.from(selectedTagIds.value),
-    })
-    const data = res.data
-    projects.value = Array.isArray(data?.records) ? data.records : []
-    total.value = Number(data?.total || projects.value.length)
-    totalPages.value = Math.max(
-      1,
-      Number(data?.totalPages || Math.ceil(total.value / pageSize.value) || 1),
-    )
-    currentPage.value = Math.max(1, Number(data?.pageNum || page))
-  } catch (e: any) {
-    toast.error(e.message || 'Failed to load projects')
-    projects.value = []
-    total.value = 0
-  } finally {
-    loading.value = false
-  }
+  void loadProjects(1)
 }
 
 async function loadTags() {
@@ -132,10 +119,14 @@ async function loadCategories() {
 
 async function init() {
   await Promise.all([loadTags(), loadCategories()])
-  await loadProjects(1)
+  await initialize()
 }
 
 onMounted(init)
+
+onBeforeUnmount(() => {
+  if (keywordTimer) clearTimeout(keywordTimer)
+})
 </script>
 
 <template>
@@ -216,7 +207,7 @@ onMounted(init)
       </div>
 
       <!-- Table -->
-      <div class="table-wrapper">
+      <div ref="tableWrapperRef" class="table-wrapper">
         <table class="project-table">
           <thead>
             <tr>

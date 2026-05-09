@@ -1,12 +1,36 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
+import AppPagination from '../../components/AppPagination.vue'
+import { useResponsivePageResult } from '../../composables/useResponsivePageResult'
 import { adminApi } from '../../utils/api'
 import { toast } from '../../utils/ui-feedback'
 
-const loading = ref(true)
-const projects = ref<any[]>([])
 const showDetail = ref(false)
 const selectedProject = ref<any>(null)
+
+const {
+  tableWrapperRef,
+  loading,
+  records: projects,
+  currentPage,
+  pageSize,
+  total,
+  totalPages,
+  visiblePages,
+  initialize,
+  loadPage: loadProjects,
+} = useResponsivePageResult<any>({
+  loadPage: async ({ pageNum, pageSize }) => {
+    const res = await adminApi.listProjectsPage({ pageNum, pageSize })
+    return res.data
+  },
+  onLoadError: (error) => {
+    const message = error instanceof Error ? error.message : 'Failed to load projects'
+    toast.error(message)
+  },
+})
+
+void tableWrapperRef
 
 function normalizeStatus(status: string | null | undefined): string {
   const s = String(status || 'UNKNOWN').toUpperCase()
@@ -35,36 +59,25 @@ function formatDate(value: string | null | undefined): string {
   })
 }
 
-async function loadProjects() {
-  loading.value = true
-  try {
-    const res = await adminApi.listProjects()
-    projects.value = Array.isArray(res.data) ? res.data : []
-  } catch (e: any) {
-    toast.error(e.message || 'Failed to load projects')
-    projects.value = []
-  } finally {
-    loading.value = false
-  }
-}
-
 function openDetail(project: any) {
   selectedProject.value = project
   showDetail.value = true
 }
 
-onMounted(loadProjects)
+onMounted(() => {
+  void initialize()
+})
 </script>
 
 <template>
   <div class="page">
     <header class="page-header">
       <h1>Project Overview</h1>
-      <span class="badge">{{ projects.length }}</span>
+      <span class="badge">{{ total }}</span>
     </header>
 
     <div class="panel">
-      <div class="table-wrapper">
+      <div ref="tableWrapperRef" class="table-wrapper">
         <table class="data-table">
           <thead>
             <tr>
@@ -109,7 +122,16 @@ onMounted(loadProjects)
           </tbody>
         </table>
       </div>
-      <div class="summary">{{ projects.length }} project(s)</div>
+      <AppPagination
+        v-if="total > 0"
+        :current-page="currentPage"
+        :total-pages="totalPages"
+        :total-items="total"
+        :page-size="pageSize"
+        :pages="visiblePages"
+        item-label="projects"
+        @change="loadProjects"
+      />
     </div>
 
     <!-- Detail Modal -->

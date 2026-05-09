@@ -1,11 +1,38 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
+import AppPagination from '../../components/AppPagination.vue'
+import { useResponsivePageResult } from '../../composables/useResponsivePageResult'
 import { adminApi } from '../../utils/api'
 import { toast } from '../../utils/ui-feedback'
 
-const loading = ref(true)
-const records = ref<any[]>([])
 const statusFilter = ref('')
+
+const {
+  tableWrapperRef,
+  loading,
+  records,
+  currentPage,
+  pageSize,
+  total,
+  totalPages,
+  visiblePages,
+  initialize,
+  loadPage: loadData,
+} = useResponsivePageResult<any>({
+  loadPage: async ({ pageNum, pageSize }) => {
+    const res = await adminApi.listRequestRecordsPage(
+      statusFilter.value || undefined,
+      { pageNum, pageSize },
+    )
+    return res.data
+  },
+  onLoadError: (error) => {
+    const message = error instanceof Error ? error.message : 'Failed to load requests'
+    toast.error(message)
+  },
+})
+
+void tableWrapperRef
 
 function normalizeStatus(status: string | null | undefined): string {
   return String(status || 'UNKNOWN').toUpperCase()
@@ -33,34 +60,14 @@ function formatDate(value: string | null | undefined): string {
   })
 }
 
-const filteredRecords = computed(() => {
-  if (!statusFilter.value) return records.value
-  return records.value.filter(
-    (r) => normalizeStatus(r.requestStatus) === statusFilter.value,
-  )
-})
-
-async function loadData() {
-  loading.value = true
-  try {
-    const res = await adminApi.listRequestRecords(
-      statusFilter.value || undefined,
-    )
-    records.value = Array.isArray(res.data) ? res.data : []
-  } catch (e: any) {
-    toast.error(e.message || 'Failed to load requests')
-    records.value = []
-  } finally {
-    loading.value = false
-  }
-}
-
 function resetFilters() {
   statusFilter.value = ''
-  void loadData()
+  void loadData(1)
 }
 
-onMounted(loadData)
+onMounted(() => {
+  void initialize()
+})
 </script>
 
 <template>
@@ -75,7 +82,7 @@ onMounted(loadData)
           <select
             v-model="statusFilter"
             aria-label="Request Status"
-            @change="loadData()"
+            @change="loadData(1)"
           >
             <option value="">All Request Status</option>
             <option value="PENDING">Pending</option>
@@ -90,7 +97,7 @@ onMounted(loadData)
         </button>
       </div>
 
-      <div class="table-wrapper">
+      <div ref="tableWrapperRef" class="table-wrapper">
         <table class="data-table">
           <thead>
             <tr>
@@ -109,12 +116,12 @@ onMounted(loadData)
                 Loading...
               </td>
             </tr>
-            <tr v-else-if="filteredRecords.length === 0">
+            <tr v-else-if="records.length === 0">
               <td colspan="7" style="text-align: center; color: #888">
                 No records found
               </td>
             </tr>
-            <tr v-for="r in filteredRecords" :key="r.requestId">
+            <tr v-for="r in records" :key="r.requestId">
               <td>{{ r.requestId }}</td>
               <td>{{ r.projectTitle || '-' }}</td>
               <td>{{ r.studentName || '-' }}</td>
@@ -136,7 +143,16 @@ onMounted(loadData)
           </tbody>
         </table>
       </div>
-      <div class="summary">{{ filteredRecords.length }} record(s)</div>
+      <AppPagination
+        v-if="total > 0"
+        :current-page="currentPage"
+        :total-pages="totalPages"
+        :total-items="total"
+        :page-size="pageSize"
+        :pages="visiblePages"
+        item-label="records"
+        @change="loadData"
+      />
     </div>
   </div>
 </template>
