@@ -1,6 +1,6 @@
 package com.cpt202.controller.student;
 
-import com.cpt202.model.entity.User;
+import com.cpt202.context.BaseContext;
 import com.cpt202.result.Result;
 import com.cpt202.service.CallbackAuthService;
 import com.cpt202.service.HistoryService;
@@ -25,8 +25,7 @@ public class StudentRequestHistoryController {
     private final HistoryService historyService;
     private final CallbackAuthService callbackAuthService;
 
-    public StudentRequestHistoryController(HistoryService historyService,
-                                           CallbackAuthService callbackAuthService) {
+    public StudentRequestHistoryController(HistoryService historyService) {
         this.historyService = historyService;
         this.callbackAuthService = callbackAuthService;
     }
@@ -44,6 +43,6 @@ public class StudentRequestHistoryController {
                                       @RequestHeader("Authorization") String authorization) {
         callbackAuthService.requireAuth(authorization, User.UserRole.STUDENT);
         log.info("Get request history: {}", requestId);
-        return Result.success(historyService.getRequestHistory(requestId));
+        return Result.success(historyService.getRequestHistory(requestId, BaseContext.getCurrentUserId()));
     }
 }

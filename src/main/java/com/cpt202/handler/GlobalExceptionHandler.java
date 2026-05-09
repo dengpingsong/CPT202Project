@@ -1,11 +1,14 @@
 package com.cpt202.handler;
 
+import com.cpt202.constant.MessageConstants;
 import com.cpt202.exception.BusinessException;
 import com.cpt202.exception.NotFoundException;
 import com.cpt202.exception.RuleViolationException;
 import com.cpt202.exception.UnauthorizedAccessException;
 import com.cpt202.result.Result;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  */
 @Slf4j
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
 
     /**
@@ -28,38 +32,21 @@ public class GlobalExceptionHandler {
         return Result.error(ex.getMessage());
     }
 
-    /**
-     * 处理 Module 8 的业务规则违规异常。
-     * 当你在代码里 throw new RuleViolationException 时，会在这里被接住并返回 code: 0。
-     */
-    @ExceptionHandler(RuleViolationException.class)
-    public Result<Void> handleRuleViolationException(RuleViolationException ex) {
-        log.error("Module 8 业务规则拦截: {}", ex.getMessage());
-        // Result.error 内部会自动将 code 设为 0
-        return Result.error(ex.getMessage());
-    }
-
-    /**
-     * 处理通用的业务异常。
-     */
-    @ExceptionHandler(BusinessException.class)
-    public Result<Void> handleBusinessException(BusinessException ex) {
-        log.error("业务异常: {}", ex.getMessage());
-        return Result.error(ex.getMessage());
-    }
-
-    /**
-     * 处理资源未找到异常。
-     */
     @ExceptionHandler(NotFoundException.class)
     public Result<Void> handleNotFoundException(NotFoundException ex) {
-        log.error("资源未找到: {}", ex.getMessage());
         return Result.error(ex.getMessage());
     }
 
-    /**
-     * 处理 Spring Validation 参数校验异常。
-     */
+    @ExceptionHandler(RuleViolationException.class)
+    public Result<Void> handleRuleViolationException(RuleViolationException ex) {
+        return Result.error(ex.getMessage());
+    }
+
+    @ExceptionHandler(UnauthorizedAccessException.class)
+    public Result<Void> handleUnauthorizedAccessException(UnauthorizedAccessException ex) {
+        return Result.error(ex.getMessage());
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public Result<Void> handleValidationException(MethodArgumentNotValidException ex) {
         String message = ex.getBindingResult().getFieldErrors().stream()
@@ -68,5 +55,23 @@ public class GlobalExceptionHandler {
                 .orElse("Validation failed");
         log.error("参数校验失败: {}", message);
         return Result.error(message);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public Result<Void> handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
+        log.warn("Data integrity violation", ex);
+        return Result.error(MessageConstants.DATA_INTEGRITY_VIOLATION);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public Result<Void> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
+        log.warn("Invalid request body", ex);
+        return Result.error(MessageConstants.INVALID_REQUEST_BODY);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public Result<Void> handleUnexpectedException(Exception ex) {
+        log.error("Unexpected server error", ex);
+        return Result.error(MessageConstants.INTERNAL_SERVER_ERROR);
     }
 }

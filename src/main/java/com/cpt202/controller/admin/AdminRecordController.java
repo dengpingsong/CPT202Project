@@ -30,8 +30,7 @@ public class AdminRecordController {
     private final RecordService recordService;
     private final CallbackAuthService callbackAuthService;
 
-    public AdminRecordController(RecordService recordService,
-                                 CallbackAuthService callbackAuthService) {
+    public AdminRecordController(RecordService recordService) {
         this.recordService = recordService;
         this.callbackAuthService = callbackAuthService;
     }

@@ -2,6 +2,7 @@
 
 基于 **Spring Boot 3** 构建的毕业设计选题系统后端，支持学生、教师与管理员三种角色，涵盖项目发布、申请审核、标签分类等完整业务流程。
 
+
 ---
 
 ## 技术栈
@@ -17,6 +18,7 @@
 | 测试 | JUnit 5 · Mockito · Spring MockMvc |
 | 构建 | Maven 3 |
 | CI/CD | GitHub Actions |
+| 反向代理 | Nginx（Docker Compose 编排） |
 
 ---
 
@@ -77,11 +79,12 @@ CPT202Program/
 | `GET/POST/PUT/DELETE /api/admin/categories` | 分类管理 |
 | `GET/POST/PUT/DELETE /api/admin/tags` | 标签管理 |
 | `GET /api/admin/users` | 用户列表（角色/状态过滤） |
+| `PUT /api/admin/users/{id}` | 修改用户基础信息 |
 | `PUT /api/admin/users/{id}/status` | 修改账号状态 |
 
 ### 选题业务规则（Module8）
 
-- 申请截止日期校验（硬编码 `2026-05-29 23:59`）
+- 每个项目由教师单独设置申请截止日期
 - 一名学生只可持有一个 `PENDING` 或 `ACCEPTED` 申请
 - 审核通过后，该学生其余 `PENDING` 申请自动置为 `REJECTED`
 - 项目录取人数达到上限后自动置为 `CLOSED`
@@ -117,7 +120,7 @@ CPT202Program/
 mvn spring-boot:run
 ```
 
-服务启动于 **http://localhost:8080**，H2 控制台可通过 `/h2-console` 访问。
+服务启动后可通过 **http://localhost:8080** 直接访问应用；部署环境通过 **Nginx 80 端口** 对外提供入口。
 
 ### API 文档
 
@@ -139,3 +142,19 @@ GitHub Actions（`.github/workflows/ci.yml`）在每次推送或 PR 至 `main` /
 2. **Test** — 执行全部 JUnit 5 测试，上传 Surefire 报告
 3. **Package** *(仅 main/master)* — 打包可执行 JAR 并上传为构建产物
 
+生产/开发部署工作流（`.github/workflows/cd.yml`、`.github/workflows/devcd.yml`）会将以下文件一并上传到服务器并执行 `docker compose up -d`：
+
+- `docker-compose.yml`
+- `docker-compose.dev.yml`
+- `nginx/nginx.conf`
+
+其中 `nginx` 容器监听宿主机 `80/443` 端口，并将请求反向代理到内部 `app:8080`。
+
+当前 `nginx` 路由策略：
+
+- `/api/*`：转发到 Spring Boot 接口，并关闭浏览器缓存
+- `*.css`、`*.js`：短时缓存（1 小时）
+- 图片、字体等静态资源：较长缓存（7 天）
+- `*.html` 和其他页面入口：不缓存，避免页面发布后客户端拿到旧页面
+
+由于当前没有正式域名，CD 会在服务器首次部署时自动生成**自签名证书**以启用 HTTPS。因此技术上可以通过 `https://服务器IP或主机地址` 访问，但浏览器会提示证书不受信任；拿到域名后建议替换为受信任 CA 证书。

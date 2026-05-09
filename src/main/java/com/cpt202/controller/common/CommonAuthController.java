@@ -1,7 +1,13 @@
 package com.cpt202.controller.common;
 
 import com.cpt202.dto.LoginDTO;
+import com.cpt202.dto.EmailOtpLoginDTO;
+import com.cpt202.dto.EmailOtpRequestDTO;
+import com.cpt202.dto.PasswordResetConfirmDTO;
+import com.cpt202.dto.PasswordResetRequestDTO;
 import com.cpt202.dto.RegisterUserDTO;
+import com.cpt202.dto.TwoFactorLoginVerifyDTO;
+import com.cpt202.constant.MessageConstants;
 import com.cpt202.result.Result;
 import com.cpt202.service.AuthService;
 import com.cpt202.vo.LoginVO;
@@ -52,6 +58,78 @@ public class CommonAuthController {
     @Operation(summary = "Log in a common user")
     public Result<LoginVO> login(@Valid @RequestBody LoginDTO loginDTO) {
         return Result.success(authService.login(loginDTO));
+    }
+
+    /**
+     * 发送邮箱验证码登录邮件。
+     *
+     * @param requestDTO 邮箱参数
+     * @return 统一成功响应
+     */
+    @PostMapping("/email-otp/send")
+    @Operation(summary = "Send email OTP for login")
+    public Result<String> sendEmailOtp(@Valid @RequestBody EmailOtpRequestDTO requestDTO) {
+        authService.sendEmailLoginOtp(requestDTO);
+        return Result.success(MessageConstants.EMAIL_OTP_SENT);
+    }
+
+    /**
+     * 发送注册邮箱验证码邮件。
+     * 调用前会校验邮箱域名是否在允许范围（@student.xjtlu.edu.cn 或 @xjtlu.edu.cn）
+     * 以及邮箱是否已被注册。
+     *
+     * @param requestDTO 邮箱参数
+     * @return 统一成功响应
+     */
+    @PostMapping("/register/email-otp/send")
+    @Operation(summary = "Send email OTP for registration")
+    public Result<String> sendRegisterEmailOtp(@Valid @RequestBody EmailOtpRequestDTO requestDTO) {
+        authService.sendEmailRegisterOtp(requestDTO);
+        return Result.success(MessageConstants.EMAIL_OTP_SENT);
+    }
+
+    /**
+     * 通过邮箱验证码登录。
+     *
+     * @param loginDTO 邮箱验证码登录参数
+     * @return 登录展示对象
+     */
+    @PostMapping("/email-otp/login")
+    @Operation(summary = "Log in with email OTP")
+    public Result<LoginVO> loginWithEmailOtp(@Valid @RequestBody EmailOtpLoginDTO loginDTO) {
+        return Result.success(authService.loginWithEmailOtp(loginDTO));
+    }
+
+    @PostMapping("/2fa/verify-login")
+    @Operation(summary = "Verify password login with TOTP")
+    public Result<LoginVO> verifyPasswordLoginTwoFactor(@Valid @RequestBody TwoFactorLoginVerifyDTO verifyDTO) {
+        return Result.success(authService.verifyPasswordLoginTwoFactor(verifyDTO));
+    }
+
+    /**
+     * 发送密码重置链接邮件。
+     *
+     * @param requestDTO 邮箱参数
+     * @return 统一成功响应
+     */
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Send password reset email")
+    public Result<String> requestPasswordReset(@Valid @RequestBody PasswordResetRequestDTO requestDTO) {
+        authService.requestPasswordReset(requestDTO);
+        return Result.success(MessageConstants.PASSWORD_RESET_EMAIL_SENT);
+    }
+
+    /**
+     * 通过重置令牌更新密码。
+     *
+     * @param confirmDTO 重置确认参数
+     * @return 统一成功响应
+     */
+    @PostMapping("/reset-password")
+    @Operation(summary = "Reset password by email token")
+    public Result<Void> resetPassword(@Valid @RequestBody PasswordResetConfirmDTO confirmDTO) {
+        authService.resetPassword(confirmDTO);
+        return Result.success();
     }
 
     /**

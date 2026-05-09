@@ -27,8 +27,7 @@ public class AdminTagController {
     private final TagService tagService;
     private final CallbackAuthService callbackAuthService;
 
-    public AdminTagController(TagService tagService,
-                              CallbackAuthService callbackAuthService) {
+    public AdminTagController(TagService tagService) {
         this.tagService = tagService;
         this.callbackAuthService = callbackAuthService;
     }
@@ -90,9 +89,7 @@ public class AdminTagController {
     @PutMapping("/{tagId}")
     @Operation(summary = "Update a tag")
     public Result<Void> update(@PathVariable Long tagId,
-                               @Valid @RequestBody TagDTO tagDTO,
-                               @RequestHeader("Authorization") String authorization) {
-        callbackAuthService.requireAuth(authorization, User.UserRole.ADMIN);
+                               @Valid @RequestBody TagDTO tagDTO) {
         log.info("Update tag: {}, payload: {}", tagId, tagDTO);
         tagService.update(tagId, tagDTO);
         return Result.success();

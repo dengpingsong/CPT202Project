@@ -1,22 +1,36 @@
 package com.cpt202.service.impl;
 
+import com.cpt202.constant.MessageConstants;
 import com.cpt202.dto.ProjectDTO;
 import com.cpt202.dto.ProjectStatusUpdateDTO;
+import com.cpt202.dto.StudentProjectQueryDTO;
 import com.cpt202.exception.BusinessException;
 import com.cpt202.exception.NotFoundException;
 import com.cpt202.model.entity.Project;
+import com.cpt202.model.entity.ProjectRequest;
 import com.cpt202.model.entity.ProjectStatusHistory;
+import com.cpt202.model.entity.RequestStatusHistory;
 import com.cpt202.model.entity.TeacherProfile;
 import com.cpt202.repository.CategoryRepository;
 import com.cpt202.repository.ProjectRepository;
+import com.cpt202.repository.ProjectRequestRepository;
 import com.cpt202.repository.ProjectStatusHistoryRepository;
+import com.cpt202.repository.RequestStatusHistoryRepository;
 import com.cpt202.repository.TeacherProfileRepository;
+import com.cpt202.result.PageResult;
 import com.cpt202.service.ProjectService;
+import com.cpt202.validation.ProjectValidationService;
 import com.cpt202.vo.ProjectVO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
@@ -24,7 +38,6 @@ import java.util.stream.Collectors;
 
 /**
  * 项目服务实现类。
- * <p>
  * 负责项目查询、创建、修改和状态流转等业务逻辑的实现。
  */
 @Service
@@ -35,20 +48,35 @@ public class ProjectServiceImpl implements ProjectService {
     private final TeacherProfileRepository teacherProfileRepository;
     private final CategoryRepository categoryRepository;
     private final ProjectStatusHistoryRepository projectStatusHistoryRepository;
+    private final ProjectRequestRepository projectRequestRepository;
+    private final RequestStatusHistoryRepository requestStatusHistoryRepository;
+    private final ProjectValidationService projectValidationService;
 
     /**
      * 查询学生端项目列表。
      */
     @Override
-    public List<ProjectVO> listStudentProjects(String keyword, Long categoryId, Project.ProjectStatus status) {
-        String normalizedKeyword = keyword == null ? null : keyword.trim().toLowerCase(Locale.ROOT);
-        return projectRepository.findAll().stream()
-                .filter(project -> status == null || project.getProjectStatus() == status)
-                .filter(project -> categoryId == null
-                        || (project.getCategory() != null && categoryId.equals(project.getCategory().getCategoryId())))
-                .filter(project -> normalizedKeyword == null || normalizedKeyword.isEmpty() || matchesKeyword(project, normalizedKeyword))
-                .map(this::toProjectVO)
-                .collect(Collectors.toList());
+    public PageResult<ProjectVO> listStudentProjects(StudentProjectQueryDTO queryDTO) {
+        int pageNum = queryDTO.getPageNum() == null ? 1 : queryDTO.getPageNum();
+        int pageSize = queryDTO.getPageSize() == null ? 10 : queryDTO.getPageSize();
+        Pageable pageable = PageRequest.of(
+                Math.max(0, pageNum - 1),
+                pageSize,
+                Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        Page<Project> projectPage = projectRepository.findStudentProjects(
+                queryDTO.getKeyword(),
+                queryDTO.getCategoryId(),
+                queryDTO.getStatus(),
+                queryDTO.getTagIds(),
+                pageable);
+        List<ProjectVO> projectVos = toProjectVOList(projectPage.getContent());
+        return new PageResult<>(
+                projectPage.getTotalElements(),
+                projectVos,
+                projectPage.getNumber() + 1,
+                projectPage.getSize(),
+                projectPage.getTotalPages());
     }
 
     /**
@@ -59,7 +87,7 @@ public class ProjectServiceImpl implements ProjectService {
         List<Project> projects = status == null
                 ? projectRepository.findByTeacher_TeacherIdOrderByCreatedAtDesc(teacherId)
                 : projectRepository.findByTeacher_TeacherIdAndProjectStatusOrderByCreatedAtDesc(teacherId, status);
-        return projects.stream().map(this::toProjectVO).collect(Collectors.toList());
+        return toProjectVOList(projects);
     }
 
     /**
@@ -70,31 +98,34 @@ public class ProjectServiceImpl implements ProjectService {
         return toProjectVO(getProjectEntity(projectId));
     }
 
+    @Override
+    public ProjectVO getOwnedProject(Long projectId, Long teacherId) {
+        return toProjectVO(getOwnedProjectEntity(projectId, teacherId));
+    }
+
     /**
      * 新增项目。
      */
     @Override
     @Transactional
-    public void create(ProjectDTO projectDTO) {
-        TeacherProfile teacher = teacherProfileRepository.findById(projectDTO.getTeacherId())
-                .orElseThrow(() -> new NotFoundException("教师不存在。"));
+    public ProjectVO create(Long teacherId, ProjectDTO projectDTO) {
+        TeacherProfile teacher = teacherProfileRepository.findById(teacherId)
+                .orElseThrow(() -> new NotFoundException(MessageConstants.TEACHER_NOT_FOUND));
+        projectValidationService.checkProjectCloseDate(projectDTO.getCloseDate());
 
-        Project project = Project.builder()
-                .teacher(teacher)
-                .category(categoryRepository.findById(projectDTO.getCategoryId())
-                        .orElseThrow(() -> new NotFoundException("项目分类不存在。")))
-                .title(projectDTO.getTitle())
-                .description(projectDTO.getDescription())
-                .requiredSkills(projectDTO.getRequiredSkills())
-                .topicArea(projectDTO.getTopicArea())
-                .maxStudents(projectDTO.getMaxStudents())
-                .currentAgreedCount(0)
-                .projectStatus(Project.ProjectStatus.AVAILABLE)
-                .publishDate(LocalDateTime.now())
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
-        projectRepository.save(project);
+        LocalDateTime now = LocalDateTime.now();
+        Project project = new Project();
+        BeanUtils.copyProperties(projectDTO, project, "categoryId");
+        project.setTeacher(teacher);
+        project.setCategory(categoryRepository.findById(projectDTO.getCategoryId())
+                .orElseThrow(() -> new NotFoundException(MessageConstants.PROJECT_CATEGORY_NOT_FOUND)));
+        project.setCurrentAgreedCount(0);
+        project.setProjectStatus(Project.ProjectStatus.AVAILABLE);
+        project.setPublishDate(now);
+        project.setCreatedAt(now);
+        project.setUpdatedAt(now);
+        Project savedProject = projectRepository.save(project);
+        return toProjectVO(savedProject);
     }
 
     /**
@@ -102,15 +133,15 @@ public class ProjectServiceImpl implements ProjectService {
      */
     @Override
     @Transactional
-    public void update(Long projectId, ProjectDTO projectDTO) {
-        Project project = getOwnedProject(projectId, projectDTO.getTeacherId());
+    public void update(Long projectId, Long teacherId, ProjectDTO projectDTO) {
+        Project project = getOwnedProjectEntity(projectId, teacherId);
+        if (project.getProjectStatus() != Project.ProjectStatus.CLOSED
+                && project.getProjectStatus() != Project.ProjectStatus.ARCHIVED) {
+            projectValidationService.checkProjectCloseDate(projectDTO.getCloseDate());
+        }
+        BeanUtils.copyProperties(projectDTO, project, "categoryId");
         project.setCategory(categoryRepository.findById(projectDTO.getCategoryId())
-                .orElseThrow(() -> new NotFoundException("项目分类不存在。")));
-        project.setTitle(projectDTO.getTitle());
-        project.setDescription(projectDTO.getDescription());
-        project.setRequiredSkills(projectDTO.getRequiredSkills());
-        project.setTopicArea(projectDTO.getTopicArea());
-        project.setMaxStudents(projectDTO.getMaxStudents());
+                .orElseThrow(() -> new NotFoundException(MessageConstants.PROJECT_CATEGORY_NOT_FOUND)));
         project.setUpdatedAt(LocalDateTime.now());
         projectRepository.save(project);
     }
@@ -120,68 +151,88 @@ public class ProjectServiceImpl implements ProjectService {
      */
     @Override
     @Transactional
-    public void changeStatus(Long projectId, ProjectStatusUpdateDTO projectStatusUpdateDTO) {
-        Project project = getOwnedProject(projectId, projectStatusUpdateDTO.getTeacherId());
+    public void changeStatus(Long projectId, Long teacherId, ProjectStatusUpdateDTO projectStatusUpdateDTO) {
+        Project project = getOwnedProjectEntity(projectId, teacherId);
+        projectValidationService.checkManualStatusChange(project, projectStatusUpdateDTO.getProjectStatus());
         Project.ProjectStatus oldStatus = project.getProjectStatus();
+        LocalDateTime now = LocalDateTime.now();
         project.setProjectStatus(projectStatusUpdateDTO.getProjectStatus());
-        project.setUpdatedAt(LocalDateTime.now());
+        project.setUpdatedAt(now);
         if (projectStatusUpdateDTO.getProjectStatus() == Project.ProjectStatus.CLOSED
                 || projectStatusUpdateDTO.getProjectStatus() == Project.ProjectStatus.ARCHIVED) {
-            project.setCloseDate(LocalDateTime.now());
+            project.setCloseDate(now);
+            cancelActiveRequestsForClosedProject(project, now);
         }
         projectRepository.save(project);
 
-        projectStatusHistoryRepository.save(ProjectStatusHistory.builder()
-                .project(project)
-                .oldStatus(oldStatus == null ? null : oldStatus.name())
-                .newStatus(projectStatusUpdateDTO.getProjectStatus().name())
-                .changedBy(project.getTeacher())
-                .remark(projectStatusUpdateDTO.getRemark())
-                .changedAt(LocalDateTime.now())
-                .build());
+        ProjectStatusHistory history = new ProjectStatusHistory();
+        history.setProject(project);
+        history.setOldStatus(oldStatus == null ? null : oldStatus.name());
+        history.setNewStatus(projectStatusUpdateDTO.getProjectStatus().name());
+        history.setChangedBy(project.getTeacher());
+        history.setRemark(projectStatusUpdateDTO.getRemark());
+        history.setChangedAt(now);
+        projectStatusHistoryRepository.save(history);
     }
 
-    private boolean matchesKeyword(Project project, String keyword) {
-        return contains(project.getTitle(), keyword)
-                || contains(project.getDescription(), keyword)
-                || contains(project.getTopicArea(), keyword)
-                || contains(project.getRequiredSkills(), keyword);
-    }
+    // --- Validation logic moved to ProjectValidationService ---
 
-    private boolean contains(String value, String keyword) {
-        return value != null && value.toLowerCase(Locale.ROOT).contains(keyword);
+    private void cancelActiveRequestsForClosedProject(Project project, LocalDateTime changedAt) {
+        List<ProjectRequest> activeRequests = projectRequestRepository.findByProject_ProjectIdAndRequestStatusIn(
+                project.getProjectId(),
+                List.of(ProjectRequest.RequestStatus.PENDING, ProjectRequest.RequestStatus.ACCEPTED)
+        );
+
+        for (ProjectRequest request : activeRequests) {
+            ProjectRequest.RequestStatus oldStatus = request.getRequestStatus();
+            request.setRequestStatus(ProjectRequest.RequestStatus.REJECTED);
+            request.setDecisionComment(MessageConstants.PROJECT_CLOSED_AND_REQUEST_CANCELLED);
+            request.setReviewedAt(changedAt);
+            request.setUpdatedAt(changedAt);
+
+            RequestStatusHistory history = new RequestStatusHistory();
+            history.setRequest(request);
+            history.setOldStatus(oldStatus == null ? null : oldStatus.name());
+            history.setNewStatus(ProjectRequest.RequestStatus.REJECTED.name());
+            history.setChangedBy(null);
+            history.setRemark(MessageConstants.AUTO_CANCEL_PROJECT_CLOSED_REMARK);
+            history.setChangedAt(changedAt);
+            requestStatusHistoryRepository.save(history);
+        }
+
+        if (!activeRequests.isEmpty()) {
+            projectRequestRepository.saveAll(activeRequests);
+        }
+        project.setCurrentAgreedCount(0);
     }
 
     private Project getProjectEntity(Long projectId) {
         return projectRepository.findById(projectId)
-                .orElseThrow(() -> new NotFoundException("项目不存在。"));
+                .orElseThrow(() -> new NotFoundException(MessageConstants.PROJECT_NOT_FOUND));
     }
 
-    private Project getOwnedProject(Long projectId, Long teacherId) {
+    private Project getOwnedProjectEntity(Long projectId, Long teacherId) {
         Project project = getProjectEntity(projectId);
-        if (project.getTeacher() == null || !teacherId.equals(project.getTeacher().getTeacherId())) {
-            throw new BusinessException("不能操作其他教师名下的项目。");
-        }
+        projectValidationService.checkProjectOwnership(project, teacherId);
         return project;
     }
 
+    private List<ProjectVO> toProjectVOList(List<Project> projects) {
+        List<ProjectVO> projectVos = new ArrayList<>(projects.size());
+        for (Project project : projects) {
+            projectVos.add(toProjectVO(project));
+        }
+        return projectVos;
+    }
+
     private ProjectVO toProjectVO(Project project) {
-        return ProjectVO.builder()
-                .projectId(project.getProjectId())
-                .teacherId(project.getTeacher() == null ? null : project.getTeacher().getTeacherId())
-                .teacherName(project.getTeacher() == null || project.getTeacher().getUser() == null
-                        ? null : project.getTeacher().getUser().getFullName())
-                .categoryId(project.getCategory() == null ? null : project.getCategory().getCategoryId())
-                .categoryName(project.getCategory() == null ? null : project.getCategory().getCategoryName())
-                .title(project.getTitle())
-                .description(project.getDescription())
-                .requiredSkills(project.getRequiredSkills())
-                .topicArea(project.getTopicArea())
-                .maxStudents(project.getMaxStudents())
-                .currentAgreedCount(project.getCurrentAgreedCount())
-                .projectStatus(project.getProjectStatus())
-                .publishDate(project.getPublishDate())
-                .closeDate(project.getCloseDate())
-                .build();
+        ProjectVO projectVO = new ProjectVO();
+        BeanUtils.copyProperties(project, projectVO);
+        projectVO.setTeacherId(project.getTeacher() == null ? null : project.getTeacher().getTeacherId());
+        projectVO.setTeacherName(project.getTeacher() == null || project.getTeacher().getUser() == null
+                ? null : project.getTeacher().getUser().getFullName());
+        projectVO.setCategoryId(project.getCategory() == null ? null : project.getCategory().getCategoryId());
+        projectVO.setCategoryName(project.getCategory() == null ? null : project.getCategory().getCategoryName());
+        return projectVO;
     }
 }
