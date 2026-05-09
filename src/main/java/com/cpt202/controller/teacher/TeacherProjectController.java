@@ -4,11 +4,7 @@ import com.cpt202.context.BaseContext;
 import com.cpt202.dto.ProjectDTO;
 import com.cpt202.dto.ProjectStatusUpdateDTO;
 import com.cpt202.dto.TeacherProjectQueryDTO;
-import com.cpt202.exception.UnauthorizedAccessException;
-import com.cpt202.model.entity.User;
 import com.cpt202.result.Result;
-import com.cpt202.security.AuthContext;
-import com.cpt202.service.CallbackAuthService;
 import com.cpt202.service.ProjectService;
 import com.cpt202.vo.ProjectVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,11 +25,9 @@ import java.util.List;
 public class TeacherProjectController {
 
     private final ProjectService projectService;
-    private final CallbackAuthService callbackAuthService;
 
     public TeacherProjectController(ProjectService projectService) {
         this.projectService = projectService;
-        this.callbackAuthService = callbackAuthService;
     }
 
     /**
@@ -52,7 +46,6 @@ public class TeacherProjectController {
      * 查询项目详情。
      *
      * @param projectId 项目主键
-     * @param teacherId 教师主键
      * @return 项目展示对象
      */
     @GetMapping("/{projectId}")
@@ -101,11 +94,5 @@ public class TeacherProjectController {
                                      @Valid @RequestBody ProjectStatusUpdateDTO projectStatusUpdateDTO) {
         projectService.changeStatus(projectId, BaseContext.getCurrentUserId(), projectStatusUpdateDTO);
         return Result.success();
-    }
-
-    private void ensureCurrentTeacher(Long teacherId, AuthContext authContext) {
-        if (!authContext.userId().equals(teacherId)) {
-            throw new UnauthorizedAccessException("不能操作其他教师名下的项目。");
-        }
     }
 }

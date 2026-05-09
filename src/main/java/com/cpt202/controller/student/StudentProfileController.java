@@ -6,8 +6,6 @@ import com.cpt202.dto.StudentProfileUpdateDTO;
 import com.cpt202.dto.TwoFactorDisableDTO;
 import com.cpt202.dto.TwoFactorEnableDTO;
 import com.cpt202.result.Result;
-import com.cpt202.security.AuthContext;
-import com.cpt202.service.CallbackAuthService;
 import com.cpt202.service.ProfileService;
 import com.cpt202.vo.StudentProfileVO;
 import com.cpt202.vo.TwoFactorSetupVO;
@@ -28,11 +26,9 @@ import org.springframework.web.bind.annotation.*;
 public class StudentProfileController {
 
     private final ProfileService profileService;
-    private final CallbackAuthService callbackAuthService;
 
     public StudentProfileController(ProfileService profileService) {
         this.profileService = profileService;
-        this.callbackAuthService = callbackAuthService;
     }
 
     /**

@@ -13,22 +13,12 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-/**
- * 全局异常处理器。
- * 统一拦截系统中抛出的异常，并封装成 Result 返回给前端。
- */
-@Slf4j
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
 
-    /**
-     * 处理越权访问异常。
-     * 当回调认证服务校验不通过时，会抛出此异常。
-     */
-    @ExceptionHandler(UnauthorizedAccessException.class)
-    public Result<Void> handleUnauthorizedAccessException(UnauthorizedAccessException ex) {
-        log.error("越权访问拦截: {}", ex.getMessage());
+    @ExceptionHandler(BusinessException.class)
+    public Result<Void> handleBusinessException(BusinessException ex) {
         return Result.error(ex.getMessage());
     }
 
@@ -53,7 +43,6 @@ public class GlobalExceptionHandler {
                 .findFirst()
                 .map(error -> error.getField() + " " + error.getDefaultMessage())
                 .orElse("Validation failed");
-        log.error("参数校验失败: {}", message);
         return Result.error(message);
     }
 
