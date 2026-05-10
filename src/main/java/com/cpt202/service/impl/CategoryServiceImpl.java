@@ -10,6 +10,7 @@ import com.cpt202.result.PageResult;
 import com.cpt202.repository.CategoryRepository;
 import com.cpt202.service.RedisCacheService;
 import com.cpt202.service.CategoryService;
+import com.cpt202.util.VoConverter;
 import com.cpt202.validation.CatalogValidationService;
 import com.cpt202.vo.CategoryVO;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -21,7 +22,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.time.LocalDateTime;
 import java.time.Duration;
 import java.util.List;
@@ -48,11 +48,8 @@ public class CategoryServiceImpl implements CategoryService {
     public List<CategoryVO> listAll() {
         return redisCacheService.get(RedisKeyConstants.CATEGORY_LIST, new TypeReference<List<CategoryVO>>() { })
                 .orElseGet(() -> {
-                    List<Category> categories = categoryRepository.findAll();
-                    List<CategoryVO> categoryVos = new ArrayList<>(categories.size());
-                    for (Category category : categories) {
-                        categoryVos.add(toCategoryVO(category));
-                    }
+                    List<CategoryVO> categoryVos = VoConverter.toList(
+                            categoryRepository.findAll(), this::toCategoryVO);
                     redisCacheService.set(RedisKeyConstants.CATEGORY_LIST, categoryVos, CATEGORY_CACHE_TTL);
                     return categoryVos;
                 });

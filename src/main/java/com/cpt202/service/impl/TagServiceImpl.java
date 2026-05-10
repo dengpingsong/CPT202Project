@@ -10,6 +10,7 @@ import com.cpt202.result.PageResult;
 import com.cpt202.repository.TagRepository;
 import com.cpt202.service.RedisCacheService;
 import com.cpt202.service.TagService;
+import com.cpt202.util.VoConverter;
 import com.cpt202.validation.CatalogValidationService;
 import com.cpt202.vo.TagVO;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -21,7 +22,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.time.LocalDateTime;
 import java.time.Duration;
 import java.util.List;
@@ -49,11 +49,8 @@ public class TagServiceImpl implements TagService {
     public List<TagVO> listAll() {
         return redisCacheService.get(RedisKeyConstants.TAG_LIST, new TypeReference<List<TagVO>>() { })
                 .orElseGet(() -> {
-                    List<Tag> tags = tagRepository.findAll();
-                    List<TagVO> tagVos = new ArrayList<>(tags.size());
-                    for (Tag tag : tags) {
-                        tagVos.add(toTagVO(tag));
-                    }
+                    List<TagVO> tagVos = VoConverter.toList(
+                            tagRepository.findAll(), this::toTagVO);
                     redisCacheService.set(RedisKeyConstants.TAG_LIST, tagVos, TAG_CACHE_TTL);
                     return tagVos;
                 });
