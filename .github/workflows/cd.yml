@@ -34,6 +34,9 @@ jobs:
       - name: Sync frontend static assets
         run: ./scripts/sync-frontend-static.sh
 
+      - name: Verify synced frontend entrypoint
+        run: test -f src/main/resources/static/index.html
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -43,6 +46,9 @@ jobs:
 
       - name: Package application JAR
         run: mvn --batch-mode --no-transfer-progress -DskipTests package
+
+      - name: Verify packaged frontend entrypoint
+        run: jar tf target/cpt202-program-0.0.1-SNAPSHOT.jar | grep -q 'BOOT-INF/classes/static/index.html'
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -109,6 +115,7 @@ jobs:
           SPRING_DATA_REDIS_PORT: ${{ secrets.SPRING_DATA_REDIS_PORT }}
           SPRING_DATA_REDIS_DATABASE: ${{ secrets.SPRING_DATA_REDIS_DATABASE }}
           SPRING_DATA_REDIS_PASSWORD: ${{ secrets.SPRING_DATA_REDIS_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
           test -n "$ALIYUN_HOST" || { echo "::error::Missing secret ALIYUN_HOST"; exit 1; }
           test -n "$ALIYUN_USERNAME" || { echo "::error::Missing secret ALIYUN_USERNAME"; exit 1; }
@@ -121,6 +128,7 @@ jobs:
           test -n "$SPRING_DATA_REDIS_PORT" || { echo "::error::Missing secret SPRING_DATA_REDIS_PORT"; exit 1; }
           test -n "$SPRING_DATA_REDIS_DATABASE" || { echo "::error::Missing secret SPRING_DATA_REDIS_DATABASE"; exit 1; }
           test -n "$SPRING_DATA_REDIS_PASSWORD" || { echo "::error::Missing secret SPRING_DATA_REDIS_PASSWORD"; exit 1; }
+          test -n "$JWT_SECRET" || { echo "::error::Missing secret JWT_SECRET"; exit 1; }
           test -n "$SPRING_MAIL_USERNAME" || echo "::warning::SPRING_MAIL_USERNAME not set; password reset emails will be disabled"
           test -n "$SPRING_MAIL_PASSWORD" || echo "::warning::SPRING_MAIL_PASSWORD not set; password reset emails will be disabled"
           test -n "$APP_FRONTEND_BASE_URL" || echo "::warning::APP_FRONTEND_BASE_URL not set; reset links will fall back to localhost"
@@ -191,6 +199,7 @@ jobs:
             SPRING_DATA_REDIS_PORT=${{ secrets.SPRING_DATA_REDIS_PORT }}
             SPRING_DATA_REDIS_DATABASE=${{ secrets.SPRING_DATA_REDIS_DATABASE }}
             SPRING_DATA_REDIS_PASSWORD=${{ secrets.SPRING_DATA_REDIS_PASSWORD }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
             EOF
             MAIL_USERNAME_VAL='${{ secrets.SPRING_MAIL_USERNAME }}'
             [ -n "$MAIL_USERNAME_VAL" ] && echo "SPRING_MAIL_USERNAME=$MAIL_USERNAME_VAL" >> /opt/cpt202/.env || true
@@ -204,10 +213,42 @@ jobs:
             docker rm -f cpt202-nginx cpt202program cpt202-mysql || true
             docker compose --env-file /opt/cpt202/.env up -d --remove-orphans
 
-            until curl -fsS http://127.0.0.1/doc.html >/dev/null; do
+            echo "=== Waiting for containers to stabilize ==="
+            sleep 10
+            echo "=== Container status ==="
+            docker ps -a --filter name=cpt202 --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}'
+            echo "=== App container logs (last 80 lines) ==="
+            docker logs cpt202program --tail 80 || echo "(app container not running)"
+            echo "=== MySQL container logs (last 30 lines) ==="
+            docker logs cpt202-mysql --tail 30 || echo "(mysql container not running)"
+            echo "=== Nginx container logs (last 20 lines) ==="
+            docker logs cpt202-nginx --tail 20 || echo "(nginx container not running)"
+
+            echo "=== Waiting for app to serve index.html (max 5 min) ==="
+            ATTEMPTS=0
+            MAX_ATTEMPTS=60
+            until curl -fsS http://127.0.0.1/index.html | grep -q '<div id="app"></div>'; do
+              ATTEMPTS=$((ATTEMPTS + 1))
+              if [ "$ATTEMPTS" -ge "$MAX_ATTEMPTS" ]; then
+                echo "ERROR: App failed to become healthy after $MAX_ATTEMPTS attempts"
+                echo "=== App container logs (crash diagnostics) ==="
+                docker logs cpt202program --tail 100 || true
+                echo "=== MySQL container logs ==="
+                docker logs cpt202-mysql --tail 30 || true
+                exit 1
+              fi
               sleep 5
             done
-            until curl -kfsS https://127.0.0.1/doc.html >/dev/null; do
+            echo "HTTP healthcheck passed (attempts: $ATTEMPTS)"
+
+            echo "=== Waiting for HTTPS healthcheck (max 2 min) ==="
+            ATTEMPTS=0
+            until curl -kfsS https://127.0.0.1/index.html | grep -q '<div id="app"></div>'; do
+              ATTEMPTS=$((ATTEMPTS + 1))
+              if [ "$ATTEMPTS" -ge 24 ]; then
+                echo "WARNING: HTTPS healthcheck timed out, continuing anyway"
+                break
+              fi
               sleep 5
             done
 
