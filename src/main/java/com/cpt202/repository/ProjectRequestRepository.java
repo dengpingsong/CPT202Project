@@ -25,6 +25,8 @@ public interface ProjectRequestRepository extends JpaRepository<ProjectRequest, 
 
     List<ProjectRequest> findByStudent_StudentIdAndRequestStatus(Long studentId, RequestStatus status);
 
+        long countByProject_Teacher_TeacherId(Long teacherId);
+
     long countByProject_ProjectIdAndRequestStatus(Long projectId, RequestStatus status);
 
     List<ProjectRequest> findByStudent_StudentIdOrderBySubmittedAtDesc(Long studentId);
@@ -210,7 +212,7 @@ public interface ProjectRequestRepository extends JpaRepository<ProjectRequest, 
                                                 left join s.user su
                                                 left join pr.reviewedBy t
                                                 where p.teacher.teacherId = :teacherId
-                                                        and pr.requestStatus <> com.cpt202.model.entity.ProjectRequest.RequestStatus.PENDING
+                                                        and pr.requestStatus <> :excludedStatus
                                                         and (:status is null or pr.requestStatus = :status)
                                                 order by coalesce(pr.reviewedAt, pr.withdrawnAt, pr.submittedAt) desc
                                                 """,
@@ -218,10 +220,65 @@ public interface ProjectRequestRepository extends JpaRepository<ProjectRequest, 
                                                 select count(pr)
                                                 from ProjectRequest pr
                                                 where pr.project.teacher.teacherId = :teacherId
-                                                        and pr.requestStatus <> com.cpt202.model.entity.ProjectRequest.RequestStatus.PENDING
+                                                        and pr.requestStatus <> :excludedStatus
                                                         and (:status is null or pr.requestStatus = :status)
                                                 """)
                 Page<ProjectRequestVO> findTeacherHistoryVos(@Param("teacherId") Long teacherId,
                                                                                                                                                                                                  @Param("status") RequestStatus status,
+                                                                                                                                                                                                 @Param("excludedStatus") RequestStatus excludedStatus,
                                                                                                                                                                                                  Pageable pageable);
+
+                    @Query("""
+                            select pr.requestStatus, count(pr)
+                            from ProjectRequest pr
+                            where pr.project.teacher.teacherId = :teacherId
+                            group by pr.requestStatus
+                            """)
+                    List<Object[]> countTeacherRequestsByStatus(@Param("teacherId") Long teacherId);
+
+                    @Query("""
+                            select p.title, count(pr)
+                            from ProjectRequest pr
+                            join pr.project p
+                            where p.teacher.teacherId = :teacherId
+                            group by p.projectId, p.title
+                            order by count(pr) desc, p.title asc
+                            """)
+                    List<Object[]> countTeacherRequestsPerProject(@Param("teacherId") Long teacherId, Pageable pageable);
+
+                    @Query("""
+                            select coalesce(s.programme, 'Unknown'), count(pr)
+                            from ProjectRequest pr
+                            left join pr.student s
+                            where pr.project.teacher.teacherId = :teacherId
+                            group by s.programme
+                            order by count(pr) desc
+                            """)
+                    List<Object[]> countTeacherRequestsByProgramme(@Param("teacherId") Long teacherId);
+
+                    @Query("""
+                            select pr.preferenceRank, count(pr)
+                            from ProjectRequest pr
+                            where pr.project.teacher.teacherId = :teacherId
+                              and pr.preferenceRank is not null
+                            group by pr.preferenceRank
+                            order by pr.preferenceRank asc
+                            """)
+                    List<Object[]> countTeacherRequestsByPreferenceRank(@Param("teacherId") Long teacherId);
+
+                    @Query("""
+                            select pr.requestStatus, count(pr)
+                            from ProjectRequest pr
+                            group by pr.requestStatus
+                            """)
+                    List<Object[]> countRequestsByStatus();
+
+                    @Query("""
+                            select coalesce(s.programme, 'Unknown'), count(pr)
+                            from ProjectRequest pr
+                            left join pr.student s
+                            group by s.programme
+                            order by count(pr) desc
+                            """)
+                    List<Object[]> countRequestsByProgramme();
 }
