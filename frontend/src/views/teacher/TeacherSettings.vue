@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import QRCode from 'qrcode'
+import SettingsAccountPanel from '../../components/SettingsAccountPanel.vue'
 import { teacherApi, clearAuth } from '../../utils/api'
 import { toast } from '../../utils/ui-feedback'
 
@@ -14,6 +15,7 @@ const profileStatus = ref('')
 const profileStatusType = ref<'success' | 'error' | ''>('')
 
 // Profile fields
+const account = ref('')
 const fullName = ref('')
 const email = ref('')
 const department = ref('')
@@ -50,6 +52,7 @@ async function fetchProfile() {
     const res = await teacherApi.getProfile()
     const p = res.data
     if (p) {
+      account.value = p.username || p.account || ''
       fullName.value = p.fullName || ''
       email.value = p.email || ''
       department.value = p.department || ''
@@ -260,6 +263,13 @@ onMounted(fetchProfile)
     <div class="page-header">
       <h1>Settings</h1>
     </div>
+
+    <SettingsAccountPanel
+      :account="account"
+      :email="email"
+      role-label="Teacher"
+      hint="This username is your sign-in identity across the teacher portal."
+    />
 
     <div class="content-panel">
       <form class="settings-form" @submit.prevent="handleSave">

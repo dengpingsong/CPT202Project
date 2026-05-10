@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import QRCode from 'qrcode'
+import SettingsAccountPanel from '../../components/SettingsAccountPanel.vue'
 import { studentApi, clearAuth } from '../../utils/api'
 import { toast } from '../../utils/ui-feedback'
 
@@ -14,6 +15,7 @@ const profileStatus = ref('')
 const profileStatusType = ref<'success' | 'error' | ''>('')
 
 // Profile fields
+const account = ref('')
 const fullName = ref('')
 const studentNo = ref('')
 const email = ref('')
@@ -62,6 +64,7 @@ async function fetchProfile() {
     const res = await studentApi.getProfile()
     const p = res.data
     if (p) {
+      account.value = p.username || p.account || ''
       fullName.value = p.fullName || ''
       studentNo.value = p.studentNo || ''
       email.value = p.email || ''
@@ -288,6 +291,13 @@ onMounted(fetchProfile)
     <div class="page-header">
       <h1>Profile Settings</h1>
     </div>
+
+    <SettingsAccountPanel
+      :account="account"
+      :email="email"
+      role-label="Student"
+      hint="Use this exact username on the login page if you sign out or switch devices."
+    />
 
     <div class="content-panel">
       <form class="settings-form" @submit.prevent="handleSave">
