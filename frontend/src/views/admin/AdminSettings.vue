@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import QRCode from 'qrcode'
+import SettingsAccountPanel from '../../components/SettingsAccountPanel.vue'
 import { adminApi, clearAuth } from '../../utils/api'
 import { toast } from '../../utils/ui-feedback'
 
@@ -254,16 +255,19 @@ onMounted(fetchProfile)
       <h1>Settings</h1>
     </div>
 
+    <SettingsAccountPanel
+      :account="account"
+      :email="email"
+      role-label="Administrator"
+      hint="Keep this account name for admin sign-in and security reviews."
+    />
+
     <div class="content-panel">
       <form class="settings-form" @submit.prevent="handleSave">
         <!-- Basic Info -->
         <div class="form-section">
           <div class="section-title">Basic Information</div>
 
-          <div class="form-row">
-            <span class="form-label"><i class="bi bi-person"></i> Account</span>
-            <input :value="account" type="text" class="form-control" disabled />
-          </div>
           <div class="form-row">
             <span class="form-label"
               ><i class="bi bi-person-badge"></i> Full Name</span
