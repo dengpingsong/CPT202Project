@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.net.URI;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -27,10 +28,14 @@ import java.util.Base64;
 public class TwoFactorAuthServiceImpl implements TwoFactorAuthService {
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final String DEFAULT_TOTP_ISSUER = "CPT202 Project Selection System";
     private final UserRepository userRepository;
     private final RedisCacheService redisCacheService;
 
-    @Value("${app.totp-issuer:CPT202 Project Selection System}")
+    @Value("${app.frontend-base-url:http://localhost:${server.port}}")
+    private String frontendBaseUrl;
+
+    @Value("${app.totp-issuer:}")
     private String issuer;
 
     @Value("${app.two-factor-setup-expiration-minutes:10}")
@@ -55,7 +60,7 @@ public class TwoFactorAuthServiceImpl implements TwoFactorAuthService {
         return TwoFactorSetupVO.builder()
                 .enabled(false)
                 .manualEntryKey(secret)
-                .otpAuthUri(TotpUtil.buildOtpAuthUri(issuer, user.getEmail(), secret))
+            .otpAuthUri(TotpUtil.buildOtpAuthUri(resolveOtpIssuer(), user.getEmail(), secret))
                 .build();
     }
 
@@ -122,5 +127,47 @@ public class TwoFactorAuthServiceImpl implements TwoFactorAuthService {
 
     private String challengeKey(String token) {
         return RedisKeyConstants.TWO_FACTOR_LOGIN_CHALLENGE_PREFIX + token;
+    }
+
+    private String resolveOtpIssuer() {
+        if (StringUtils.hasText(issuer)) {
+            return issuer.trim();
+        }
+
+        String derivedIssuer = deriveIssuerFromBaseUrl(frontendBaseUrl);
+        return StringUtils.hasText(derivedIssuer) ? derivedIssuer : DEFAULT_TOTP_ISSUER;
+    }
+
+    private String deriveIssuerFromBaseUrl(String baseUrl) {
+        if (!StringUtils.hasText(baseUrl)) {
+            return null;
+        }
+
+        String trimmed = baseUrl.trim();
+
+        try {
+            URI parsed = URI.create(trimmed);
+            if (StringUtils.hasText(parsed.getHost())) {
+                return parsed.getHost();
+            }
+        } catch (IllegalArgumentException ignored) {
+            // Fall through and try parsing host-only values by prepending a scheme.
+        }
+
+        try {
+            URI parsed = URI.create("https://" + trimmed);
+            if (StringUtils.hasText(parsed.getHost())) {
+                return parsed.getHost();
+            }
+        } catch (IllegalArgumentException ignored) {
+            // Fall through to the string-based fallback below.
+        }
+
+        int schemeIndex = trimmed.indexOf("://");
+        String withoutScheme = schemeIndex >= 0 ? trimmed.substring(schemeIndex + 3) : trimmed;
+        int pathIndex = withoutScheme.indexOf('/');
+        String hostPort = pathIndex >= 0 ? withoutScheme.substring(0, pathIndex) : withoutScheme;
+        int portIndex = hostPort.indexOf(':');
+        return portIndex >= 0 ? hostPort.substring(0, portIndex) : hostPort;
     }
 }
