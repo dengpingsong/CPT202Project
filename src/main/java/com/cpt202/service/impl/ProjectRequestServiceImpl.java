@@ -156,7 +156,11 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
     public PageResult<ProjectRequestVO> listTeacherRequestsPage(Long teacherId, TeacherProjectRequestQueryDTO queryDTO) {
         boolean historyOnly = Boolean.TRUE.equals(queryDTO.getHistoryOnly());
         Page<ProjectRequestVO> requestPage = historyOnly
-                ? requestRepository.findTeacherHistoryVos(teacherId, queryDTO.getStatus(), toPageable(queryDTO))
+            ? requestRepository.findTeacherHistoryVos(
+                teacherId,
+                queryDTO.getStatus(),
+                ProjectRequest.RequestStatus.PENDING,
+                toPageable(queryDTO))
                 : requestRepository.findTeacherRequestVos(teacherId, queryDTO.getStatus(), toPageable(queryDTO));
         return PageResult.fromPage(requestPage);
     }

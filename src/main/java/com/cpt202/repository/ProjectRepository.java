@@ -16,6 +16,8 @@ public interface ProjectRepository extends JpaRepository<Project, Long>, JpaSpec
 
     List<Project> findByTeacher_TeacherIdOrderByCreatedAtDesc(Long teacherId);
 
+    long countByTeacher_TeacherId(Long teacherId);
+
     List<Project> findByTeacher_TeacherIdAndProjectStatusOrderByCreatedAtDesc(
             Long teacherId, Project.ProjectStatus status);
 
@@ -112,4 +114,87 @@ public interface ProjectRepository extends JpaRepository<Project, Long>, JpaSpec
         Page<ProjectVO> findTeacherProjectVos(@Param("teacherId") Long teacherId,
                                                                                     @Param("status") Project.ProjectStatus status,
                                                                                     Pageable pageable);
+
+            @Query("""
+                select coalesce(sum(p.maxStudents), 0)
+                from Project p
+                where p.teacher.teacherId = :teacherId
+                """)
+            Long sumTeacherCapacity(@Param("teacherId") Long teacherId);
+
+            @Query("""
+                select coalesce(sum(p.currentAgreedCount), 0)
+                from Project p
+                where p.teacher.teacherId = :teacherId
+                """)
+            Long sumTeacherFilledSlots(@Param("teacherId") Long teacherId);
+
+            @Query("""
+                select p.projectStatus, count(p)
+                from Project p
+                where p.teacher.teacherId = :teacherId
+                group by p.projectStatus
+                """)
+            List<Object[]> countTeacherProjectsByStatus(@Param("teacherId") Long teacherId);
+
+            @Query("""
+                select p.title, coalesce(p.currentAgreedCount, 0), coalesce(p.maxStudents, 0)
+                from Project p
+                where p.teacher.teacherId = :teacherId
+                order by case
+                when coalesce(p.maxStudents, 0) = 0 then 0.0
+                else (1.0 * coalesce(p.currentAgreedCount, 0) / p.maxStudents)
+                end desc,
+                p.title asc
+                """)
+            List<Object[]> findTeacherProjectFillRates(@Param("teacherId") Long teacherId, Pageable pageable);
+
+            @Query("""
+                select coalesce(sum(p.maxStudents), 0)
+                from Project p
+                """)
+            Long sumTotalCapacity();
+
+            @Query("""
+                select coalesce(sum(p.currentAgreedCount), 0)
+                from Project p
+                """)
+            Long sumFilledSlots();
+
+            @Query("""
+                select p.projectStatus, count(p)
+                from Project p
+                group by p.projectStatus
+                """)
+            List<Object[]> countProjectsByStatus();
+
+            @Query("""
+                select coalesce(c.categoryName, 'Uncategorized'), count(p)
+                from Project p
+                left join p.category c
+                group by c.categoryName
+                order by count(p) desc
+                """)
+            List<Object[]> countProjectsByCategory();
+
+            @Query("""
+                select coalesce(tu.fullName, 'Unknown'), count(p)
+                from Project p
+                left join p.teacher t
+                left join t.user tu
+                group by tu.fullName
+                order by count(p) desc
+                """)
+            List<Object[]> countProjectsByTeacher(Pageable pageable);
+
+            @Query("""
+                select p.title, coalesce(p.currentAgreedCount, 0), coalesce(p.maxStudents, 0)
+                from Project p
+                order by case
+                when coalesce(p.maxStudents, 0) = 0 then 0.0
+                else (1.0 * coalesce(p.currentAgreedCount, 0) / p.maxStudents)
+                end desc,
+                p.title asc
+                """)
+            List<Object[]> findProjectFillRates(Pageable pageable);
 }

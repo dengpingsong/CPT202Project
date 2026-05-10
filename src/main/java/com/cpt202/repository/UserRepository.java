@@ -26,6 +26,8 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
     boolean existsByEmail(String email);
 
+    long countByRole(User.UserRole role);
+
     boolean existsByEmailIgnoreCaseAndUserIdNot(String email, Long userId);
 
     @Query("""
@@ -82,4 +84,19 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
         Page<UserVO> findUserVos(@Param("role") User.UserRole role,
                                                          @Param("accountStatus") String accountStatus,
                                                          Pageable pageable);
+
+            @Query("""
+                select u.role, count(u)
+                from User u
+                group by u.role
+                """)
+            List<Object[]> countUsersByRole();
+
+            @Query("""
+                select coalesce(u.accountStatus, 'UNKNOWN'), count(u)
+                from User u
+                group by u.accountStatus
+                order by count(u) desc
+                """)
+            List<Object[]> countUsersByAccountStatus();
 }

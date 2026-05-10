@@ -78,7 +78,7 @@ public abstract class IntegrationTestSupport {
     protected ProjectTagService projectTagService;
 
     @Autowired(required = false)
-    private IntegrationTestConfiguration.InMemoryRedisCacheService redisCacheService;
+    private InMemoryRedisCacheService redisCacheService;
 
     @BeforeEach
     void clearCachedAuthState() {
