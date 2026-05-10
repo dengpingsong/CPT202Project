@@ -261,7 +261,6 @@ onMounted(fetchProfile)
       role-label="Administrator"
       hint="Keep this account name for admin sign-in and security reviews."
     />
-
     <div class="content-panel">
       <form class="settings-form" @submit.prevent="handleSave">
         <!-- Basic Info -->
