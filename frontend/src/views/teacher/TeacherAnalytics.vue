@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { teacherApi, type TeacherAnalytics } from '../../utils/api'
+import { chartAutoresize } from '../../utils/chart'
 import { toast } from '../../utils/ui-feedback'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
@@ -259,7 +260,7 @@ onMounted(loadData)
             v-else
             class="chart"
             :option="requestStatusChart"
-            autoresize
+            :autoresize="chartAutoresize"
           />
         </div>
         <div class="chart-panel">
@@ -269,7 +270,7 @@ onMounted(loadData)
             v-else
             class="chart"
             :option="projectStatusChart"
-            autoresize
+            :autoresize="chartAutoresize"
           />
         </div>
         <div class="chart-panel chart-wide">
@@ -279,18 +280,28 @@ onMounted(loadData)
             v-else
             class="chart"
             :option="requestsPerProjectChart"
-            autoresize
+            :autoresize="chartAutoresize"
           />
         </div>
         <div class="chart-panel chart-wide">
           <h3>Project Fill Rate (Top 10)</h3>
           <div v-if="loading" class="chart-placeholder">Loading...</div>
-          <VChart v-else class="chart" :option="fillRateChart" autoresize />
+          <VChart
+            v-else
+            class="chart"
+            :option="fillRateChart"
+            :autoresize="chartAutoresize"
+          />
         </div>
         <div class="chart-panel">
           <h3>Requests by Programme</h3>
           <div v-if="loading" class="chart-placeholder">Loading...</div>
-          <VChart v-else class="chart" :option="programmeChart" autoresize />
+          <VChart
+            v-else
+            class="chart"
+            :option="programmeChart"
+            :autoresize="chartAutoresize"
+          />
         </div>
         <div class="chart-panel">
           <h3>Preference Rank Distribution</h3>
@@ -299,7 +310,7 @@ onMounted(loadData)
             v-else
             class="chart"
             :option="preferenceRankChart"
-            autoresize
+            :autoresize="chartAutoresize"
           />
         </div>
       </div>

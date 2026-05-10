@@ -57,10 +57,8 @@ function formatDate(value: string | null | undefined): string {
 async function loadData() {
   loading.value = true
   try {
-    const res = await teacherApi.listRequests()
-    const requests = Array.isArray(res.data) ? res.data : []
-    request.value =
-      requests.find((r) => String(r.requestId) === String(requestId)) || null
+    const res = await teacherApi.getRequest(requestId)
+    request.value = res.data || null
     if (!request.value) {
       project.value = null
       studentProfile.value = null

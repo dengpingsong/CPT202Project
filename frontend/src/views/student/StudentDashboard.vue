@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { studentApi, getCurrentUser } from '../../utils/api'
+import {
+  studentApi,
+  getCurrentUser,
+  type StudentRequestSummary,
+} from '../../utils/api'
+import { chartAutoresize } from '../../utils/chart'
 import { toast, confirm } from '../../utils/ui-feedback'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
@@ -27,36 +32,26 @@ use([
 const router = useRouter()
 
 const loading = ref(true)
-const requests = ref<any[]>([])
+const requestSummary = ref<StudentRequestSummary | null>(null)
 const projects = ref<any[]>([])
 
 const user = getCurrentUser()
 const displayName = computed(() => user.fullName || user.username || 'Student')
 
-const pending = computed(
-  () =>
-    requests.value.filter((r) => normalizeStatus(r.requestStatus) === 'PENDING')
-      .length,
+const pending = computed(() => Number(requestSummary.value?.pendingCount || 0))
+const accepted = computed(() =>
+  Number(requestSummary.value?.acceptedCount || 0),
 )
-const accepted = computed(
-  () =>
-    requests.value.filter(
-      (r) => normalizeStatus(r.requestStatus) === 'ACCEPTED',
-    ).length,
+const rejected = computed(() =>
+  Number(requestSummary.value?.rejectedCount || 0),
 )
-const rejected = computed(
-  () =>
-    requests.value.filter(
-      (r) => normalizeStatus(r.requestStatus) === 'REJECTED',
-    ).length,
-)
-const withdrawn = computed(
-  () =>
-    requests.value.filter(
-      (r) => normalizeStatus(r.requestStatus) === 'WITHDRAWN',
-    ).length,
+const withdrawn = computed(() =>
+  Number(requestSummary.value?.withdrawnCount || 0),
 )
 const activeCount = computed(() => pending.value + accepted.value)
+const totalRequests = computed(() =>
+  Number(requestSummary.value?.totalRequests || 0),
+)
 
 const statusEntries = computed(() => {
   const entries = [
@@ -73,9 +68,9 @@ const statusEntries = computed(() => {
 
 const withdrawnProjectIds = computed(() => {
   return new Set(
-    requests.value
-      .filter((r) => normalizeStatus(r.requestStatus) === 'WITHDRAWN')
-      .map((r) => String(r.projectId)),
+    (requestSummary.value?.withdrawnProjectIds || []).map((projectId) =>
+      String(projectId),
+    ),
   )
 })
 
@@ -87,7 +82,10 @@ const recommendedProjects = computed(() => {
 })
 
 const recentRequests = computed(() => {
-  return [...requests.value]
+  const requests = Array.isArray(requestSummary.value?.recentRequests)
+    ? requestSummary.value.recentRequests
+    : []
+  return [...requests]
     .sort((a, b) => {
       const rankDiff =
         Number(a.preferenceRank || 999) - Number(b.preferenceRank || 999)
@@ -252,11 +250,11 @@ async function withdrawRequest(requestId: number | string) {
 async function loadData() {
   loading.value = true
   try {
-    const [reqData, projData] = await Promise.all([
-      studentApi.getRequests(),
+    const [summaryRes, projData] = await Promise.all([
+      studentApi.getRequestSummary(),
       studentApi.getProjects(1, 50),
     ])
-    requests.value = Array.isArray(reqData.data) ? reqData.data : []
+    requestSummary.value = summaryRes.data || null
     projects.value = Array.isArray(projData.data?.records)
       ? projData.data.records
       : []
@@ -314,7 +312,7 @@ onMounted(loadData)
       </div>
       <div class="panel">
         <h3>Total Applications</h3>
-        <strong>{{ requests.length }}</strong>
+        <strong>{{ totalRequests }}</strong>
       </div>
     </section>
 
@@ -325,7 +323,12 @@ onMounted(loadData)
         <div class="chart-panel">
           <h3>Application Status</h3>
           <div v-if="loading" class="chart-placeholder">Loading...</div>
-          <VChart v-else class="chart" :option="statusChartOption" autoresize />
+          <VChart
+            v-else
+            class="chart"
+            :option="statusChartOption"
+            :autoresize="chartAutoresize"
+          />
         </div>
         <div class="chart-panel">
           <h3>Projects by Category</h3>
@@ -334,13 +337,18 @@ onMounted(loadData)
             v-else
             class="chart"
             :option="categoryChartOption"
-            autoresize
+            :autoresize="chartAutoresize"
           />
         </div>
         <div class="chart-panel">
           <h3>Project Status</h3>
           <div v-if="loading" class="chart-placeholder">Loading...</div>
-          <VChart v-else class="chart" :option="tagChartOption" autoresize />
+          <VChart
+            v-else
+            class="chart"
+            :option="tagChartOption"
+            :autoresize="chartAutoresize"
+          />
         </div>
       </div>
     </section>
