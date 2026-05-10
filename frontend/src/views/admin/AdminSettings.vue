@@ -261,13 +261,16 @@ onMounted(fetchProfile)
       role-label="Administrator"
       hint="Keep this account name for admin sign-in and security reviews."
     />
-
     <div class="content-panel">
       <form class="settings-form" @submit.prevent="handleSave">
         <!-- Basic Info -->
         <div class="form-section">
           <div class="section-title">Basic Information</div>
 
+          <div class="form-row">
+            <span class="form-label"><i class="bi bi-person"></i> Account</span>
+            <input :value="account" type="text" class="form-control" disabled />
+          </div>
           <div class="form-row">
             <span class="form-label"
               ><i class="bi bi-person-badge"></i> Full Name</span

@@ -298,7 +298,6 @@ onMounted(fetchProfile)
       role-label="Student"
       hint="Use this exact username on the login page if you sign out or switch devices."
     />
-
     <div class="content-panel">
       <form class="settings-form" @submit.prevent="handleSave">
         <!-- Basic Info -->
