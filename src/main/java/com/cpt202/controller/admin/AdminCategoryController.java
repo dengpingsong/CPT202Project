@@ -1,9 +1,9 @@
 package com.cpt202.controller.admin;
 
 import com.cpt202.dto.CategoryDTO;
-import com.cpt202.model.entity.User;
+import com.cpt202.dto.PageQueryDTO;
+import com.cpt202.result.PageResult;
 import com.cpt202.result.Result;
-import com.cpt202.service.CallbackAuthService;
 import com.cpt202.service.CategoryService;
 import com.cpt202.vo.CategoryVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,12 +26,9 @@ import java.util.List;
 public class AdminCategoryController {
 
     private final CategoryService categoryService;
-    private final CallbackAuthService callbackAuthService;
 
-    public AdminCategoryController(CategoryService categoryService,
-                                   CallbackAuthService callbackAuthService) {
+    public AdminCategoryController(CategoryService categoryService) {
         this.categoryService = categoryService;
-        this.callbackAuthService = callbackAuthService;
     }
 
     /**
@@ -41,24 +38,27 @@ public class AdminCategoryController {
      */
     @GetMapping
     @Operation(summary = "List categories")
-    public Result<List<CategoryVO>> list(@RequestHeader("Authorization") String authorization) {
-        callbackAuthService.requireAuth(authorization, User.UserRole.ADMIN);
+    public Result<List<CategoryVO>> list() {
         log.info("List categories");
         return Result.success(categoryService.listAll());
+    }
+
+    @GetMapping("/page")
+    @Operation(summary = "List categories by page")
+    public Result<PageResult<CategoryVO>> listPage(@Valid PageQueryDTO queryDTO) {
+        log.info("List categories by page, pageNum: {}, pageSize: {}", queryDTO.getPageNum(), queryDTO.getPageSize());
+        return Result.success(categoryService.listPage(queryDTO));
     }
 
     /**
      * 根据分类主键查询分类详情。
      *
      * @param categoryId 分类主键
-     * @param operatorId 操作人主键
      * @return 分类展示对象
      */
     @GetMapping("/{categoryId}")
     @Operation(summary = "Get category by ID")
-    public Result<CategoryVO> getById(@PathVariable Long categoryId,
-                                      @RequestHeader("Authorization") String authorization) {
-        callbackAuthService.requireAuth(authorization, User.UserRole.ADMIN);
+    public Result<CategoryVO> getById(@PathVariable Long categoryId) {
         log.info("Get category by id: {}", categoryId);
         return Result.success(categoryService.getById(categoryId));
     }
@@ -67,14 +67,11 @@ public class AdminCategoryController {
      * 新增分类。
      *
      * @param categoryDTO 分类新增参数
-     * @param operatorId 操作人主键
      * @return 统一成功响应
      */
     @PostMapping
     @Operation(summary = "Create a category")
-    public Result<Void> create(@Valid @RequestBody CategoryDTO categoryDTO,
-                               @RequestHeader("Authorization") String authorization) {
-        callbackAuthService.requireAuth(authorization, User.UserRole.ADMIN);
+    public Result<Void> create(@Valid @RequestBody CategoryDTO categoryDTO) {
         log.info("Create category: {}", categoryDTO);
         categoryService.create(categoryDTO);
         return Result.success();
@@ -85,15 +82,12 @@ public class AdminCategoryController {
      *
      * @param categoryId 分类主键
      * @param categoryDTO 分类更新参数
-     * @param operatorId 操作人主键
      * @return 统一成功响应
      */
     @PutMapping("/{categoryId}")
     @Operation(summary = "Update a category")
     public Result<Void> update(@PathVariable Long categoryId,
-                               @Valid @RequestBody CategoryDTO categoryDTO,
-                               @RequestHeader("Authorization") String authorization) {
-        callbackAuthService.requireAuth(authorization, User.UserRole.ADMIN);
+                               @Valid @RequestBody CategoryDTO categoryDTO) {
         log.info("Update category: {}, payload: {}", categoryId, categoryDTO);
         categoryService.update(categoryId, categoryDTO);
         return Result.success();
@@ -103,14 +97,11 @@ public class AdminCategoryController {
      * 删除指定分类。
      *
      * @param categoryId 分类主键
-     * @param operatorId 操作人主键
      * @return 统一成功响应
      */
     @DeleteMapping("/{categoryId}")
     @Operation(summary = "Delete a category")
-    public Result<Void> delete(@PathVariable Long categoryId,
-                               @RequestHeader("Authorization") String authorization) {
-        callbackAuthService.requireAuth(authorization, User.UserRole.ADMIN);
+    public Result<Void> delete(@PathVariable Long categoryId) {
         log.info("Delete category: {}", categoryId);
         categoryService.delete(categoryId);
         return Result.success();
