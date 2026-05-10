@@ -27,7 +27,8 @@ const {
     return res.data
   },
   onLoadError: (error) => {
-    const message = error instanceof Error ? error.message : 'Failed to load requests'
+    const message =
+      error instanceof Error ? error.message : 'Failed to load requests'
     toast.error(message)
   },
 })

@@ -1,12 +1,16 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { studentApi, getCurrentUser } from '../../utils/api'
+import AppPagination from '../../components/AppPagination.vue'
+import { useResponsivePageResult } from '../../composables/useResponsivePageResult'
+import {
+  getCurrentUser,
+  normalizePageResult,
+  studentApi,
+} from '../../utils/api'
 import { toast } from '../../utils/ui-feedback'
 
 const router = useRouter()
-const loading = ref(true)
-const notifications = ref<NotificationItem[]>([])
 
 const readStorageKey = computed(() => {
   const user = getCurrentUser()
@@ -141,6 +145,43 @@ function buildNotifications(requests: any[]): NotificationItem[] {
     })
 }
 
+const {
+  tableWrapperRef,
+  loading,
+  records: notifications,
+  currentPage,
+  pageSize,
+  total,
+  totalPages,
+  visiblePages,
+  initialize,
+  loadPage: loadNotifications,
+} = useResponsivePageResult<NotificationItem>({
+  loadPage: async ({ pageNum, pageSize }) => {
+    const res = await studentApi.getRequestsPage({ pageNum, pageSize })
+    const pageResult = normalizePageResult(res.data, { pageNum, pageSize })
+    return {
+      ...pageResult,
+      records: buildNotifications(pageResult.records),
+    }
+  },
+  onLoadError: (error) => {
+    const message =
+      error instanceof Error ? error.message : 'Failed to load notifications'
+    toast.error(message)
+  },
+  mobileRowHeight: 184,
+  desktopRowHeight: 156,
+  mobileMinRows: 2,
+  tabletMinRows: 3,
+  desktopMinRows: 3,
+  mobileMaxRows: 4,
+  tabletMaxRows: 5,
+  desktopMaxRows: 5,
+})
+
+void tableWrapperRef
+
 const unreadCount = computed(
   () => notifications.value.filter((n) => !n.read).length,
 )
@@ -159,21 +200,9 @@ function viewDetail(projectId: number) {
   router.push(`/student/projects/${projectId}`)
 }
 
-async function loadNotifications() {
-  loading.value = true
-  try {
-    const reqRes = await studentApi.getRequests()
-    const reqs = Array.isArray(reqRes.data) ? reqRes.data : []
-    notifications.value = buildNotifications(reqs)
-  } catch (e: any) {
-    toast.error(e.message || 'Failed to load notifications')
-    notifications.value = []
-  } finally {
-    loading.value = false
-  }
-}
-
-onMounted(loadNotifications)
+onMounted(() => {
+  void initialize()
+})
 </script>
 
 <template>
@@ -199,62 +228,74 @@ onMounted(loadNotifications)
       </button>
     </div>
 
-    <div
-      v-if="loading"
-      class="panel"
-      style="text-align: center; padding: 40px; color: var(--muted)"
-    >
-      Loading...
-    </div>
-
-    <div
-      v-else-if="notifications.length === 0"
-      class="panel"
-      style="text-align: center; padding: 40px; color: var(--muted)"
-    >
-      No notifications yet.
-    </div>
-
-    <div v-else class="notification-list">
+    <div ref="tableWrapperRef">
       <div
-        v-for="n in notifications"
-        :key="n.id"
-        class="notification-item"
-        :class="{ unread: !n.read }"
-        @click="markRead(n)"
+        v-if="loading"
+        class="panel"
+        style="text-align: center; padding: 40px; color: var(--muted)"
       >
+        Loading...
+      </div>
+
+      <div
+        v-else-if="notifications.length === 0"
+        class="panel"
+        style="text-align: center; padding: 40px; color: var(--muted)"
+      >
+        No notifications yet.
+      </div>
+
+      <div v-else class="notification-list">
         <div
-          class="notification-icon"
-          :style="{ background: iconBg(n.type), color: iconColor(n.type) }"
+          v-for="n in notifications"
+          :key="n.id"
+          class="notification-item"
+          :class="{ unread: !n.read }"
+          @click="markRead(n)"
         >
-          <i :class="`bi ${iconClass(n.type)}`"></i>
-        </div>
-        <div class="msg-body">
-          <div class="notification-title">
-            {{ n.title }}
-            <span v-if="!n.read" class="unread-dot"></span>
-          </div>
-          <div class="notification-message">{{ n.message }}</div>
-          <div class="notification-meta">
-            <span><i class="bi bi-clock"></i> {{ formatDate(n.time) }}</span>
-            <span><i class="bi bi-tag"></i> {{ n.status }}</span>
-          </div>
-        </div>
-        <div class="notification-actions">
-          <button
-            v-if="!n.read"
-            class="btn-sm btn-read"
-            @click.stop="markRead(n)"
+          <div
+            class="notification-icon"
+            :style="{ background: iconBg(n.type), color: iconColor(n.type) }"
           >
-            Read
-          </button>
-          <button
-            class="btn-sm btn-detail"
-            @click.stop="viewDetail(n.projectId)"
-          >
-            <i class="bi bi-arrow-right-circle"></i>
-          </button>
+            <i :class="`bi ${iconClass(n.type)}`"></i>
+          </div>
+          <div class="msg-body">
+            <div class="notification-title">
+              {{ n.title }}
+              <span v-if="!n.read" class="unread-dot"></span>
+            </div>
+            <div class="notification-message">{{ n.message }}</div>
+            <div class="notification-meta">
+              <span><i class="bi bi-clock"></i> {{ formatDate(n.time) }}</span>
+              <span><i class="bi bi-tag"></i> {{ n.status }}</span>
+            </div>
+          </div>
+          <div class="notification-actions">
+            <button
+              v-if="!n.read"
+              class="btn-sm btn-read"
+              @click.stop="markRead(n)"
+            >
+              Read
+            </button>
+            <button
+              class="btn-sm btn-detail"
+              @click.stop="viewDetail(n.projectId)"
+            >
+              <i class="bi bi-arrow-right-circle"></i>
+            </button>
+          </div>
         </div>
+
+        <AppPagination
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          :total-items="total"
+          :page-size="pageSize"
+          :pages="visiblePages"
+          item-label="notifications"
+          @change="loadNotifications"
+        />
       </div>
     </div>
   </div>

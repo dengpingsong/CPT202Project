@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { teacherApi } from '../../utils/api'
+import AppPagination from '../../components/AppPagination.vue'
+import { useResponsivePageResult } from '../../composables/useResponsivePageResult'
+import { normalizePageResult, teacherApi } from '../../utils/api'
 import { toast } from '../../utils/ui-feedback'
 import { toDateTimeLocalValue, toIsoLocalDateTime } from '../../utils/date'
 
 const router = useRouter()
 
-const loading = ref(true)
-const projects = ref<any[]>([])
 const categories = ref<any[]>([])
 const tags = ref<any[]>([])
 const statusFilter = ref('')
@@ -39,6 +39,50 @@ const showStatusConfirm = ref(false)
 const statusConfirmMessage = ref('')
 let pendingConfirmAction: (() => Promise<void>) | null = null
 
+const {
+  tableWrapperRef,
+  loading,
+  records: projects,
+  currentPage,
+  pageSize,
+  total,
+  totalPages,
+  visiblePages,
+  initialize,
+  loadPage: loadProjects,
+} = useResponsivePageResult<any>({
+  loadPage: async ({ pageNum, pageSize }) => {
+    const res = await teacherApi.listProjectsPage(
+      statusFilter.value || undefined,
+      {
+        pageNum,
+        pageSize,
+      },
+    )
+    return normalizePageResult(res.data, { pageNum, pageSize })
+  },
+  onLoadError: (error) => {
+    const message =
+      error instanceof Error ? error.message : 'Failed to load projects'
+    toast.error(message)
+  },
+  mobileItemsPerRow: 1,
+  tabletItemsPerRow: 2,
+  desktopItemsPerRow: 3,
+  mobileRowHeight: 266,
+  desktopRowHeight: 236,
+  mobilePaginationSpace: 208,
+  desktopPaginationSpace: 196,
+  mobileMinRows: 2,
+  tabletMinRows: 2,
+  desktopMinRows: 2,
+  mobileMaxRows: 4,
+  tabletMaxRows: 4,
+  desktopMaxRows: 4,
+})
+
+void tableWrapperRef
+
 function normalizeStatus(status: string | null | undefined): string {
   const s = String(status || 'UNKNOWN').toUpperCase()
   return s === 'ARCHIVED' ? 'CLOSED' : s
@@ -68,22 +112,9 @@ function setEditStatus(msg: string, type: 'success' | 'error' | '') {
   editPanelStatusType.value = type
 }
 
-async function loadProjects() {
-  loading.value = true
-  try {
-    const res = await teacherApi.listProjects(statusFilter.value || undefined)
-    projects.value = Array.isArray(res.data) ? res.data : []
-  } catch (e: any) {
-    toast.error(e.message || 'Failed to load projects')
-    projects.value = []
-  } finally {
-    loading.value = false
-  }
-}
-
 function resetFilters() {
   statusFilter.value = ''
-  void loadProjects()
+  void loadProjects(1)
 }
 
 async function loadReferenceData() {
@@ -202,7 +233,7 @@ async function executeSave() {
 
     setEditStatus('Changes saved successfully.', 'success')
     toast.success('Project updated')
-    await loadProjects()
+    await loadProjects(currentPage.value)
     await openProjectEditor(Number(projectId))
   } catch (e: any) {
     setEditStatus(e.message || 'Failed to save changes', 'error')
@@ -246,7 +277,7 @@ function viewRequests() {
 
 onMounted(async () => {
   await loadReferenceData()
-  await loadProjects()
+  await initialize()
 })
 </script>
 
@@ -269,7 +300,7 @@ onMounted(async () => {
           <select
             v-model="statusFilter"
             aria-label="Project Status"
-            @change="loadProjects()"
+            @change="loadProjects(1)"
           >
             <option value="">All Project Status</option>
             <option value="AVAILABLE">Available</option>
@@ -284,47 +315,60 @@ onMounted(async () => {
         </button>
       </div>
 
-      <div
-        v-if="loading"
-        style="color: var(--muted); text-align: center; padding: 24px"
-      >
-        Loading...
-      </div>
+      <div ref="tableWrapperRef">
+        <div
+          v-if="loading"
+          style="color: var(--muted); text-align: center; padding: 24px"
+        >
+          Loading...
+        </div>
 
-      <div
-        v-else-if="projects.length === 0"
-        style="color: var(--muted); text-align: center; padding: 24px"
-      >
-        No projects found. Create a new project to get started.
-      </div>
+        <div
+          v-else-if="projects.length === 0"
+          style="color: var(--muted); text-align: center; padding: 24px"
+        >
+          No projects found. Create a new project to get started.
+        </div>
 
-      <div v-else class="project-grid">
-        <div v-for="p in projects" :key="p.projectId" class="outline-card">
-          <h4>{{ p.title || 'Untitled Project' }}</h4>
-          <p class="meta">
-            {{
-              [p.categoryName, p.topicArea, p.requiredSkills]
-                .filter(Boolean)
-                .join(' / ') || 'No category'
-            }}
-          </p>
-          <p class="meta">
-            ID: {{ p.projectId }} | Quota: {{ p.currentAgreedCount || 0 }}/{{
-              p.maxStudents || 0
-            }}
-          </p>
-          <div style="flex-grow: 1">
-            <span class="status-pill" :class="statusClass(p.projectStatus)">{{
-              statusText(p.projectStatus)
-            }}</span>
-          </div>
-          <div class="card-actions">
-            <button class="btn-card" @click="viewRequests">Requests</button>
-            <button class="btn-card" @click="openProjectEditor(p.projectId)">
-              Edit
-            </button>
+        <div v-else class="project-grid">
+          <div v-for="p in projects" :key="p.projectId" class="outline-card">
+            <h4>{{ p.title || 'Untitled Project' }}</h4>
+            <p class="meta">
+              {{
+                [p.categoryName, p.topicArea, p.requiredSkills]
+                  .filter(Boolean)
+                  .join(' / ') || 'No category'
+              }}
+            </p>
+            <p class="meta">
+              ID: {{ p.projectId }} | Quota: {{ p.currentAgreedCount || 0 }}/{{
+                p.maxStudents || 0
+              }}
+            </p>
+            <div style="flex-grow: 1">
+              <span class="status-pill" :class="statusClass(p.projectStatus)">
+                {{ statusText(p.projectStatus) }}
+              </span>
+            </div>
+            <div class="card-actions">
+              <button class="btn-card" @click="viewRequests">Requests</button>
+              <button class="btn-card" @click="openProjectEditor(p.projectId)">
+                Edit
+              </button>
+            </div>
           </div>
         </div>
+
+        <AppPagination
+          v-if="!loading && total > 0"
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          :total-items="total"
+          :page-size="pageSize"
+          :pages="visiblePages"
+          item-label="projects"
+          @change="loadProjects"
+        />
       </div>
     </div>
 

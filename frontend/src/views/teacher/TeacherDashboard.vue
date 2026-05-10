@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { teacherApi } from '../../utils/api'
+import AppPagination from '../../components/AppPagination.vue'
+import { useResponsivePageResult } from '../../composables/useResponsivePageResult'
+import { normalizePageResult, teacherApi } from '../../utils/api'
 import { toast, confirm } from '../../utils/ui-feedback'
 
 const router = useRouter()
-const loading = ref(true)
-const requests = ref<any[]>([])
 const statusFilter = ref('')
 const showRejectModal = ref(false)
 const rejectRequestId = ref<number | null>(null)
@@ -49,24 +49,48 @@ function formatDate(value: string | null | undefined): string {
   })
 }
 
-const filteredRequests = computed(() => {
-  if (!statusFilter.value) return requests.value
-  return requests.value.filter(
-    (r) => normalizeStatus(r.requestStatus) === statusFilter.value,
-  )
+const {
+  tableWrapperRef,
+  loading,
+  records: requests,
+  currentPage,
+  pageSize,
+  total,
+  totalPages,
+  visiblePages,
+  initialize,
+  loadPage: loadRequests,
+} = useResponsivePageResult<any>({
+  loadPage: async ({ pageNum, pageSize }) => {
+    const res = await teacherApi.listRequestsPage(
+      statusFilter.value || undefined,
+      {
+        pageNum,
+        pageSize,
+      },
+    )
+    return normalizePageResult(res.data, { pageNum, pageSize })
+  },
+  onLoadError: (error) => {
+    const message =
+      error instanceof Error ? error.message : 'Failed to load requests'
+    toast.error(message)
+  },
+  mobileRowHeight: 92,
+  desktopRowHeight: 72,
+  mobileMinRows: 4,
+  tabletMinRows: 5,
+  desktopMinRows: 6,
+  mobileMaxRows: 8,
+  tabletMaxRows: 10,
+  desktopMaxRows: 12,
 })
 
-async function loadRequests() {
-  loading.value = true
-  try {
-    const res = await teacherApi.listRequests()
-    requests.value = Array.isArray(res.data) ? res.data : []
-  } catch (e: any) {
-    toast.error(e.message || 'Failed to load requests')
-    requests.value = []
-  } finally {
-    loading.value = false
-  }
+void tableWrapperRef
+
+function clearFilters() {
+  statusFilter.value = ''
+  void loadRequests(1)
 }
 
 function viewDetail(requestId: number) {
@@ -81,7 +105,7 @@ async function handleAccept(requestId: number) {
   try {
     await teacherApi.reviewRequest(requestId, 'ACCEPTED')
     toast.success('Application accepted')
-    await loadRequests()
+    await loadRequests(currentPage.value)
   } catch (e: any) {
     toast.error(e.message || 'Failed to accept')
   }
@@ -110,7 +134,7 @@ async function handleReject() {
     )
     toast.success('Application rejected')
     closeRejectModal()
-    await loadRequests()
+    await loadRequests(currentPage.value)
   } catch (e: any) {
     toast.error(e.message || 'Failed to reject')
   } finally {
@@ -118,7 +142,9 @@ async function handleReject() {
   }
 }
 
-onMounted(loadRequests)
+onMounted(() => {
+  void initialize()
+})
 </script>
 
 <template>
@@ -130,7 +156,11 @@ onMounted(loadRequests)
     <div class="panel">
       <div class="filters-row">
         <span class="filter-control select-control">
-          <select v-model="statusFilter" aria-label="Request Status">
+          <select
+            v-model="statusFilter"
+            aria-label="Request Status"
+            @change="loadRequests(1)"
+          >
             <option value="">All Request Status</option>
             <option value="PENDING">Pending</option>
             <option value="ACCEPTED">Accepted</option>
@@ -138,13 +168,13 @@ onMounted(loadRequests)
             <option value="WITHDRAWN">Withdrawn</option>
           </select>
         </span>
-        <button class="clear-btn" @click="statusFilter = ''">
+        <button class="clear-btn" @click="clearFilters">
           <i class="bi bi-arrow-counterclockwise"></i>
           Clear
         </button>
       </div>
 
-      <div class="table-wrapper">
+      <div ref="tableWrapperRef" class="table-wrapper">
         <table class="request-table">
           <thead>
             <tr>
@@ -161,12 +191,12 @@ onMounted(loadRequests)
                 Loading...
               </td>
             </tr>
-            <tr v-else-if="filteredRequests.length === 0">
+            <tr v-else-if="requests.length === 0">
               <td colspan="5" style="text-align: center; color: #888">
                 No requests found
               </td>
             </tr>
-            <tr v-for="r in filteredRequests" :key="r.requestId">
+            <tr v-for="r in requests" :key="r.requestId">
               <td>
                 <div class="student-info">
                   <span class="student-name">{{ r.studentName || '-' }}</span>
@@ -215,7 +245,18 @@ onMounted(loadRequests)
         </table>
       </div>
 
-      <div class="summary">{{ filteredRequests.length }} request(s)</div>
+      <AppPagination
+        v-if="!loading && total > 0"
+        :current-page="currentPage"
+        :total-pages="totalPages"
+        :total-items="total"
+        :page-size="pageSize"
+        :pages="visiblePages"
+        item-label="requests"
+        @change="loadRequests"
+      />
+
+      <div class="summary">{{ total }} request(s)</div>
     </div>
 
     <Teleport to="body">

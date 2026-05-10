@@ -18,11 +18,15 @@ const {
   loadPage: loadData,
 } = useResponsivePageResult<any>({
   loadPage: async ({ pageNum, pageSize }) => {
-    const res = await adminApi.listRequestHistoryRecordsPage({ pageNum, pageSize })
+    const res = await adminApi.listRequestHistoryRecordsPage({
+      pageNum,
+      pageSize,
+    })
     return res.data
   },
   onLoadError: (error) => {
-    const message = error instanceof Error ? error.message : 'Failed to load history'
+    const message =
+      error instanceof Error ? error.message : 'Failed to load history'
     toast.error(message)
   },
 })
