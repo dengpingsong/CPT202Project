@@ -1,5 +1,6 @@
 package com.cpt202.dto;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
@@ -17,6 +18,7 @@ public class TeacherProfileUpdateDTO {
 
     /** 教师邮箱。 */
     @NotBlank
+    @Email(message = "Invalid email format.")
     private String email;
 
     /** 所属院系。 */

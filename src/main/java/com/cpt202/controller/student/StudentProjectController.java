@@ -1,14 +1,12 @@
 package com.cpt202.controller.student;
 
 import com.cpt202.dto.StudentProjectQueryDTO;
-import com.cpt202.model.entity.Project;
-import com.cpt202.model.entity.User;
+import com.cpt202.result.PageResult;
 import com.cpt202.result.Result;
-import com.cpt202.security.AuthContext;
-import com.cpt202.service.CallbackAuthService;
+import com.cpt202.service.CategoryService;
 import com.cpt202.service.ProjectService;
 import com.cpt202.service.TagService;
-import com.cpt202.service.impl.TagServiceImpl;
+import com.cpt202.vo.CategoryVO;
 import com.cpt202.vo.ProjectVO;
 import com.cpt202.vo.TagVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,17 +26,19 @@ public class StudentProjectController {
 
     private final ProjectService projectService;
     private final TagService tagService;
-    private final CallbackAuthService callbackAuthService;
+    private final CategoryService categoryService;
 
     /**
      * 构造器注入项目服务。
      *
      * @param projectService 项目服务
      */
-    public StudentProjectController(ProjectService projectService, TagService tagService, CallbackAuthService callbackAuthService) {
+    public StudentProjectController(ProjectService projectService,
+                                    TagService tagService,
+                                    CategoryService categoryService) {
         this.projectService = projectService;
         this.tagService = tagService;
-        this.callbackAuthService = callbackAuthService;
+        this.categoryService = categoryService;
     }
 
     /**
@@ -49,11 +49,8 @@ public class StudentProjectController {
      */
     @GetMapping
     @Operation(summary = "List available projects")
-    public Result<List<ProjectVO>> list(StudentProjectQueryDTO queryDTO) {
-        return Result.success(projectService.listStudentProjects(
-                queryDTO.getKeyword(),
-                queryDTO.getCategoryId(),
-                queryDTO.getStatus()));
+    public Result<PageResult<ProjectVO>> list(StudentProjectQueryDTO queryDTO) {
+        return Result.success(projectService.listStudentProjects(queryDTO));
     }
 
     /**
@@ -75,5 +72,14 @@ public class StudentProjectController {
     @Operation(summary = "Get all available tags for filtering")
     public Result<List<TagVO>> getAlLTags() {
         return Result.success(tagService.listAll());
+    }
+
+    /**
+     * 获取所有项目分类，供学生筛选项目。
+     */
+    @GetMapping("/categories")
+    @Operation(summary = "Get all available categories for filtering")
+    public Result<List<CategoryVO>> getAllCategories() {
+        return Result.success(categoryService.listAll());
     }
 }

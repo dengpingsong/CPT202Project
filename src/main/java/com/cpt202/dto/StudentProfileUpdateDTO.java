@@ -1,6 +1,8 @@
 package com.cpt202.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.PastOrPresent;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -19,12 +21,14 @@ public class StudentProfileUpdateDTO {
 
     /** 学生邮箱。 */
     @NotBlank
+    @Email(message = "Invalid email format.")
     private String email;
 
     /** 专业。 */
     private String programme;
     /** 入学日期。 */
     @JsonFormat(pattern = "yyyy-MM-dd", timezone = "GMT+8")
+    @PastOrPresent(message = "Enrollment date cannot be in the future.")
     private LocalDate enrollmentDate;
     /** 联系电话。 */
     private String phone;
