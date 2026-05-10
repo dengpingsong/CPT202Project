@@ -35,6 +35,13 @@ public class ProfileValidationServiceImpl implements ProfileValidationService {
     }
 
     @Override
+    public void checkUserRole(User user, User.UserRole expectedRole) {
+        if (user == null || user.getRole() != expectedRole) {
+            throw new BusinessException(MessageConstants.ROLE_MISMATCH);
+        }
+    }
+
+    @Override
     public void checkUserIsStudent(User user) {
         if (user == null || user.getRole() != User.UserRole.STUDENT) {
             throw new BusinessException(MessageConstants.NON_STUDENT_PROFILE_ACCESS);

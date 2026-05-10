@@ -19,6 +19,7 @@ import com.cpt202.repository.RequestStatusHistoryRepository;
 import com.cpt202.repository.TeacherProfileRepository;
 import com.cpt202.result.PageResult;
 import com.cpt202.service.ProjectService;
+import com.cpt202.util.VoConverter;
 import com.cpt202.validation.ProjectValidationService;
 import com.cpt202.vo.ProjectVO;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +31,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -68,7 +68,7 @@ public class ProjectServiceImpl implements ProjectService {
                 queryDTO.getStatus(),
                 queryDTO.getTagIds(),
                 pageable);
-        List<ProjectVO> projectVos = toProjectVOList(projectPage.getContent());
+        List<ProjectVO> projectVos = VoConverter.toList(projectPage.getContent(), this::toProjectVO);
         return new PageResult<>(
                 projectPage.getTotalElements(),
                 projectVos,
@@ -85,7 +85,7 @@ public class ProjectServiceImpl implements ProjectService {
         List<Project> projects = status == null
                 ? projectRepository.findByTeacher_TeacherIdOrderByCreatedAtDesc(teacherId)
                 : projectRepository.findByTeacher_TeacherIdAndProjectStatusOrderByCreatedAtDesc(teacherId, status);
-        return toProjectVOList(projects);
+        return VoConverter.toList(projects, this::toProjectVO);
     }
 
     @Override
@@ -222,14 +222,6 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = getProjectEntity(projectId);
         projectValidationService.checkProjectOwnership(project, teacherId);
         return project;
-    }
-
-    private List<ProjectVO> toProjectVOList(List<Project> projects) {
-        List<ProjectVO> projectVos = new ArrayList<>(projects.size());
-        for (Project project : projects) {
-            projectVos.add(toProjectVO(project));
-        }
-        return projectVos;
     }
 
     private ProjectVO toProjectVO(Project project) {
