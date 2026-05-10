@@ -11,6 +11,7 @@ import com.cpt202.vo.ProjectVO;
 import com.cpt202.vo.TagVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -49,7 +50,7 @@ public class StudentProjectController {
      */
     @GetMapping
     @Operation(summary = "List available projects")
-    public Result<PageResult<ProjectVO>> list(StudentProjectQueryDTO queryDTO) {
+    public Result<PageResult<ProjectVO>> list(@Valid StudentProjectQueryDTO queryDTO) {
         return Result.success(projectService.listStudentProjects(queryDTO));
     }
 
