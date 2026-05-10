@@ -221,4 +221,38 @@ class TeacherControllerIntegrationTest extends IntegrationTestSupport {
         assertThat(refreshed.getRequestStatus()).isEqualTo(ProjectRequest.RequestStatus.REJECTED);
         assertThat(refreshed.getReviewedBy().getTeacherId()).isEqualTo(teacherProfile.getTeacherId());
     }
+
+    /**
+     * Analytics should be aggregated on the backend and scoped to the current
+     * teacher rather than requiring the client to fetch and count raw rows.
+     */
+    @Test
+    void teacherAnalyticsEndpointReturnsAggregatedStats() throws Exception {
+        mockMvc.perform(get("/api/teacher/analytics")
+                        .header("Authorization", teacherAuthorization))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1))
+                .andExpect(jsonPath("$.data.totalProjects").value(1))
+                .andExpect(jsonPath("$.data.totalRequests").value(1))
+                .andExpect(jsonPath("$.data.pendingCount").value(1))
+                .andExpect(jsonPath("$.data.acceptedCount").value(0))
+                .andExpect(jsonPath("$.data.rejectedCount").value(0))
+                .andExpect(jsonPath("$.data.withdrawnCount").value(0))
+                .andExpect(jsonPath("$.data.totalCapacity").value(2))
+                .andExpect(jsonPath("$.data.filledSlots").value(0))
+                .andExpect(jsonPath("$.data.requestStatusCounts[?(@.label == 'PENDING')].value")
+                        .value(hasItem(1)))
+                .andExpect(jsonPath("$.data.projectStatusCounts[?(@.label == 'AVAILABLE')].value")
+                        .value(hasItem(1)))
+                .andExpect(jsonPath("$.data.requestsPerProject[0].label").value(project.getTitle()))
+                .andExpect(jsonPath("$.data.requestsPerProject[0].value").value(1))
+                .andExpect(jsonPath("$.data.programmeCounts[?(@.label == 'Software Engineering')].value")
+                        .value(hasItem(1)))
+                .andExpect(jsonPath("$.data.preferenceRankCounts[?(@.label == '1')].value")
+                        .value(hasItem(1)))
+                .andExpect(jsonPath("$.data.fillRateTopProjects[0].name").value(project.getTitle()))
+                .andExpect(jsonPath("$.data.fillRateTopProjects[0].current").value(0))
+                .andExpect(jsonPath("$.data.fillRateTopProjects[0].max").value(2))
+                .andExpect(jsonPath("$.data.fillRateTopProjects[0].rate").value(0));
+    }
 }
