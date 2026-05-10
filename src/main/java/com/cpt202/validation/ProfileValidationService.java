@@ -17,6 +17,14 @@ public interface ProfileValidationService {
     void checkEmailAvailableForUser(String email, Long userId);
 
     /**
+     * 泛型角色校验：校验用户是否具备指定角色。
+     *
+     * @param user         用户实体
+     * @param expectedRole 期望的角色
+     */
+    void checkUserRole(User user, User.UserRole expectedRole);
+
+    /**
      * 校验用户是否为 STUDENT 角色。
      *
      * @param user 用户实体

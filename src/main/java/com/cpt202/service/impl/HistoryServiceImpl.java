@@ -8,12 +8,12 @@ import com.cpt202.model.entity.RequestStatusHistory;
 import com.cpt202.repository.ProjectRequestRepository;
 import com.cpt202.repository.RequestStatusHistoryRepository;
 import com.cpt202.service.HistoryService;
+import com.cpt202.util.VoConverter;
 import com.cpt202.vo.RequestStatusHistoryVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -44,11 +44,8 @@ public class HistoryServiceImpl implements HistoryService {
 
         List<RequestStatusHistory> histories = requestStatusHistoryRepository.findByRequest_RequestIdOrderByChangedAtAsc(requestId);
 
-        List<RequestStatusHistoryVO> historyVos = new ArrayList<>(histories.size());
-        for (RequestStatusHistory history : histories) {
-            historyVos.add(toRequestStatusHistoryVO(history, requestId));
-        }
-        return historyVos;
+        return VoConverter.toList(histories,
+                h -> toRequestStatusHistoryVO(h, requestId));
     }
 
     private RequestStatusHistoryVO toRequestStatusHistoryVO(RequestStatusHistory history, Long requestId) {
