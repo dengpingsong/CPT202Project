@@ -51,6 +51,7 @@ class TwoFactorAuthServiceImplTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(twoFactorAuthService, "issuer", "CPT202 Test");
+        ReflectionTestUtils.setField(twoFactorAuthService, "frontendBaseUrl", "http://localhost:8080");
         ReflectionTestUtils.setField(twoFactorAuthService, "setupExpirationMinutes", 10L);
         ReflectionTestUtils.setField(twoFactorAuthService, "challengeExpirationMinutes", 5L);
     }
@@ -71,6 +72,18 @@ class TwoFactorAuthServiceImplTest {
         assertThat(result.getManualEntryKey()).isEqualTo(secretCaptor.getValue());
         assertThat(result.getOtpAuthUri()).contains("otpauth://totp/");
         assertThat(result.getOtpAuthUri()).contains("secret=" + secretCaptor.getValue());
+    }
+
+    @Test
+    void initializeSetupShouldDeriveIssuerFromFrontendBaseUrlWhenIssuerNotConfigured() {
+        User user = user(5L, "erin@example.com");
+        ReflectionTestUtils.setField(twoFactorAuthService, "issuer", "");
+        ReflectionTestUtils.setField(twoFactorAuthService, "frontendBaseUrl", "https://123.45.67.89:9002/login");
+
+        TwoFactorSetupVO result = twoFactorAuthService.initializeSetup(user);
+
+        assertThat(result.getOtpAuthUri()).contains("otpauth://totp/123.45.67.89:erin%40example.com");
+        assertThat(result.getOtpAuthUri()).contains("issuer=123.45.67.89");
     }
 
     /**
