@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { adminApi, type AdminAnalytics } from '../../utils/api'
+import { chartAutoresize } from '../../utils/chart'
 import { toast } from '../../utils/ui-feedback'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
@@ -318,12 +319,22 @@ onMounted(loadData)
         <div class="chart-panel">
           <h3>Users by Role</h3>
           <div v-if="loading" class="chart-placeholder">Loading...</div>
-          <VChart v-else class="chart" :option="userRoleChart" autoresize />
+          <VChart
+            v-else
+            class="chart"
+            :option="userRoleChart"
+            :autoresize="chartAutoresize"
+          />
         </div>
         <div class="chart-panel">
           <h3>Users by Status</h3>
           <div v-if="loading" class="chart-placeholder">Loading...</div>
-          <VChart v-else class="chart" :option="userStatusChart" autoresize />
+          <VChart
+            v-else
+            class="chart"
+            :option="userStatusChart"
+            :autoresize="chartAutoresize"
+          />
         </div>
         <div class="chart-panel">
           <h3>Project Status</h3>
@@ -332,7 +343,7 @@ onMounted(loadData)
             v-else
             class="chart"
             :option="projectStatusChart"
-            autoresize
+            :autoresize="chartAutoresize"
           />
         </div>
         <div class="chart-panel">
@@ -342,13 +353,18 @@ onMounted(loadData)
             v-else
             class="chart"
             :option="requestStatusChart"
-            autoresize
+            :autoresize="chartAutoresize"
           />
         </div>
         <div class="chart-panel chart-wide">
           <h3>Projects by Category</h3>
           <div v-if="loading" class="chart-placeholder">Loading...</div>
-          <VChart v-else class="chart" :option="categoryChart" autoresize />
+          <VChart
+            v-else
+            class="chart"
+            :option="categoryChart"
+            :autoresize="chartAutoresize"
+          />
         </div>
         <div class="chart-panel chart-wide">
           <h3>Projects per Teacher (Top 10)</h3>
@@ -357,18 +373,28 @@ onMounted(loadData)
             v-else
             class="chart"
             :option="teacherProjectChart"
-            autoresize
+            :autoresize="chartAutoresize"
           />
         </div>
         <div class="chart-panel chart-wide">
           <h3>Requests by Programme</h3>
           <div v-if="loading" class="chart-placeholder">Loading...</div>
-          <VChart v-else class="chart" :option="programmeChart" autoresize />
+          <VChart
+            v-else
+            class="chart"
+            :option="programmeChart"
+            :autoresize="chartAutoresize"
+          />
         </div>
         <div class="chart-panel chart-wide">
           <h3>Project Fill Rate (Top 10)</h3>
           <div v-if="loading" class="chart-placeholder">Loading...</div>
-          <VChart v-else class="chart" :option="fillRateChart" autoresize />
+          <VChart
+            v-else
+            class="chart"
+            :option="fillRateChart"
+            :autoresize="chartAutoresize"
+          />
         </div>
       </div>
     </section>

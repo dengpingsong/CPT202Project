@@ -313,7 +313,10 @@ export const studentApi = {
   getRequests: (page: Partial<PageQuery> = {}) => {
     const params = new URLSearchParams()
     const normalizedPage = appendPageParams(params, page)
-    return requestPageResult(`/student/requests?${params.toString()}`, normalizedPage)
+    return requestPageResult(
+      `/student/requests?${params.toString()}`,
+      normalizedPage,
+    )
   },
   getRequestsPage: (page: Partial<PageQuery> = {}) => {
     const params = new URLSearchParams()
@@ -323,7 +326,8 @@ export const studentApi = {
       normalizedPage,
     )
   },
-  getRequestSummary: () => request<StudentRequestSummary>('/student/requests/summary'),
+  getRequestSummary: () =>
+    request<StudentRequestSummary>('/student/requests/summary'),
   getRequestContext: (projectId: number | string) =>
     request<any[]>(`/student/requests/context?projectId=${projectId}`),
   getProjects: (
@@ -380,7 +384,10 @@ export const teacherApi = {
     const params = new URLSearchParams()
     if (status) params.set('status', status)
     const normalizedPage = appendPageParams(params, page)
-    return requestPageResult(`/teacher/projects?${params.toString()}`, normalizedPage)
+    return requestPageResult(
+      `/teacher/projects?${params.toString()}`,
+      normalizedPage,
+    )
   },
   listProjectsPage: (status?: string, page: Partial<PageQuery> = {}) => {
     const params = new URLSearchParams()
@@ -419,7 +426,10 @@ export const teacherApi = {
     const params = new URLSearchParams()
     if (status) params.set('status', status)
     const normalizedPage = appendPageParams(params, page)
-    return requestPageResult(`/teacher/requests?${params.toString()}`, normalizedPage)
+    return requestPageResult(
+      `/teacher/requests?${params.toString()}`,
+      normalizedPage,
+    )
   },
   listRequestsPage: (
     status?: string,
@@ -487,7 +497,10 @@ export const adminApi = {
     if (role) params.set('role', role)
     if (accountStatus) params.set('accountStatus', accountStatus)
     const normalizedPage = appendPageParams(params, page)
-    return requestPageResult(`/admin/users?${params.toString()}`, normalizedPage)
+    return requestPageResult(
+      `/admin/users?${params.toString()}`,
+      normalizedPage,
+    )
   },
   listUsersPage: (
     role?: string,
@@ -498,7 +511,10 @@ export const adminApi = {
     if (role) params.set('role', role)
     if (accountStatus) params.set('accountStatus', accountStatus)
     const normalizedPage = appendPageParams(params, page)
-    return requestPageResult(`/admin/users/page?${params.toString()}`, normalizedPage)
+    return requestPageResult(
+      `/admin/users/page?${params.toString()}`,
+      normalizedPage,
+    )
   },
   updateUserStatus: (userId: number | string, accountStatus: string) =>
     request(`/admin/users/${userId}/status?accountStatus=${accountStatus}`, {
