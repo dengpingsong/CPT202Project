@@ -2,6 +2,7 @@ package com.cpt202.result;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -24,5 +25,23 @@ public class PageResult <T> {
         this.pageNum = pageNum;
         this.pageSize = pageSize;
         this.totalPages = totalPages;
+    }
+
+    public static <T> PageResult<T> fromPage(Page<T> page) {
+        return new PageResult<>(
+                page.getTotalElements(),
+                page.getContent(),
+                page.getNumber() + 1,
+                page.getSize(),
+                page.getTotalPages());
+    }
+
+    public static <S, T> PageResult<T> fromPage(Page<S> page, List<T> records) {
+        return new PageResult<>(
+                page.getTotalElements(),
+                records,
+                page.getNumber() + 1,
+                page.getSize(),
+                page.getTotalPages());
     }
 }

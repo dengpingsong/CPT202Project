@@ -1,15 +1,21 @@
 package com.cpt202.service.impl;
 
 import com.cpt202.constant.MessageConstants;
+import com.cpt202.dto.AdminUserQueryDTO;
 import com.cpt202.dto.AdminUserUpdateDTO;
 import com.cpt202.exception.NotFoundException;
 import com.cpt202.exception.RuleViolationException;
 import com.cpt202.model.entity.User;
+import com.cpt202.result.PageResult;
 import com.cpt202.repository.UserRepository;
 import com.cpt202.service.UserAuthStateService;
 import com.cpt202.service.UserAdminService;
 import com.cpt202.vo.UserVO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +40,17 @@ public class UserAdminServiceImpl implements UserAdminService {
     public List<UserVO> listUsers(User.UserRole role, String accountStatus) {
         String normalizedAccountStatus = accountStatus == null ? null : accountStatus.trim();
         return userRepository.findUserVos(role, normalizedAccountStatus);
+    }
+
+    @Override
+    public PageResult<UserVO> listUsersPage(AdminUserQueryDTO queryDTO) {
+        String normalizedAccountStatus = queryDTO.getAccountStatus() == null ? null : queryDTO.getAccountStatus().trim();
+        Pageable pageable = PageRequest.of(
+                Math.max(0, queryDTO.getPageNum() - 1),
+                queryDTO.getPageSize(),
+                Sort.by(Sort.Direction.ASC, "userId"));
+        Page<UserVO> userPage = userRepository.findUserVos(queryDTO.getRole(), normalizedAccountStatus, pageable);
+        return PageResult.fromPage(userPage);
     }
 
     /**

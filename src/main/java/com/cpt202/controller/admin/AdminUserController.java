@@ -2,6 +2,7 @@ package com.cpt202.controller.admin;
 
 import com.cpt202.dto.AdminUserQueryDTO;
 import com.cpt202.dto.AdminUserUpdateDTO;
+import com.cpt202.result.PageResult;
 import com.cpt202.result.Result;
 import com.cpt202.service.UserAdminService;
 import com.cpt202.vo.UserVO;
@@ -37,6 +38,12 @@ public class AdminUserController {
     @Operation(summary = "List users")
     public Result<List<UserVO>> list(AdminUserQueryDTO queryDTO) {
         return Result.success(userAdminService.listUsers(queryDTO.getRole(), queryDTO.getAccountStatus()));
+    }
+
+    @GetMapping("/page")
+    @Operation(summary = "List users by page")
+    public Result<PageResult<UserVO>> listPage(@Valid AdminUserQueryDTO queryDTO) {
+        return Result.success(userAdminService.listUsersPage(queryDTO));
     }
 
     /**

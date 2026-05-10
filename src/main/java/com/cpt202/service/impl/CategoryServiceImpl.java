@@ -3,9 +3,10 @@ package com.cpt202.service.impl;
 import com.cpt202.constant.RedisKeyConstants;
 import com.cpt202.constant.MessageConstants;
 import com.cpt202.dto.CategoryDTO;
+import com.cpt202.dto.PageQueryDTO;
 import com.cpt202.exception.NotFoundException;
-import com.cpt202.exception.RuleViolationException;
 import com.cpt202.model.entity.Category;
+import com.cpt202.result.PageResult;
 import com.cpt202.repository.CategoryRepository;
 import com.cpt202.service.RedisCacheService;
 import com.cpt202.service.CategoryService;
@@ -14,6 +15,10 @@ import com.cpt202.vo.CategoryVO;
 import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -52,6 +57,19 @@ public class CategoryServiceImpl implements CategoryService {
                     return categoryVos;
                 });
     }
+
+            @Override
+            public PageResult<CategoryVO> listPage(PageQueryDTO queryDTO) {
+            Pageable pageable = PageRequest.of(
+                Math.max(0, queryDTO.getPageNum() - 1),
+                queryDTO.getPageSize(),
+                Sort.by(Sort.Direction.ASC, "categoryId"));
+            Page<Category> categoryPage = categoryRepository.findAll(pageable);
+            List<CategoryVO> categoryVos = categoryPage.getContent().stream()
+                .map(this::toCategoryVO)
+                .toList();
+            return PageResult.fromPage(categoryPage, categoryVos);
+            }
 
     /**
      * 根据分类主键查询分类详情。

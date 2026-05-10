@@ -1,6 +1,8 @@
 package com.cpt202.controller.admin;
 
 import com.cpt202.dto.CategoryDTO;
+import com.cpt202.dto.PageQueryDTO;
+import com.cpt202.result.PageResult;
 import com.cpt202.result.Result;
 import com.cpt202.service.CategoryService;
 import com.cpt202.vo.CategoryVO;
@@ -39,6 +41,13 @@ public class AdminCategoryController {
     public Result<List<CategoryVO>> list() {
         log.info("List categories");
         return Result.success(categoryService.listAll());
+    }
+
+    @GetMapping("/page")
+    @Operation(summary = "List categories by page")
+    public Result<PageResult<CategoryVO>> listPage(@Valid PageQueryDTO queryDTO) {
+        log.info("List categories by page, pageNum: {}, pageSize: {}", queryDTO.getPageNum(), queryDTO.getPageSize());
+        return Result.success(categoryService.listPage(queryDTO));
     }
 
     /**
