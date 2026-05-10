@@ -235,10 +235,12 @@ class AdminControllerIntegrationTest extends IntegrationTestSupport {
         mockMvc.perform(get("/api/admin/users")
                         .header("Authorization", adminAuthorization)
                         .param("role", "STUDENT")
-                        .param("accountStatus", "ACTIVE"))
+                        .param("accountStatus", "ACTIVE")
+                        .param("pageNum", "1")
+                        .param("pageSize", "50"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1))
-                .andExpect(jsonPath(String.format("$.data[?(@.userId == %d)].accountStatus", studentUser.getUserId()))
+                .andExpect(jsonPath(String.format("$.data.records[?(@.userId == %d)].accountStatus", studentUser.getUserId()))
                         .value(hasItem("ACTIVE")));
 
         mockMvc.perform(put("/api/admin/users/{userId}/status", studentUser.getUserId())
@@ -259,25 +261,31 @@ class AdminControllerIntegrationTest extends IntegrationTestSupport {
     @Test
     void adminRecordAndProjectTagEndpointsWork() throws Exception {
         mockMvc.perform(get("/api/admin/records/projects")
-                        .header("Authorization", adminAuthorization))
+                        .header("Authorization", adminAuthorization)
+                        .param("pageNum", "1")
+                        .param("pageSize", "50"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1))
-                .andExpect(jsonPath(String.format("$.data[?(@.projectId == %d)].projectStatus", project.getProjectId()))
+                .andExpect(jsonPath(String.format("$.data.records[?(@.projectId == %d)].projectStatus", project.getProjectId()))
                         .value(hasItem("CLOSED")));
 
         mockMvc.perform(get("/api/admin/records/requests")
                         .header("Authorization", adminAuthorization)
-                        .param("status", "ACCEPTED"))
+                        .param("status", "ACCEPTED")
+                        .param("pageNum", "1")
+                        .param("pageSize", "50"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1))
-                .andExpect(jsonPath(String.format("$.data[?(@.requestId == %d)].requestStatus", acceptedRequest.getRequestId()))
+                .andExpect(jsonPath(String.format("$.data.records[?(@.requestId == %d)].requestStatus", acceptedRequest.getRequestId()))
                         .value(hasItem("ACCEPTED")));
 
         mockMvc.perform(get("/api/admin/records/request-history")
-                        .header("Authorization", adminAuthorization))
+                        .header("Authorization", adminAuthorization)
+                        .param("pageNum", "1")
+                        .param("pageSize", "50"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1))
-                .andExpect(jsonPath(String.format("$.data[?(@.requestId == %d)].newStatus", acceptedRequest.getRequestId()))
+                .andExpect(jsonPath(String.format("$.data.records[?(@.requestId == %d)].newStatus", acceptedRequest.getRequestId()))
                         .value(hasItem("ACCEPTED")));
 
         mockMvc.perform(get("/api/admin/projects/{projectId}/tags", project.getProjectId())
@@ -293,6 +301,34 @@ class AdminControllerIntegrationTest extends IntegrationTestSupport {
      */
     @Test
     void adminAnalyticsEndpointReturnsAggregatedStats() throws Exception {
+        User duplicateTeacherUserA = createUser(
+                "duplicate-admin-teacher-a-" + uniqueSuffix(),
+                "duplicate-admin-teacher-a-" + uniqueSuffix() + "@example.com",
+                "Duplicate Teacher",
+                User.UserRole.TEACHER
+        );
+        TeacherProfile duplicateTeacherProfileA = createTeacherProfile(duplicateTeacherUserA, "DUP-A-" + uniqueSuffix());
+        createProject(
+                duplicateTeacherProfileA,
+                createCategory("DuplicateTeacherCategoryA" + uniqueSuffix()),
+                "Duplicate Teacher Project A",
+                2
+        );
+
+        User duplicateTeacherUserB = createUser(
+                "duplicate-admin-teacher-b-" + uniqueSuffix(),
+                "duplicate-admin-teacher-b-" + uniqueSuffix() + "@example.com",
+                "Duplicate Teacher",
+                User.UserRole.TEACHER
+        );
+        TeacherProfile duplicateTeacherProfileB = createTeacherProfile(duplicateTeacherUserB, "DUP-B-" + uniqueSuffix());
+        createProject(
+                duplicateTeacherProfileB,
+                createCategory("DuplicateTeacherCategoryB" + uniqueSuffix()),
+                "Duplicate Teacher Project B",
+                2
+        );
+
         long expectedTotalUsers = userRepository.count();
         long expectedTotalProjects = projectRepository.count();
         long expectedTotalRequests = projectRequestRepository.count();
@@ -345,6 +381,10 @@ class AdminControllerIntegrationTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.data.projectStatusCounts[*].label").value(hasItem("CLOSED")))
                 .andExpect(jsonPath("$.data.categoryCounts[*].label")
                         .value(hasItem(project.getCategory().getCategoryName())))
+                .andExpect(jsonPath("$.data.teacherProjectCounts[*].label")
+                        .value(hasItem("Duplicate Teacher (" + duplicateTeacherProfileA.getStaffNo() + ")")))
+                .andExpect(jsonPath("$.data.teacherProjectCounts[*].label")
+                        .value(hasItem("Duplicate Teacher (" + duplicateTeacherProfileB.getStaffNo() + ")")))
                 .andExpect(jsonPath("$.data.programmeCounts[*].label").value(hasItem("Software Engineering")))
                 .andExpect(jsonPath("$.data.fillRateTopProjects[0].name").value(topFillRateProject.getTitle()));
     }

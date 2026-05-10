@@ -133,10 +133,12 @@ class TeacherControllerIntegrationTest extends IntegrationTestSupport {
 
         mockMvc.perform(get("/api/teacher/projects")
                         .header("Authorization", teacherAuthorization)
-                        .param("status", "AVAILABLE"))
+                        .param("status", "AVAILABLE")
+                        .param("pageNum", "1")
+                        .param("pageSize", "50"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1))
-                .andExpect(jsonPath(String.format("$.data[?(@.projectId == %d)].title", createdProject.getProjectId()))
+                .andExpect(jsonPath(String.format("$.data.records[?(@.projectId == %d)].title", createdProject.getProjectId()))
                         .value(hasItem(createdTitle)));
 
         mockMvc.perform(get("/api/teacher/projects/{projectId}", createdProject.getProjectId())
@@ -202,10 +204,12 @@ class TeacherControllerIntegrationTest extends IntegrationTestSupport {
     void teacherRequestEndpointsWork() throws Exception {
         mockMvc.perform(get("/api/teacher/requests")
                         .header("Authorization", teacherAuthorization)
-                        .param("status", "PENDING"))
+                        .param("status", "PENDING")
+                        .param("pageNum", "1")
+                        .param("pageSize", "50"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1))
-                .andExpect(jsonPath(String.format("$.data[?(@.requestId == %d)].requestStatus", request.getRequestId()))
+                .andExpect(jsonPath(String.format("$.data.records[?(@.requestId == %d)].requestStatus", request.getRequestId()))
                         .value(hasItem("PENDING")));
 
         mockMvc.perform(put("/api/teacher/requests/{requestId}/review", request.getRequestId())

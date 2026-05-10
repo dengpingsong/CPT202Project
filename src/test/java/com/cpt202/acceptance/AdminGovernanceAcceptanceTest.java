@@ -185,7 +185,9 @@ class AdminGovernanceAcceptanceTest extends IntegrationTestSupport {
         MvcResult activeStudentsResult = mockMvc.perform(get("/api/admin/users")
                         .header("Authorization", adminAuthorization)
                         .param("role", "STUDENT")
-                        .param("accountStatus", "ACTIVE"))
+                        .param("accountStatus", "ACTIVE")
+                        .param("pageNum", "1")
+                        .param("pageSize", "50"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1))
                 .andReturn();
@@ -201,7 +203,9 @@ class AdminGovernanceAcceptanceTest extends IntegrationTestSupport {
         MvcResult disabledStudentsResult = mockMvc.perform(get("/api/admin/users")
                         .header("Authorization", adminAuthorization)
                         .param("role", "STUDENT")
-                        .param("accountStatus", "DISABLED"))
+                        .param("accountStatus", "DISABLED")
+                        .param("pageNum", "1")
+                        .param("pageSize", "50"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1))
                 .andReturn();
@@ -211,7 +215,9 @@ class AdminGovernanceAcceptanceTest extends IntegrationTestSupport {
         MvcResult refreshedActiveStudentsResult = mockMvc.perform(get("/api/admin/users")
                         .header("Authorization", adminAuthorization)
                         .param("role", "STUDENT")
-                        .param("accountStatus", "ACTIVE"))
+                        .param("accountStatus", "ACTIVE")
+                        .param("pageNum", "1")
+                        .param("pageSize", "50"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1))
                 .andReturn();
@@ -327,6 +333,7 @@ class AdminGovernanceAcceptanceTest extends IntegrationTestSupport {
 
     /** Reads the wrapped data payload from a MockMvc response. */
     private JsonNode readData(MvcResult result) throws Exception {
-        return objectMapper.readTree(result.getResponse().getContentAsString()).path("data");
+                JsonNode data = objectMapper.readTree(result.getResponse().getContentAsString()).path("data");
+                return data.has("records") ? data.path("records") : data;
     }
 }

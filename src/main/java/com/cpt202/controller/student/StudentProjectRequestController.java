@@ -7,6 +7,7 @@ import com.cpt202.result.PageResult;
 import com.cpt202.result.Result;
 import com.cpt202.service.ProjectRequestService;
 import com.cpt202.vo.ProjectRequestVO;
+import com.cpt202.vo.StudentRequestSummaryVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -37,14 +38,26 @@ public class StudentProjectRequestController {
      */
     @GetMapping
     @Operation(summary = "List student requests")
-    public Result<List<ProjectRequestVO>> list(@Valid StudentProjectRequestQueryDTO queryDTO) {
-        return Result.success(projectRequestService.listStudentRequests(BaseContext.getCurrentUserId()));
+    public Result<PageResult<ProjectRequestVO>> list(@Valid StudentProjectRequestQueryDTO queryDTO) {
+        return Result.success(projectRequestService.listStudentRequestsPage(BaseContext.getCurrentUserId(), queryDTO));
     }
 
     @GetMapping("/page")
     @Operation(summary = "List student requests by page")
     public Result<PageResult<ProjectRequestVO>> listPage(@Valid StudentProjectRequestQueryDTO queryDTO) {
         return Result.success(projectRequestService.listStudentRequestsPage(BaseContext.getCurrentUserId(), queryDTO));
+    }
+
+    @GetMapping("/summary")
+    @Operation(summary = "Get student request summary")
+    public Result<StudentRequestSummaryVO> summary() {
+        return Result.success(projectRequestService.getStudentRequestSummary(BaseContext.getCurrentUserId()));
+    }
+
+    @GetMapping("/context")
+    @Operation(summary = "Get student request context for a project")
+    public Result<List<ProjectRequestVO>> context(@RequestParam Long projectId) {
+        return Result.success(projectRequestService.getStudentRequestContext(BaseContext.getCurrentUserId(), projectId));
     }
 
     /**

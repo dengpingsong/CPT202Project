@@ -12,8 +12,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 /**
  * 教师端申请审核接口控制器。
  * 教师可通过该控制器查看待审核申请，并执行审核动作。
@@ -37,14 +35,20 @@ public class TeacherProjectRequestController {
      */
     @GetMapping
     @Operation(summary = "List teacher requests for review")
-    public Result<List<ProjectRequestVO>> list(@Valid TeacherProjectRequestQueryDTO queryDTO) {
-        return Result.success(projectRequestService.listTeacherRequests(BaseContext.getCurrentUserId(), queryDTO.getStatus()));
+    public Result<PageResult<ProjectRequestVO>> list(@Valid TeacherProjectRequestQueryDTO queryDTO) {
+        return Result.success(projectRequestService.listTeacherRequestsPage(BaseContext.getCurrentUserId(), queryDTO));
     }
 
     @GetMapping("/page")
     @Operation(summary = "List teacher requests by page")
     public Result<PageResult<ProjectRequestVO>> listPage(@Valid TeacherProjectRequestQueryDTO queryDTO) {
         return Result.success(projectRequestService.listTeacherRequestsPage(BaseContext.getCurrentUserId(), queryDTO));
+    }
+
+    @GetMapping("/{requestId}")
+    @Operation(summary = "Get teacher request details")
+    public Result<ProjectRequestVO> getById(@PathVariable Long requestId) {
+        return Result.success(projectRequestService.getTeacherRequest(requestId, BaseContext.getCurrentUserId()));
     }
 
     /**
