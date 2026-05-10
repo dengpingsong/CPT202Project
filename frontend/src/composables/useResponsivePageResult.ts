@@ -12,6 +12,9 @@ interface ResponsivePageResultOptions<T> {
   defaultPageSize?: number
   mobileBreakpoint?: number
   tabletBreakpoint?: number
+  mobileItemsPerRow?: number
+  tabletItemsPerRow?: number
+  desktopItemsPerRow?: number
   mobileRowHeight?: number
   desktopRowHeight?: number
   mobilePaginationSpace?: number
@@ -78,7 +81,9 @@ export function useResponsivePageResult<T>(
   const loading = ref(true)
   const records = ref<T[]>([])
   const currentPage = ref(1)
-  const pageSize = ref(toPositiveInt(options.defaultPageSize, DEFAULT_PAGE_SIZE))
+  const pageSize = ref(
+    toPositiveInt(options.defaultPageSize, DEFAULT_PAGE_SIZE),
+  )
   const total = ref(0)
   const totalPages = ref(1)
   const visiblePages = computed(() =>
@@ -97,6 +102,9 @@ export function useResponsivePageResult<T>(
     options.mobileRowHeight,
     DEFAULT_MOBILE_ROW_HEIGHT,
   )
+  const mobileItemsPerRow = toPositiveInt(options.mobileItemsPerRow, 1)
+  const tabletItemsPerRow = toPositiveInt(options.tabletItemsPerRow, 1)
+  const desktopItemsPerRow = toPositiveInt(options.desktopItemsPerRow, 1)
   const desktopRowHeight = toPositiveInt(
     options.desktopRowHeight,
     DEFAULT_DESKTOP_ROW_HEIGHT,
@@ -132,21 +140,38 @@ export function useResponsivePageResult<T>(
     if (typeof window === 'undefined') return pageSize.value
 
     const viewportWidth = window.innerWidth
-    const tableTop = tableWrapperRef.value?.getBoundingClientRect().top ?? initialTableTop
+    const tableTop =
+      tableWrapperRef.value?.getBoundingClientRect().top ?? initialTableTop
     const isMobile = viewportWidth <= mobileBreakpoint
     const isTablet = viewportWidth <= tabletBreakpoint
+    const itemsPerRow = isMobile
+      ? mobileItemsPerRow
+      : isTablet
+        ? tabletItemsPerRow
+        : desktopItemsPerRow
     const rowHeight = isMobile ? mobileRowHeight : desktopRowHeight
     const paginationSpace = isMobile
       ? mobilePaginationSpace
       : desktopPaginationSpace
-    const minRows = isMobile ? mobileMinRows : isTablet ? tabletMinRows : desktopMinRows
-    const maxRows = isMobile ? mobileMaxRows : isTablet ? tabletMaxRows : desktopMaxRows
+    const minRows = isMobile
+      ? mobileMinRows
+      : isTablet
+        ? tabletMinRows
+        : desktopMinRows
+    const maxRows = isMobile
+      ? mobileMaxRows
+      : isTablet
+        ? tabletMaxRows
+        : desktopMaxRows
     const availableHeight = Math.max(
       rowHeight * minRows,
       window.innerHeight - tableTop - paginationSpace,
     )
 
-    return clamp(Math.floor(availableHeight / rowHeight), minRows, maxRows)
+    return (
+      clamp(Math.floor(availableHeight / rowHeight), minRows, maxRows) *
+      itemsPerRow
+    )
   }
 
   async function loadPage(page = currentPage.value) {
@@ -166,7 +191,10 @@ export function useResponsivePageResult<T>(
       const nextTotal = Math.max(nextRecords.length, Number(result.total) || 0)
       const nextTotalPages = Math.max(
         1,
-        toPositiveInt(result.totalPages, Math.ceil(nextTotal / nextPageSize) || 1),
+        toPositiveInt(
+          result.totalPages,
+          Math.ceil(nextTotal / nextPageSize) || 1,
+        ),
       )
       const nextPage = clamp(
         toPositiveInt(result.pageNum, page),
@@ -198,7 +226,10 @@ export function useResponsivePageResult<T>(
     const nextPageSize = calculateResponsivePageSize()
     if (nextPageSize === pageSize.value) return
 
-    const firstRecordIndex = Math.max(0, (currentPage.value - 1) * pageSize.value)
+    const firstRecordIndex = Math.max(
+      0,
+      (currentPage.value - 1) * pageSize.value,
+    )
     pageSize.value = nextPageSize
 
     if (!shouldReload) return

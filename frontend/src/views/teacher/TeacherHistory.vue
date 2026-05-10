@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { teacherApi } from '../../utils/api'
+import { onMounted } from 'vue'
+import AppPagination from '../../components/AppPagination.vue'
+import { useResponsivePageResult } from '../../composables/useResponsivePageResult'
+import { normalizePageResult, teacherApi } from '../../utils/api'
 import { toast } from '../../utils/ui-feedback'
-
-const loading = ref(true)
-const historyItems = ref<any[]>([])
 
 function normalizeStatus(status: string | null | undefined): string {
   return String(status || 'UNKNOWN').toUpperCase()
@@ -45,14 +44,24 @@ function historyTime(r: any): string {
   return r.reviewedAt || r.withdrawnAt || r.submittedAt
 }
 
-async function loadHistory() {
-  loading.value = true
-  try {
-    const res = await teacherApi.listHistory()
-    const requests = Array.isArray(res.data) ? res.data : []
-    historyItems.value = requests
-      .filter((r) => normalizeStatus(r.requestStatus) !== 'PENDING')
-      .map((r) => ({
+const {
+  tableWrapperRef,
+  loading,
+  records: historyItems,
+  currentPage,
+  pageSize,
+  total,
+  totalPages,
+  visiblePages,
+  initialize,
+  loadPage: loadHistory,
+} = useResponsivePageResult<any>({
+  loadPage: async ({ pageNum, pageSize }) => {
+    const res = await teacherApi.listHistoryPage({ pageNum, pageSize })
+    const pageResult = normalizePageResult(res.data, { pageNum, pageSize })
+    return {
+      ...pageResult,
+      records: pageResult.records.map((r) => ({
         requestId: r.requestId,
         studentName: r.studentName || '-',
         studentId: r.studentId || '-',
@@ -61,21 +70,29 @@ async function loadHistory() {
         notes: r.notes || '',
         decisionComment: r.decisionComment || '',
         changedAt: historyTime(r),
-      }))
-      .sort(
-        (a, b) =>
-          new Date(b.changedAt || 0).getTime() -
-          new Date(a.changedAt || 0).getTime(),
-      )
-  } catch (e: any) {
-    toast.error(e.message || 'Failed to load history')
-    historyItems.value = []
-  } finally {
-    loading.value = false
-  }
-}
+      })),
+    }
+  },
+  onLoadError: (error) => {
+    const message =
+      error instanceof Error ? error.message : 'Failed to load history'
+    toast.error(message)
+  },
+  mobileRowHeight: 176,
+  desktopRowHeight: 148,
+  mobileMinRows: 2,
+  tabletMinRows: 3,
+  desktopMinRows: 3,
+  mobileMaxRows: 4,
+  tabletMaxRows: 5,
+  desktopMaxRows: 5,
+})
 
-onMounted(loadHistory)
+void tableWrapperRef
+
+onMounted(() => {
+  void initialize()
+})
 </script>
 
 <template>
@@ -84,7 +101,7 @@ onMounted(loadHistory)
       <h1>History</h1>
     </header>
 
-    <div class="panel">
+    <div ref="tableWrapperRef" class="panel">
       <div v-if="loading" class="timeline-vertical">
         <div class="item">
           <div class="timeline-title">Loading...</div>
@@ -122,6 +139,16 @@ onMounted(loadHistory)
             </div>
           </div>
         </div>
+
+        <AppPagination
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          :total-items="total"
+          :page-size="pageSize"
+          :pages="visiblePages"
+          item-label="history records"
+          @change="loadHistory"
+        />
       </div>
     </div>
   </div>

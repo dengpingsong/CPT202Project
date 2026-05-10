@@ -30,7 +30,8 @@ const {
     return res.data
   },
   onLoadError: (error) => {
-    const message = error instanceof Error ? error.message : 'Failed to load tags'
+    const message =
+      error instanceof Error ? error.message : 'Failed to load tags'
     toast.error(message)
   },
 })

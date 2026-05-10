@@ -37,7 +37,8 @@ const {
     return res.data
   },
   onLoadError: (error) => {
-    const message = error instanceof Error ? error.message : 'Failed to load users'
+    const message =
+      error instanceof Error ? error.message : 'Failed to load users'
     toast.error(message)
   },
 })

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { teacherApi } from '../../utils/api'
+import { teacherApi, type TeacherAnalytics } from '../../utils/api'
 import { toast } from '../../utils/ui-feedback'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
@@ -24,90 +24,52 @@ use([
 ])
 
 const loading = ref(true)
-const requests = ref<any[]>([])
-const projects = ref<any[]>([])
+const analytics = ref<TeacherAnalytics | null>(null)
 
-function normalizeStatus(status: string | null | undefined): string {
-  return String(status || 'UNKNOWN').toUpperCase()
+function countRows(rows: { label: string; value: number }[] | undefined) {
+  return rows || []
 }
 
 // --- KPIs ---
-const pendingCount = computed(
-  () =>
-    requests.value.filter((r) => normalizeStatus(r.requestStatus) === 'PENDING')
-      .length,
-)
-const acceptedCount = computed(
-  () =>
-    requests.value.filter(
-      (r) => normalizeStatus(r.requestStatus) === 'ACCEPTED',
-    ).length,
-)
-const rejectedCount = computed(
-  () =>
-    requests.value.filter(
-      (r) => normalizeStatus(r.requestStatus) === 'REJECTED',
-    ).length,
-)
-const withdrawnCount = computed(
-  () =>
-    requests.value.filter(
-      (r) => normalizeStatus(r.requestStatus) === 'WITHDRAWN',
-    ).length,
-)
-const totalProjects = computed(() => projects.value.length)
-const totalCapacity = computed(() =>
-  projects.value.reduce((s, p) => s + (p.maxStudents || 0), 0),
-)
-const filledSlots = computed(() =>
-  projects.value.reduce((s, p) => s + (p.currentAgreedCount || 0), 0),
-)
+const pendingCount = computed(() => analytics.value?.pendingCount ?? 0)
+const totalProjects = computed(() => analytics.value?.totalProjects ?? 0)
+const totalRequests = computed(() => analytics.value?.totalRequests ?? 0)
+const totalCapacity = computed(() => analytics.value?.totalCapacity ?? 0)
+const filledSlots = computed(() => analytics.value?.filledSlots ?? 0)
 
 // --- Charts ---
 
-const requestStatusChart = computed(() => ({
-  tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-  legend: { bottom: 0, textStyle: { color: '#666' } },
-  series: [
-    {
-      type: 'pie',
-      radius: ['40%', '70%'],
-      avoidLabelOverlap: false,
-      itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
-      label: { show: false },
-      emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
-      data: [
-        {
-          value: pendingCount.value,
-          name: 'Pending',
-          itemStyle: { color: '#f6a63d' },
-        },
-        {
-          value: acceptedCount.value,
-          name: 'Accepted',
-          itemStyle: { color: '#2fc5a8' },
-        },
-        {
-          value: rejectedCount.value,
-          name: 'Rejected',
-          itemStyle: { color: '#c54545' },
-        },
-        {
-          value: withdrawnCount.value,
-          name: 'Withdrawn',
-          itemStyle: { color: '#9c9cb2' },
-        },
-      ].filter((d) => d.value > 0),
-    },
-  ],
-}))
+const requestStatusChart = computed(() => {
+  const colorMap: Record<string, string> = {
+    PENDING: '#f6a63d',
+    ACCEPTED: '#2fc5a8',
+    REJECTED: '#c54545',
+    WITHDRAWN: '#9c9cb2',
+  }
+  return {
+    tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+    legend: { bottom: 0, textStyle: { color: '#666' } },
+    series: [
+      {
+        type: 'pie',
+        radius: ['40%', '70%'],
+        avoidLabelOverlap: false,
+        itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
+        label: { show: false },
+        emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
+        data: countRows(analytics.value?.requestStatusCounts)
+          .map(({ label, value }) => ({
+            value,
+            name: label,
+            itemStyle: { color: colorMap[label] || '#7c5cfc' },
+          }))
+          .filter((item) => item.value > 0),
+      },
+    ],
+  }
+})
 
 const projectStatusChart = computed(() => {
-  const counts: Record<string, number> = {}
-  projects.value.forEach((p) => {
-    const s = normalizeStatus(p.projectStatus)
-    counts[s] = (counts[s] || 0) + 1
-  })
   const colorMap: Record<string, string> = {
     AVAILABLE: '#2fc5a8',
     REQUESTED: '#f6a63d',
@@ -126,40 +88,33 @@ const projectStatusChart = computed(() => {
         itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
         label: { show: false },
         emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
-        data: Object.entries(counts).map(([name, value]) => ({
-          value,
-          name,
-          itemStyle: { color: colorMap[name] || '#7c5cfc' },
-        })),
+        data: countRows(analytics.value?.projectStatusCounts).map(
+          ({ label, value }) => ({
+            value,
+            name: label,
+            itemStyle: { color: colorMap[label] || '#7c5cfc' },
+          }),
+        ),
       },
     ],
   }
 })
 
 const requestsPerProjectChart = computed(() => {
-  const counts: Record<string, number> = {}
-  requests.value.forEach((r) => {
-    const title = r.projectTitle || 'Unknown'
-    counts[title] = (counts[title] || 0) + 1
-  })
-  const sorted = Object.entries(counts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 10)
-  const names = sorted.map((e) => e[0])
-  const values = sorted.map((e) => e[1])
+  const rows = countRows(analytics.value?.requestsPerProject)
   return {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
     xAxis: { type: 'value', minInterval: 1, axisLabel: { color: '#666' } },
     yAxis: {
       type: 'category',
-      data: names,
+      data: rows.map((row) => row.label),
       axisLabel: { color: '#666', width: 120, overflow: 'truncate' },
     },
     series: [
       {
         type: 'bar',
-        data: values,
+        data: rows.map((row) => row.value),
         barMaxWidth: 28,
         itemStyle: { color: '#24b3ff', borderRadius: [0, 6, 6, 0] },
       },
@@ -168,19 +123,7 @@ const requestsPerProjectChart = computed(() => {
 })
 
 const fillRateChart = computed(() => {
-  const data = projects.value
-    .map((p) => {
-      const max = p.maxStudents || 1
-      const current = p.currentAgreedCount || 0
-      return {
-        name: p.title || 'Untitled',
-        rate: Math.round((current / max) * 100),
-        current,
-        max,
-      }
-    })
-    .sort((a, b) => b.rate - a.rate)
-    .slice(0, 10)
+  const data = analytics.value?.fillRateTopProjects || []
   return {
     tooltip: {
       trigger: 'axis',
@@ -214,14 +157,9 @@ const fillRateChart = computed(() => {
 })
 
 const programmeChart = computed(() => {
-  const counts: Record<string, number> = {}
-  requests.value.forEach((r) => {
-    const prog = r.studentProgramme || 'Unknown'
-    counts[prog] = (counts[prog] || 0) + 1
-  })
-  const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1])
-  const names = sorted.map((e) => e[0])
-  const values = sorted.map((e) => e[1])
+  const rows = countRows(analytics.value?.programmeCounts)
+  const names = rows.map((row) => row.label)
+  const values = rows.map((row) => row.value)
   return {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
@@ -243,27 +181,20 @@ const programmeChart = computed(() => {
 })
 
 const preferenceRankChart = computed(() => {
-  const counts: Record<number, number> = {}
-  requests.value.forEach((r) => {
-    const rank = r.preferenceRank || 0
-    counts[rank] = (counts[rank] || 0) + 1
-  })
-  const ranks = Object.keys(counts)
-    .map(Number)
-    .sort((a, b) => a - b)
+  const rows = countRows(analytics.value?.preferenceRankCounts)
   return {
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
     xAxis: {
       type: 'category',
-      data: ranks.map((r) => `Rank ${r}`),
+      data: rows.map((row) => `Rank ${row.label}`),
       axisLabel: { color: '#666' },
     },
     yAxis: { type: 'value', minInterval: 1, axisLabel: { color: '#666' } },
     series: [
       {
         type: 'bar',
-        data: ranks.map((r) => counts[r]),
+        data: rows.map((row) => row.value),
         barMaxWidth: 40,
         itemStyle: { color: '#2fc5a8', borderRadius: [6, 6, 0, 0] },
       },
@@ -274,14 +205,11 @@ const preferenceRankChart = computed(() => {
 async function loadData() {
   loading.value = true
   try {
-    const [reqRes, projRes] = await Promise.all([
-      teacherApi.listRequests(),
-      teacherApi.listProjects(),
-    ])
-    requests.value = Array.isArray(reqRes.data) ? reqRes.data : []
-    projects.value = Array.isArray(projRes.data) ? projRes.data : []
+    const res = await teacherApi.getAnalytics()
+    analytics.value = res.data || null
   } catch (e: any) {
     toast.error(e.message || 'Failed to load data')
+    analytics.value = null
   } finally {
     loading.value = false
   }
@@ -304,9 +232,7 @@ onMounted(loadData)
       </div>
       <div class="kpi-card">
         <span class="kpi-label">Total Requests</span>
-        <strong class="kpi-value">{{
-          loading ? '...' : requests.length
-        }}</strong>
+        <strong class="kpi-value">{{ loading ? '...' : totalRequests }}</strong>
       </div>
       <div class="kpi-card">
         <span class="kpi-label">Pending Review</span>

@@ -25,7 +25,8 @@ const {
     return res.data
   },
   onLoadError: (error) => {
-    const message = error instanceof Error ? error.message : 'Failed to load projects'
+    const message =
+      error instanceof Error ? error.message : 'Failed to load projects'
     toast.error(message)
   },
 })

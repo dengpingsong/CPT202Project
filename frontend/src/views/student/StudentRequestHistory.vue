@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { studentApi, api } from '../../utils/api'
+import { onMounted } from 'vue'
+import AppPagination from '../../components/AppPagination.vue'
+import { useResponsivePageResult } from '../../composables/useResponsivePageResult'
+import { api, normalizePageResult, studentApi } from '../../utils/api'
 import { toast } from '../../utils/ui-feedback'
-
-const loading = ref(true)
-const requests = ref<any[]>([])
-const historyGroups = ref<Record<string, any[]>>({})
 
 function normalizeStatus(status: string | null | undefined): string {
   return String(status || 'UNKNOWN').toUpperCase()
@@ -72,10 +70,13 @@ interface TimelineEntry {
   changedAt: string
 }
 
-const timelineEntries = computed<TimelineEntry[]>(() => {
+function buildTimelineEntries(
+  requests: any[],
+  historyGroups: Record<string, any[]>,
+): TimelineEntry[] {
   const entries: TimelineEntry[] = []
-  requests.value.forEach((r) => {
-    const histories = historyGroups.value[r.requestId] || fallbackHistory(r)
+  requests.forEach((r) => {
+    const histories = historyGroups[r.requestId] || fallbackHistory(r)
     histories.forEach((h) => {
       entries.push({
         requestId: r.requestId,
@@ -97,38 +98,69 @@ const timelineEntries = computed<TimelineEntry[]>(() => {
       new Date(b.changedAt || 0).getTime() -
       new Date(a.changedAt || 0).getTime(),
   )
+}
+
+async function loadHistoryGroups(reqs: any[]) {
+  const historyEntries = await Promise.all(
+    reqs.map(async (request) => {
+      try {
+        const res = await api.get(
+          `/student/request-history/${request.requestId}`,
+        )
+        const histories = Array.isArray(res.data) ? res.data : []
+        return [String(request.requestId), histories] as const
+      } catch {
+        return [String(request.requestId), []] as const
+      }
+    }),
+  )
+
+  return Object.fromEntries(
+    historyEntries.filter(([, histories]) => histories.length > 0),
+  ) as Record<string, any[]>
+}
+
+const {
+  tableWrapperRef,
+  loading,
+  records: timelineEntries,
+  currentPage,
+  pageSize,
+  total,
+  totalPages,
+  visiblePages,
+  initialize,
+  loadPage: loadHistory,
+} = useResponsivePageResult<TimelineEntry>({
+  loadPage: async ({ pageNum, pageSize }) => {
+    const reqRes = await studentApi.getRequestsPage({ pageNum, pageSize })
+    const pageResult = normalizePageResult(reqRes.data, { pageNum, pageSize })
+    const historyGroups = await loadHistoryGroups(pageResult.records)
+    return {
+      ...pageResult,
+      records: buildTimelineEntries(pageResult.records, historyGroups),
+    }
+  },
+  onLoadError: (error) => {
+    const message =
+      error instanceof Error ? error.message : 'Failed to load request history'
+    toast.error(message)
+  },
+  mobileRowHeight: 188,
+  desktopRowHeight: 160,
+  mobileMinRows: 2,
+  tabletMinRows: 3,
+  desktopMinRows: 3,
+  mobileMaxRows: 4,
+  tabletMaxRows: 5,
+  desktopMaxRows: 5,
 })
 
-async function loadHistories(reqs: any[]) {
-  const groups: Record<string, any[]> = {}
-  for (const r of reqs) {
-    try {
-      const res = await api.get(`/student/request-history/${r.requestId}`)
-      const histories = res.data
-      if (Array.isArray(histories) && histories.length > 0) {
-        groups[r.requestId] = histories
-      }
-    } catch {
-      // fallback will be used
-    }
-  }
-  historyGroups.value = groups
-}
+void tableWrapperRef
 
-async function init() {
-  loading.value = true
-  try {
-    const reqRes = await studentApi.getRequests()
-    requests.value = Array.isArray(reqRes.data) ? reqRes.data : []
-    await loadHistories(requests.value)
-  } catch (e: any) {
-    toast.error(e.message || 'Failed to load request history')
-  } finally {
-    loading.value = false
-  }
-}
-
-onMounted(init)
+onMounted(() => {
+  void initialize()
+})
 </script>
 
 <template>
@@ -137,7 +169,7 @@ onMounted(init)
       <h1>History</h1>
     </header>
 
-    <div class="panel">
+    <div ref="tableWrapperRef" class="panel">
       <div v-if="loading" class="timeline-vertical">
         <div class="item">
           <div class="timeline-title">Loading...</div>
@@ -196,6 +228,16 @@ onMounted(init)
             </router-link>
           </div>
         </div>
+
+        <AppPagination
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          :total-items="total"
+          :page-size="pageSize"
+          :pages="visiblePages"
+          item-label="requests"
+          @change="loadHistory"
+        />
       </div>
     </div>
   </div>
