@@ -76,7 +76,7 @@ class ProfileServiceImplTest {
 
         when(studentProfileRepository.findById(1L)).thenReturn(Optional.of(profile));
         doThrow(new BusinessException(MessageConstants.NON_STUDENT_PROFILE_ACCESS))
-                .when(profileValidationService).checkUserIsStudent(any(User.class));
+                .when(profileValidationService).checkUserRole(any(User.class), eq(User.UserRole.STUDENT));
 
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> profileService.updateStudentProfile(1L, studentProfileUpdateDTO("student@example.com")));

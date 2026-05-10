@@ -32,6 +32,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -120,20 +121,15 @@ public class AuthServiceImpl implements AuthService {
 
         user = userRepository.save(user);
 
-        if (user.getRole() == User.UserRole.STUDENT) {
-            StudentProfile studentProfile = new StudentProfile();
-            BeanUtils.copyProperties(registerUserDTO, studentProfile);
-            studentProfile.setUpdatedAt(now);
-            studentProfile.setUser(user);
-            studentProfileRepository.save(studentProfile);
-            user.setStudentProfile(studentProfile);
-        } else if (user.getRole() == User.UserRole.TEACHER) {
-            TeacherProfile teacherProfile = new TeacherProfile();
-            BeanUtils.copyProperties(registerUserDTO, teacherProfile);
-            teacherProfile.setUpdatedAt(now);
-            teacherProfile.setUser(user);
-            teacherProfileRepository.save(teacherProfile);
-            user.setTeacherProfile(teacherProfile);
+        // 根据角色创建对应的档案（泛型方法消除 if-else 重复）
+        switch (user.getRole()) {
+            case STUDENT -> user.setStudentProfile(
+                    createRoleProfile(registerUserDTO, StudentProfile::new,
+                            studentProfileRepository, user, now));
+            case TEACHER -> user.setTeacherProfile(
+                    createRoleProfile(registerUserDTO, TeacherProfile::new,
+                            teacherProfileRepository, user, now));
+            default -> { /* ADMIN — 无需创建角色档案 */ }
         }
 
         // otp removed
@@ -366,6 +362,25 @@ public class AuthServiceImpl implements AuthService {
         byte[] tokenBytes = new byte[32];
         SECURE_RANDOM.nextBytes(tokenBytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes);
+    }
+
+    /**
+     * 泛型角色档案创建：统一处理 StudentProfile / TeacherProfile 的初始化与持久化。
+     * 通过反射设置 setUpdatedAt 与 setUser 以兼容不同档案类型。
+     */
+    private <P> P createRoleProfile(RegisterUserDTO dto,
+                                     java.util.function.Supplier<P> factory,
+                                     JpaRepository<P, Long> repo,
+                                     User user, LocalDateTime now) {
+        P profile = factory.get();
+        BeanUtils.copyProperties(dto, profile);
+        try {
+            profile.getClass().getMethod("setUpdatedAt", LocalDateTime.class).invoke(profile, now);
+            profile.getClass().getMethod("setUser", User.class).invoke(profile, user);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("Failed to initialize role profile fields", e);
+        }
+        return repo.save(profile);
     }
 
     private String generateEmailOtp() {

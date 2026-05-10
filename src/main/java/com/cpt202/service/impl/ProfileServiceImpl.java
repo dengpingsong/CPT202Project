@@ -29,10 +29,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * 用户资料服务实现类。
- * 当前阶段仅保留方法骨架，后续将在此实现用户主表与资料表的联合更新逻辑。
+ * <p>
+ * 使用泛型辅助方法消除学生/教师/管理员资料操作中的重复查找-校验模式。
  */
 @Service
 @RequiredArgsConstructor
@@ -45,6 +48,50 @@ public class ProfileServiceImpl implements ProfileService {
     private final ProfileValidationService profileValidationService;
     private final PasswordUtil passwordUtil;
 
+    // ======================== 泛型辅助方法 ========================
+
+    /**
+     * 泛型查找 + 角色校验：根据 ID 查找实体，并校验其关联用户的角色。
+     *
+     * @param id             实体主键
+     * @param repoFinder     仓库查找函数
+     * @param notFoundMsg    未找到时的错误消息
+     * @param userExtractor  从实体提取 User 的函数
+     * @param requiredRole   要求的角色
+     * @param <P>            实体类型 (StudentProfile / TeacherProfile / User)
+     * @return 校验通过的实体
+     */
+    private <P> P requireProfile(
+            Long id,
+            Function<Long, Optional<P>> repoFinder,
+            String notFoundMsg,
+            Function<P, User> userExtractor,
+            User.UserRole requiredRole
+    ) {
+        P profile = repoFinder.apply(id)
+                .orElseThrow(() -> new NotFoundException(notFoundMsg));
+        profileValidationService.checkUserRole(userExtractor.apply(profile), requiredRole);
+        return profile;
+    }
+
+    /**
+     * 将 User 的公共字段填充到任意 Profile VO 中。
+     * 通过反射调用 setter，兼容 StudentProfileVO / TeacherProfileVO / AdminProfileVO。
+     */
+    private void fillUserFieldsToVO(User user, Object vo) {
+        try {
+            vo.getClass().getMethod("setUsername", String.class).invoke(vo, user.getUsername());
+            vo.getClass().getMethod("setEmail", String.class).invoke(vo, user.getEmail());
+            vo.getClass().getMethod("setFullName", String.class).invoke(vo, user.getFullName());
+            vo.getClass().getMethod("setTwoFactorEnabled", Boolean.class)
+                    .invoke(vo, Boolean.TRUE.equals(user.getTwoFactorEnabled()));
+        } catch (Exception ignored) {
+            // VO 类型可能没有全部字段（防御性忽略）
+        }
+    }
+
+    // ======================== 学生资料 ========================
+
     /**
      * 查询学生资料。
      *
@@ -53,19 +100,15 @@ public class ProfileServiceImpl implements ProfileService {
      */
     @Override
     public StudentProfileVO getStudentProfile(Long studentId) {
-        StudentProfile profile = studentProfileRepository.findById(studentId)
-                .orElseThrow(() -> new NotFoundException(MessageConstants.STUDENT_PROFILE_NOT_FOUND));
-
-        profileValidationService.checkUserIsStudent(profile.getUser());
+        StudentProfile profile = requireProfile(
+                studentId, studentProfileRepository::findById,
+                MessageConstants.STUDENT_PROFILE_NOT_FOUND,
+                StudentProfile::getUser, User.UserRole.STUDENT);
 
         StudentProfileVO profileVO = new StudentProfileVO();
         BeanUtils.copyProperties(profile, profileVO);
-        profileVO.setUsername(profile.getUser().getUsername());
-        profileVO.setEmail(profile.getUser().getEmail());
-        profileVO.setFullName(profile.getUser().getFullName());
+        fillUserFieldsToVO(profile.getUser(), profileVO);
         profileVO.setAcademicYear(profile.getAcademicYear());
-        profileVO.setTwoFactorEnabled(Boolean.TRUE.equals(profile.getUser().getTwoFactorEnabled()));
-
         return profileVO;
     }
 
@@ -78,10 +121,10 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     @Transactional
     public void updateStudentProfile(Long studentId, StudentProfileUpdateDTO studentProfileUpdateDTO) {
-        StudentProfile profile = studentProfileRepository.findById(studentId)
-                .orElseThrow(() -> new NotFoundException(MessageConstants.STUDENT_PROFILE_NOT_FOUND));
-
-        profileValidationService.checkUserIsStudent(profile.getUser());
+        StudentProfile profile = requireProfile(
+                studentId, studentProfileRepository::findById,
+                MessageConstants.STUDENT_PROFILE_NOT_FOUND,
+                StudentProfile::getUser, User.UserRole.STUDENT);
 
         profileValidationService.checkEmailAvailableForUser(studentProfileUpdateDTO.getEmail(), profile.getUser().getUserId());
         BeanUtils.copyProperties(studentProfileUpdateDTO, profile, "fullName", "email");
@@ -93,6 +136,8 @@ public class ProfileServiceImpl implements ProfileService {
         studentProfileRepository.save(profile);
     }
 
+    // ======================== 教师资料 ========================
+
     /**
      * 查询教师资料。
      *
@@ -101,17 +146,14 @@ public class ProfileServiceImpl implements ProfileService {
      */
     @Override
     public TeacherProfileVO getTeacherProfile(Long teacherId) {
-        TeacherProfile profile = teacherProfileRepository.findById(teacherId)
-                .orElseThrow(() -> new NotFoundException(MessageConstants.TEACHER_PROFILE_NOT_FOUND));
-
-        profileValidationService.checkUserIsTeacher(profile.getUser());
+        TeacherProfile profile = requireProfile(
+                teacherId, teacherProfileRepository::findById,
+                MessageConstants.TEACHER_PROFILE_NOT_FOUND,
+                TeacherProfile::getUser, User.UserRole.TEACHER);
 
         TeacherProfileVO profileVO = new TeacherProfileVO();
         BeanUtils.copyProperties(profile, profileVO);
-        profileVO.setUsername(profile.getUser().getUsername());
-        profileVO.setEmail(profile.getUser().getEmail());
-        profileVO.setFullName(profile.getUser().getFullName());
-        profileVO.setTwoFactorEnabled(Boolean.TRUE.equals(profile.getUser().getTwoFactorEnabled()));
+        fillUserFieldsToVO(profile.getUser(), profileVO);
         return profileVO;
     }
 
@@ -124,10 +166,10 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     @Transactional
     public void updateTeacherProfile(Long teacherId, TeacherProfileUpdateDTO teacherProfileUpdateDTO) {
-        TeacherProfile profile = teacherProfileRepository.findById(teacherId)
-                .orElseThrow(() -> new NotFoundException(MessageConstants.TEACHER_PROFILE_NOT_FOUND));
-
-        profileValidationService.checkUserIsTeacher(profile.getUser());
+        TeacherProfile profile = requireProfile(
+                teacherId, teacherProfileRepository::findById,
+                MessageConstants.TEACHER_PROFILE_NOT_FOUND,
+                TeacherProfile::getUser, User.UserRole.TEACHER);
 
         profileValidationService.checkEmailAvailableForUser(teacherProfileUpdateDTO.getEmail(), profile.getUser().getUserId());
         BeanUtils.copyProperties(teacherProfileUpdateDTO, profile, "fullName", "email");
@@ -139,12 +181,14 @@ public class ProfileServiceImpl implements ProfileService {
         teacherProfileRepository.save(profile);
     }
 
+    // ======================== 管理员资料 ========================
+
     @Override
     public AdminProfileVO getAdminProfile(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException(MessageConstants.USER_NOT_FOUND));
-
-        profileValidationService.checkUserIsAdmin(user);
+        User user = requireProfile(
+                userId, userRepository::findById,
+                MessageConstants.USER_NOT_FOUND,
+                Function.identity(), User.UserRole.ADMIN);
 
         AdminProfileVO profileVO = new AdminProfileVO();
         BeanUtils.copyProperties(user, profileVO);
@@ -155,10 +199,10 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     @Transactional
     public void updateAdminProfile(Long userId, AdminProfileUpdateDTO adminProfileUpdateDTO) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException(MessageConstants.USER_NOT_FOUND));
-
-        profileValidationService.checkUserIsAdmin(user);
+        User user = requireProfile(
+                userId, userRepository::findById,
+                MessageConstants.USER_NOT_FOUND,
+                Function.identity(), User.UserRole.ADMIN);
 
         profileValidationService.checkEmailAvailableForUser(adminProfileUpdateDTO.getEmail(), user.getUserId());
         user.setFullName(adminProfileUpdateDTO.getFullName());

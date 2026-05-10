@@ -22,6 +22,7 @@ import com.cpt202.repository.TeacherProfileRepository;
 import com.cpt202.result.PageResult;
 import com.cpt202.service.ProjectRequestValidationService;
 import com.cpt202.service.ProjectRequestService;
+import com.cpt202.util.VoConverter;
 import com.cpt202.vo.ProjectRequestVO;
 import com.cpt202.vo.StudentRequestSummaryVO;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +33,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.time.LocalDateTime;
@@ -139,7 +139,9 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
 
     @Override
     public List<ProjectRequestVO> listStudentRequests(Long studentId) {
-        return toProjectRequestVOList(requestRepository.findByStudent_StudentIdOrderBySubmittedAtDesc(studentId));
+        return VoConverter.toList(
+                requestRepository.findByStudent_StudentIdOrderBySubmittedAtDesc(studentId),
+                this::toProjectRequestVO);
     }
 
         @Override
@@ -200,7 +202,7 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
         List<ProjectRequest> requests = status == null
                 ? requestRepository.findByProject_Teacher_TeacherIdOrderBySubmittedAtDesc(teacherId)
                 : requestRepository.findByProject_Teacher_TeacherIdAndRequestStatusOrderBySubmittedAtDesc(teacherId, status);
-        return toProjectRequestVOList(requests);
+        return VoConverter.toList(requests, this::toProjectRequestVO);
     }
 
     @Override
@@ -244,14 +246,6 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
         requestRepository.save(request);
         syncProjectStatusAfterRequestChange(request.getProject().getProjectId());
         saveHistory(request, oldStatus, ProjectRequest.RequestStatus.WITHDRAWN, request.getStudent(), MessageConstants.REQUEST_WITHDRAW_REMARK);
-    }
-
-    private List<ProjectRequestVO> toProjectRequestVOList(List<ProjectRequest> requests) {
-        List<ProjectRequestVO> requestVos = new ArrayList<>(requests.size());
-        for (ProjectRequest request : requests) {
-            requestVos.add(toProjectRequestVO(request));
-        }
-        return requestVos;
     }
 
     private ProjectRequestVO toProjectRequestVO(ProjectRequest request) {
