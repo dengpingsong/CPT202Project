@@ -28,7 +28,9 @@ withDefaults(
     <div class="account-panel__body">
       <div class="account-panel__identity">
         <span class="account-panel__label">Account</span>
-        <strong class="account-panel__value">{{ account || 'Unavailable' }}</strong>
+        <strong class="account-panel__value">{{
+          account || 'Unavailable'
+        }}</strong>
       </div>
 
       <dl class="account-panel__meta">
@@ -51,7 +53,11 @@ withDefaults(
   border-radius: 28px;
   padding: 24px 28px;
   background:
-    radial-gradient(circle at top right, rgba(36, 179, 255, 0.18), transparent 28%),
+    radial-gradient(
+      circle at top right,
+      rgba(36, 179, 255, 0.18),
+      transparent 28%
+    ),
     linear-gradient(135deg, rgba(90, 43, 152, 0.08), rgba(123, 79, 189, 0.16));
   border: 1px solid var(--border-purple);
   box-shadow: 0 18px 48px rgba(90, 43, 152, 0.08);
