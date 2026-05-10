@@ -286,4 +286,72 @@ class AdminControllerIntegrationTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.code").value(1))
                 .andExpect(jsonPath("$.data[*].tagName").value(hasItem(boundTagName)));
     }
+
+    /**
+     * Admin analytics should return backend-aggregated system statistics instead
+     * of forcing the UI to fetch every list and count the rows client-side.
+     */
+    @Test
+    void adminAnalyticsEndpointReturnsAggregatedStats() throws Exception {
+        long expectedTotalUsers = userRepository.count();
+        long expectedTotalProjects = projectRepository.count();
+        long expectedTotalRequests = projectRequestRepository.count();
+        long expectedPendingCount = projectRequestRepository.findAll().stream()
+                .filter(projectRequest -> projectRequest.getRequestStatus() == ProjectRequest.RequestStatus.PENDING)
+                .count();
+        long expectedAcceptedCount = projectRequestRepository.findAll().stream()
+                .filter(projectRequest -> projectRequest.getRequestStatus() == ProjectRequest.RequestStatus.ACCEPTED)
+                .count();
+        long expectedTotalCapacity = projectRepository.findAll().stream()
+                .map(Project::getMaxStudents)
+                .filter(java.util.Objects::nonNull)
+                .mapToLong(Integer::longValue)
+                .sum();
+        long expectedFilledSlots = projectRepository.findAll().stream()
+                .map(Project::getCurrentAgreedCount)
+                .filter(java.util.Objects::nonNull)
+                .mapToLong(Integer::longValue)
+                .sum();
+        Project topFillRateProject = projectRepository.findAll().stream()
+                                .sorted((leftProject, rightProject) -> {
+                                        int fillRateCompare = Double.compare(fillRate(rightProject), fillRate(leftProject));
+                                        if (fillRateCompare != 0) {
+                                                return fillRateCompare;
+                                        }
+                                        String leftTitle = leftProject.getTitle() == null ? "" : leftProject.getTitle();
+                                        String rightTitle = rightProject.getTitle() == null ? "" : rightProject.getTitle();
+                                        return leftTitle.compareTo(rightTitle);
+                                })
+                                .findFirst()
+                .orElseThrow();
+
+        mockMvc.perform(get("/api/admin/analytics")
+                        .header("Authorization", adminAuthorization))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1))
+                .andExpect(jsonPath("$.data.totalUsers").value(expectedTotalUsers))
+                .andExpect(jsonPath("$.data.studentCount").value(userRepository.countByRole(User.UserRole.STUDENT)))
+                .andExpect(jsonPath("$.data.teacherCount").value(userRepository.countByRole(User.UserRole.TEACHER)))
+                .andExpect(jsonPath("$.data.totalProjects").value(expectedTotalProjects))
+                .andExpect(jsonPath("$.data.totalRequests").value(expectedTotalRequests))
+                .andExpect(jsonPath("$.data.pendingCount").value(expectedPendingCount))
+                .andExpect(jsonPath("$.data.acceptedCount").value(expectedAcceptedCount))
+                .andExpect(jsonPath("$.data.totalCapacity").value(expectedTotalCapacity))
+                .andExpect(jsonPath("$.data.filledSlots").value(expectedFilledSlots))
+                .andExpect(jsonPath("$.data.userRoleCounts[*].label").value(hasItem("ADMIN")))
+                .andExpect(jsonPath("$.data.userRoleCounts[*].label").value(hasItem("TEACHER")))
+                .andExpect(jsonPath("$.data.userRoleCounts[*].label").value(hasItem("STUDENT")))
+                .andExpect(jsonPath("$.data.requestStatusCounts[*].label").value(hasItem("ACCEPTED")))
+                .andExpect(jsonPath("$.data.projectStatusCounts[*].label").value(hasItem("CLOSED")))
+                .andExpect(jsonPath("$.data.categoryCounts[*].label")
+                        .value(hasItem(project.getCategory().getCategoryName())))
+                .andExpect(jsonPath("$.data.programmeCounts[*].label").value(hasItem("Software Engineering")))
+                .andExpect(jsonPath("$.data.fillRateTopProjects[0].name").value(topFillRateProject.getTitle()));
+    }
+
+        private double fillRate(Project project) {
+                int maxStudents = project.getMaxStudents() == null ? 0 : project.getMaxStudents();
+                int currentAgreedCount = project.getCurrentAgreedCount() == null ? 0 : project.getCurrentAgreedCount();
+                return maxStudents <= 0 ? 0D : (double) currentAgreedCount / maxStudents;
+        }
 }
