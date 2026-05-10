@@ -139,10 +139,12 @@ public abstract class ProjectSelectionWorkflowSupport extends IntegrationTestSup
                 .andExpect(jsonPath("$.code").value(1));
 
         MvcResult requestList = mockMvc.perform(get("/api/student/requests")
-                        .header("Authorization", studentAuthorization))
+                        .header("Authorization", studentAuthorization)
+                        .param("pageNum", "1")
+                        .param("pageSize", "50"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1))
-                .andExpect(jsonPath("$.data[0].requestStatus").value("PENDING"))
+                .andExpect(jsonPath("$.data.records[0].requestStatus").value("PENDING"))
                 .andReturn();
 
         return readFirstRequestId(requestList);
@@ -152,10 +154,12 @@ public abstract class ProjectSelectionWorkflowSupport extends IntegrationTestSup
     protected void teacherCanSeePendingRequest(Long requestId) throws Exception {
         mockMvc.perform(get("/api/teacher/requests")
                         .header("Authorization", teacherAuthorization)
-                        .param("status", "PENDING"))
+                        .param("status", "PENDING")
+                        .param("pageNum", "1")
+                        .param("pageSize", "50"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1))
-                .andExpect(jsonPath(String.format("$.data[?(@.requestId == %d)].requestStatus", requestId))
+                .andExpect(jsonPath(String.format("$.data.records[?(@.requestId == %d)].requestStatus", requestId))
                         .value(hasItem("PENDING")));
     }
 
@@ -181,21 +185,25 @@ public abstract class ProjectSelectionWorkflowSupport extends IntegrationTestSup
 
         mockMvc.perform(get("/api/teacher/requests")
                         .header("Authorization", teacherAuthorization)
-                        .param("status", "ACCEPTED"))
+                        .param("status", "ACCEPTED")
+                        .param("pageNum", "1")
+                        .param("pageSize", "50"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1))
-                .andExpect(jsonPath(String.format("$.data[?(@.requestId == %d)].requestStatus", requestId))
+                .andExpect(jsonPath(String.format("$.data.records[?(@.requestId == %d)].requestStatus", requestId))
                         .value(hasItem("ACCEPTED")));
     }
 
         /** Student sees the accepted request and its history. */
     protected void studentCanReviewAcceptedRequestAndHistory(Long requestId) throws Exception {
         mockMvc.perform(get("/api/student/requests")
-                        .header("Authorization", studentAuthorization))
+                        .header("Authorization", studentAuthorization)
+                        .param("pageNum", "1")
+                        .param("pageSize", "50"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1))
-                .andExpect(jsonPath("$.data[0].requestId").value(requestId))
-                .andExpect(jsonPath("$.data[0].requestStatus").value("ACCEPTED"));
+                .andExpect(jsonPath("$.data.records[0].requestId").value(requestId))
+                .andExpect(jsonPath("$.data.records[0].requestStatus").value("ACCEPTED"));
 
         mockMvc.perform(get("/api/student/request-history/{requestId}", requestId)
                         .header("Authorization", studentAuthorization))
@@ -208,25 +216,31 @@ public abstract class ProjectSelectionWorkflowSupport extends IntegrationTestSup
         /** Admin checks project, request, and history audit records. */
     protected void adminCanAuditCompletedWorkflow(Long projectId, Long requestId) throws Exception {
         mockMvc.perform(get("/api/admin/records/projects")
-                        .header("Authorization", adminAuthorization))
+                        .header("Authorization", adminAuthorization)
+                        .param("pageNum", "1")
+                        .param("pageSize", "50"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1))
-                .andExpect(jsonPath(String.format("$.data[?(@.projectId == %d)].projectStatus", projectId))
+                .andExpect(jsonPath(String.format("$.data.records[?(@.projectId == %d)].projectStatus", projectId))
                         .value(hasItem("CLOSED")));
 
         mockMvc.perform(get("/api/admin/records/requests")
                         .header("Authorization", adminAuthorization)
-                        .param("status", "ACCEPTED"))
+                        .param("status", "ACCEPTED")
+                        .param("pageNum", "1")
+                        .param("pageSize", "50"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1))
-                .andExpect(jsonPath(String.format("$.data[?(@.requestId == %d)].requestStatus", requestId))
+                .andExpect(jsonPath(String.format("$.data.records[?(@.requestId == %d)].requestStatus", requestId))
                         .value(hasItem("ACCEPTED")));
 
         mockMvc.perform(get("/api/admin/records/request-history")
-                        .header("Authorization", adminAuthorization))
+                        .header("Authorization", adminAuthorization)
+                        .param("pageNum", "1")
+                        .param("pageSize", "50"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1))
-                .andExpect(jsonPath(String.format("$.data[?(@.requestId == %d)].newStatus", requestId))
+                .andExpect(jsonPath(String.format("$.data.records[?(@.requestId == %d)].newStatus", requestId))
                         .value(hasItem("ACCEPTED")));
 
         mockMvc.perform(get("/api/admin/projects/{projectId}/tags", projectId)
@@ -238,7 +252,8 @@ public abstract class ProjectSelectionWorkflowSupport extends IntegrationTestSup
     }
 
     private Long readFirstRequestId(MvcResult result) throws Exception {
-        JsonNode requestList = objectMapper.readTree(result.getResponse().getContentAsString()).path("data");
+                JsonNode data = objectMapper.readTree(result.getResponse().getContentAsString()).path("data");
+                JsonNode requestList = data.has("records") ? data.path("records") : data;
         return requestList.get(0).path("requestId").asLong();
     }
 }

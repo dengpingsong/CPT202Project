@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { studentApi, getCurrentUser } from '../../utils/api'
+import {
+  studentApi,
+  getCurrentUser,
+  type StudentRequestSummary,
+} from '../../utils/api'
 import { toast, confirm } from '../../utils/ui-feedback'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
@@ -27,36 +31,28 @@ use([
 const router = useRouter()
 
 const loading = ref(true)
-const requests = ref<any[]>([])
+const requestSummary = ref<StudentRequestSummary | null>(null)
 const projects = ref<any[]>([])
 
 const user = getCurrentUser()
 const displayName = computed(() => user.fullName || user.username || 'Student')
 
 const pending = computed(
-  () =>
-    requests.value.filter((r) => normalizeStatus(r.requestStatus) === 'PENDING')
-      .length,
+  () => Number(requestSummary.value?.pendingCount || 0),
 )
 const accepted = computed(
-  () =>
-    requests.value.filter(
-      (r) => normalizeStatus(r.requestStatus) === 'ACCEPTED',
-    ).length,
+  () => Number(requestSummary.value?.acceptedCount || 0),
 )
 const rejected = computed(
-  () =>
-    requests.value.filter(
-      (r) => normalizeStatus(r.requestStatus) === 'REJECTED',
-    ).length,
+  () => Number(requestSummary.value?.rejectedCount || 0),
 )
 const withdrawn = computed(
-  () =>
-    requests.value.filter(
-      (r) => normalizeStatus(r.requestStatus) === 'WITHDRAWN',
-    ).length,
+  () => Number(requestSummary.value?.withdrawnCount || 0),
 )
 const activeCount = computed(() => pending.value + accepted.value)
+const totalRequests = computed(
+  () => Number(requestSummary.value?.totalRequests || 0),
+)
 
 const statusEntries = computed(() => {
   const entries = [
@@ -73,9 +69,9 @@ const statusEntries = computed(() => {
 
 const withdrawnProjectIds = computed(() => {
   return new Set(
-    requests.value
-      .filter((r) => normalizeStatus(r.requestStatus) === 'WITHDRAWN')
-      .map((r) => String(r.projectId)),
+    (requestSummary.value?.withdrawnProjectIds || []).map((projectId) =>
+      String(projectId),
+    ),
   )
 })
 
@@ -87,7 +83,10 @@ const recommendedProjects = computed(() => {
 })
 
 const recentRequests = computed(() => {
-  return [...requests.value]
+  const requests = Array.isArray(requestSummary.value?.recentRequests)
+    ? requestSummary.value.recentRequests
+    : []
+  return [...requests]
     .sort((a, b) => {
       const rankDiff =
         Number(a.preferenceRank || 999) - Number(b.preferenceRank || 999)
@@ -252,11 +251,11 @@ async function withdrawRequest(requestId: number | string) {
 async function loadData() {
   loading.value = true
   try {
-    const [reqData, projData] = await Promise.all([
-      studentApi.getRequests(),
+    const [summaryRes, projData] = await Promise.all([
+      studentApi.getRequestSummary(),
       studentApi.getProjects(1, 50),
     ])
-    requests.value = Array.isArray(reqData.data) ? reqData.data : []
+    requestSummary.value = summaryRes.data || null
     projects.value = Array.isArray(projData.data?.records)
       ? projData.data.records
       : []
@@ -314,7 +313,7 @@ onMounted(loadData)
       </div>
       <div class="panel">
         <h3>Total Applications</h3>
-        <strong>{{ requests.length }}</strong>
+        <strong>{{ totalRequests }}</strong>
       </div>
     </section>
 

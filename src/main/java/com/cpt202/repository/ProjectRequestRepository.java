@@ -31,6 +31,11 @@ public interface ProjectRequestRepository extends JpaRepository<ProjectRequest, 
 
     List<ProjectRequest> findByStudent_StudentIdOrderBySubmittedAtDesc(Long studentId);
 
+    List<ProjectRequest> findByStudent_StudentIdAndProject_ProjectIdOrderBySubmittedAtDesc(Long studentId, Long projectId);
+
+    List<ProjectRequest> findByStudent_StudentIdAndRequestStatusInOrderBySubmittedAtDesc(
+            Long studentId, List<RequestStatus> statuses);
+
     List<ProjectRequest> findByProject_Teacher_TeacherIdOrderBySubmittedAtDesc(Long teacherId);
 
     List<ProjectRequest> findByProject_Teacher_TeacherIdAndRequestStatusOrderBySubmittedAtDesc(
@@ -281,4 +286,12 @@ public interface ProjectRequestRepository extends JpaRepository<ProjectRequest, 
                             order by count(pr) desc
                             """)
                     List<Object[]> countRequestsByProgramme();
+
+                @Query("""
+                                select pr.requestStatus, count(pr)
+                                from ProjectRequest pr
+                                where pr.student.studentId = :studentId
+                                group by pr.requestStatus
+                                """)
+                List<Object[]> countStudentRequestsByStatus(@Param("studentId") Long studentId);
 }

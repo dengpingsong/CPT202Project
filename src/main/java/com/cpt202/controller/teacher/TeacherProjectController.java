@@ -13,8 +13,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 /**
  * 教师端项目接口控制器。
  * 教师可以通过该控制器查询本人项目、查看项目详情，
@@ -39,8 +37,8 @@ public class TeacherProjectController {
      */
     @GetMapping
     @Operation(summary = "List teacher projects")
-    public Result<List<ProjectVO>> list(@Valid TeacherProjectQueryDTO queryDTO) {
-        return Result.success(projectService.listTeacherProjects(BaseContext.getCurrentUserId(), queryDTO.getStatus()));
+    public Result<PageResult<ProjectVO>> list(@Valid TeacherProjectQueryDTO queryDTO) {
+        return Result.success(projectService.listTeacherProjectsPage(BaseContext.getCurrentUserId(), queryDTO));
     }
 
     @GetMapping("/page")

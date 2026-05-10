@@ -147,11 +147,13 @@ class StudentControllerIntegrationTest extends IntegrationTestSupport {
         Long requestId = submitRequest("Interested in the project lifecycle.");
 
         mockMvc.perform(get("/api/student/requests")
-                        .header("Authorization", studentAuthorization))
+                        .header("Authorization", studentAuthorization)
+                        .param("pageNum", "1")
+                        .param("pageSize", "50"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1))
-                .andExpect(jsonPath("$.data[0].requestId").value(requestId))
-                .andExpect(jsonPath("$.data[0].requestStatus").value("PENDING"));
+                .andExpect(jsonPath("$.data.records[0].requestId").value(requestId))
+                .andExpect(jsonPath("$.data.records[0].requestStatus").value("PENDING"));
 
         mockMvc.perform(put("/api/student/requests/{requestId}/withdraw", requestId)
                         .header("Authorization", studentAuthorization))
