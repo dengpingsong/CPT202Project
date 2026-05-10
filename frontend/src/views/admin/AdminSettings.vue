@@ -269,6 +269,10 @@ onMounted(fetchProfile)
           <div class="section-title">Basic Information</div>
 
           <div class="form-row">
+            <span class="form-label"><i class="bi bi-person"></i> Account</span>
+            <input :value="account" type="text" class="form-control" disabled />
+          </div>
+          <div class="form-row">
             <span class="form-label"
               ><i class="bi bi-person-badge"></i> Full Name</span
             >
