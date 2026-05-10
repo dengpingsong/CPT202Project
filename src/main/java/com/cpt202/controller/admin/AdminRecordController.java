@@ -14,8 +14,6 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 /**
  * 管理端记录接口控制器。
  * 用于统一查询项目记录、申请记录以及申请历史记录，
@@ -35,9 +33,9 @@ public class AdminRecordController {
 
     @GetMapping("/projects")
     @Operation(summary = "List project records")
-    public Result<List<ProjectVO>> listProjectRecords() {
-        log.info("List project records");
-        return Result.success(recordService.listProjectRecords());
+    public Result<PageResult<ProjectVO>> listProjectRecords(@Valid PageQueryDTO queryDTO) {
+        log.info("List project records, pageNum: {}, pageSize: {}", queryDTO.getPageNum(), queryDTO.getPageSize());
+        return Result.success(recordService.listProjectRecordsPage(queryDTO));
     }
 
     @GetMapping("/projects/page")
@@ -49,9 +47,10 @@ public class AdminRecordController {
 
     @GetMapping("/requests")
     @Operation(summary = "List request records")
-    public Result<List<ProjectRequestVO>> listRequestRecords(AdminRequestRecordQueryDTO queryDTO) {
-        log.info("List request records, status: {}", queryDTO.getStatus());
-        return Result.success(recordService.listRequestRecords(queryDTO.getStatus()));
+    public Result<PageResult<ProjectRequestVO>> listRequestRecords(@Valid AdminRequestRecordQueryDTO queryDTO) {
+        log.info("List request records, status: {}, pageNum: {}, pageSize: {}",
+                queryDTO.getStatus(), queryDTO.getPageNum(), queryDTO.getPageSize());
+        return Result.success(recordService.listRequestRecordsPage(queryDTO));
     }
 
     @GetMapping("/requests/page")
@@ -64,9 +63,9 @@ public class AdminRecordController {
 
     @GetMapping("/request-history")
     @Operation(summary = "List request history records")
-    public Result<List<RequestStatusHistoryVO>> listRequestHistoryRecords() {
-        log.info("List request history records");
-        return Result.success(recordService.listRequestHistoryRecords());
+    public Result<PageResult<RequestStatusHistoryVO>> listRequestHistoryRecords(@Valid PageQueryDTO queryDTO) {
+        log.info("List request history records, pageNum: {}, pageSize: {}", queryDTO.getPageNum(), queryDTO.getPageSize());
+        return Result.success(recordService.listRequestHistoryRecordsPage(queryDTO));
     }
 
     @GetMapping("/request-history/page")
