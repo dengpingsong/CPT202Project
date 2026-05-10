@@ -113,6 +113,16 @@ export interface AdminAnalytics {
   fillRateTopProjects: ProjectFillRate[]
 }
 
+export interface StudentRequestSummary {
+  totalRequests: number
+  pendingCount: number
+  acceptedCount: number
+  rejectedCount: number
+  withdrawnCount: number
+  withdrawnProjectIds: number[]
+  recentRequests: any[]
+}
+
 function toPositiveInt(value: unknown, fallback: number): number {
   const normalized = Number(value)
   if (!Number.isFinite(normalized) || normalized < 1) return fallback
@@ -300,7 +310,14 @@ export const authApi = {
 
 // Student APIs
 export const studentApi = {
-  getRequests: () => request('/student/requests'),
+  getRequests: (page: Partial<PageQuery> = {}) => {
+    const params = new URLSearchParams()
+    const normalizedPage = appendPageParams(params, page)
+    return requestPageResult(
+      `/student/requests?${params.toString()}`,
+      normalizedPage,
+    )
+  },
   getRequestsPage: (page: Partial<PageQuery> = {}) => {
     const params = new URLSearchParams()
     const normalizedPage = appendPageParams(params, page)
@@ -309,6 +326,10 @@ export const studentApi = {
       normalizedPage,
     )
   },
+  getRequestSummary: () =>
+    request<StudentRequestSummary>('/student/requests/summary'),
+  getRequestContext: (projectId: number | string) =>
+    request<any[]>(`/student/requests/context?projectId=${projectId}`),
   getProjects: (
     pageNum = 1,
     pageSize = 12,
@@ -359,8 +380,15 @@ export const studentApi = {
 // Teacher APIs
 export const teacherApi = {
   getAnalytics: () => request<TeacherAnalytics>('/teacher/analytics'),
-  listProjects: (status?: string) =>
-    request(`/teacher/projects${status ? `?status=${status}` : ''}`),
+  listProjects: (status?: string, page: Partial<PageQuery> = {}) => {
+    const params = new URLSearchParams()
+    if (status) params.set('status', status)
+    const normalizedPage = appendPageParams(params, page)
+    return requestPageResult(
+      `/teacher/projects?${params.toString()}`,
+      normalizedPage,
+    )
+  },
   listProjectsPage: (status?: string, page: Partial<PageQuery> = {}) => {
     const params = new URLSearchParams()
     if (status) params.set('status', status)
@@ -394,8 +422,15 @@ export const teacherApi = {
       method: 'PUT',
       body: { tagIds },
     }),
-  listRequests: (status?: string) =>
-    request(`/teacher/requests${status ? `?status=${status}` : ''}`),
+  listRequests: (status?: string, page: Partial<PageQuery> = {}) => {
+    const params = new URLSearchParams()
+    if (status) params.set('status', status)
+    const normalizedPage = appendPageParams(params, page)
+    return requestPageResult(
+      `/teacher/requests?${params.toString()}`,
+      normalizedPage,
+    )
+  },
   listRequestsPage: (
     status?: string,
     page: Partial<PageQuery> = {},
@@ -410,10 +445,14 @@ export const teacherApi = {
       normalizedPage,
     )
   },
+  getRequest: (requestId: number | string) =>
+    request(`/teacher/requests/${requestId}`),
   listHistoryPage: (page: Partial<PageQuery> = {}, status?: string) =>
     teacherApi.listRequestsPage(status, page, true),
-  listHistory: () => request('/teacher/requests'),
-  listNotifications: () => request('/teacher/requests'),
+  listHistory: (page: Partial<PageQuery> = {}) =>
+    teacherApi.listRequests(undefined, page),
+  listNotifications: (page: Partial<PageQuery> = {}) =>
+    teacherApi.listRequests(undefined, page),
   getProfile: () => request('/teacher/profile/me'),
   updateProfile: (payload: Record<string, any>) =>
     request('/teacher/profile/me', { method: 'PUT', body: payload }),
@@ -449,12 +488,19 @@ export const teacherApi = {
 export const adminApi = {
   getAnalytics: () => request<AdminAnalytics>('/admin/analytics'),
   // Users
-  listUsers: (role?: string, accountStatus?: string) => {
+  listUsers: (
+    role?: string,
+    accountStatus?: string,
+    page: Partial<PageQuery> = {},
+  ) => {
     const params = new URLSearchParams()
     if (role) params.set('role', role)
     if (accountStatus) params.set('accountStatus', accountStatus)
-    const query = params.toString()
-    return request(`/admin/users${query ? `?${query}` : ''}`)
+    const normalizedPage = appendPageParams(params, page)
+    return requestPageResult(
+      `/admin/users?${params.toString()}`,
+      normalizedPage,
+    )
   },
   listUsersPage: (
     role?: string,
@@ -464,10 +510,10 @@ export const adminApi = {
     const params = new URLSearchParams()
     if (role) params.set('role', role)
     if (accountStatus) params.set('accountStatus', accountStatus)
-    const query = params.toString()
+    const normalizedPage = appendPageParams(params, page)
     return requestPageResult(
-      `/admin/users/page${query ? `?${query}` : ''}`,
-      page,
+      `/admin/users/page?${params.toString()}`,
+      normalizedPage,
     )
   },
   updateUserStatus: (userId: number | string, accountStatus: string) =>
@@ -480,31 +526,60 @@ export const adminApi = {
   ) => request(`/admin/users/${userId}`, { method: 'PUT', body: payload }),
 
   // Projects
-  listProjects: () => request('/admin/records/projects'),
-  listProjectsPage: (page: Partial<PageQuery> = {}) =>
-    requestPageResult('/admin/records/projects/page', page),
+  listProjects: (page: Partial<PageQuery> = {}) => {
+    const params = new URLSearchParams()
+    const normalizedPage = appendPageParams(params, page)
+    return requestPageResult(
+      `/admin/records/projects?${params.toString()}`,
+      normalizedPage,
+    )
+  },
+  listProjectsPage: (page: Partial<PageQuery> = {}) => {
+    const params = new URLSearchParams()
+    const normalizedPage = appendPageParams(params, page)
+    return requestPageResult(
+      `/admin/records/projects/page?${params.toString()}`,
+      normalizedPage,
+    )
+  },
   listProjectTags: (projectId: number | string) =>
     request(`/admin/projects/${projectId}/tags`),
 
   // Requests
-  listRequestRecords: (status?: string) => {
+  listRequestRecords: (status?: string, page: Partial<PageQuery> = {}) => {
     const params = new URLSearchParams()
     if (status) params.set('status', status)
-    const query = params.toString()
-    return request(`/admin/records/requests${query ? `?${query}` : ''}`)
+    const normalizedPage = appendPageParams(params, page)
+    return requestPageResult(
+      `/admin/records/requests?${params.toString()}`,
+      normalizedPage,
+    )
   },
   listRequestRecordsPage: (status?: string, page: Partial<PageQuery> = {}) => {
     const params = new URLSearchParams()
     if (status) params.set('status', status)
-    const query = params.toString()
+    const normalizedPage = appendPageParams(params, page)
     return requestPageResult(
-      `/admin/records/requests/page${query ? `?${query}` : ''}`,
-      page,
+      `/admin/records/requests/page?${params.toString()}`,
+      normalizedPage,
     )
   },
-  listRequestHistoryRecords: () => request('/admin/records/request-history'),
-  listRequestHistoryRecordsPage: (page: Partial<PageQuery> = {}) =>
-    requestPageResult('/admin/records/request-history/page', page),
+  listRequestHistoryRecords: (page: Partial<PageQuery> = {}) => {
+    const params = new URLSearchParams()
+    const normalizedPage = appendPageParams(params, page)
+    return requestPageResult(
+      `/admin/records/request-history?${params.toString()}`,
+      normalizedPage,
+    )
+  },
+  listRequestHistoryRecordsPage: (page: Partial<PageQuery> = {}) => {
+    const params = new URLSearchParams()
+    const normalizedPage = appendPageParams(params, page)
+    return requestPageResult(
+      `/admin/records/request-history/page?${params.toString()}`,
+      normalizedPage,
+    )
+  },
 
   // Categories
   listCategories: () => request('/admin/categories'),

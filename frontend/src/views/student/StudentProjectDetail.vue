@@ -179,7 +179,7 @@ async function loadData() {
   try {
     const [projRes, reqRes] = await Promise.all([
       api.get(`/student/projects/${projectId.value}`),
-      studentApi.getRequests(),
+      studentApi.getRequestContext(projectId.value),
     ])
     project.value = projRes.data
     requests.value = Array.isArray(reqRes.data) ? reqRes.data : []
