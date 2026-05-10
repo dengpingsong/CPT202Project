@@ -178,11 +178,16 @@ public interface ProjectRepository extends JpaRepository<Project, Long>, JpaSpec
             List<Object[]> countProjectsByCategory();
 
             @Query("""
-                select coalesce(tu.fullName, 'Unknown'), count(p)
+                select concat(
+                    coalesce(tu.fullName, 'Unknown'),
+                    ' (',
+                    coalesce(t.staffNo, coalesce(tu.username, 'Unknown')),
+                    ')'
+                ), count(p)
                 from Project p
                 left join p.teacher t
                 left join t.user tu
-                group by tu.fullName
+                group by tu.fullName, t.staffNo, tu.username
                 order by count(p) desc
                 """)
             List<Object[]> countProjectsByTeacher(Pageable pageable);
