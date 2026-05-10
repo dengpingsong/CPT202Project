@@ -6,6 +6,7 @@ import {
   getCurrentUser,
   type StudentRequestSummary,
 } from '../../utils/api'
+import { chartAutoresize } from '../../utils/chart'
 import { toast, confirm } from '../../utils/ui-feedback'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
@@ -37,21 +38,19 @@ const projects = ref<any[]>([])
 const user = getCurrentUser()
 const displayName = computed(() => user.fullName || user.username || 'Student')
 
-const pending = computed(
-  () => Number(requestSummary.value?.pendingCount || 0),
+const pending = computed(() => Number(requestSummary.value?.pendingCount || 0))
+const accepted = computed(() =>
+  Number(requestSummary.value?.acceptedCount || 0),
 )
-const accepted = computed(
-  () => Number(requestSummary.value?.acceptedCount || 0),
+const rejected = computed(() =>
+  Number(requestSummary.value?.rejectedCount || 0),
 )
-const rejected = computed(
-  () => Number(requestSummary.value?.rejectedCount || 0),
-)
-const withdrawn = computed(
-  () => Number(requestSummary.value?.withdrawnCount || 0),
+const withdrawn = computed(() =>
+  Number(requestSummary.value?.withdrawnCount || 0),
 )
 const activeCount = computed(() => pending.value + accepted.value)
-const totalRequests = computed(
-  () => Number(requestSummary.value?.totalRequests || 0),
+const totalRequests = computed(() =>
+  Number(requestSummary.value?.totalRequests || 0),
 )
 
 const statusEntries = computed(() => {
@@ -324,7 +323,12 @@ onMounted(loadData)
         <div class="chart-panel">
           <h3>Application Status</h3>
           <div v-if="loading" class="chart-placeholder">Loading...</div>
-          <VChart v-else class="chart" :option="statusChartOption" autoresize />
+          <VChart
+            v-else
+            class="chart"
+            :option="statusChartOption"
+            :autoresize="chartAutoresize"
+          />
         </div>
         <div class="chart-panel">
           <h3>Projects by Category</h3>
@@ -333,13 +337,18 @@ onMounted(loadData)
             v-else
             class="chart"
             :option="categoryChartOption"
-            autoresize
+            :autoresize="chartAutoresize"
           />
         </div>
         <div class="chart-panel">
           <h3>Project Status</h3>
           <div v-if="loading" class="chart-placeholder">Loading...</div>
-          <VChart v-else class="chart" :option="tagChartOption" autoresize />
+          <VChart
+            v-else
+            class="chart"
+            :option="tagChartOption"
+            :autoresize="chartAutoresize"
+          />
         </div>
       </div>
     </section>
