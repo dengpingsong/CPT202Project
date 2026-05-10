@@ -1,6 +1,9 @@
 package com.cpt202.service.impl;
 
+import com.cpt202.dto.AdminRequestRecordQueryDTO;
+import com.cpt202.dto.PageQueryDTO;
 import com.cpt202.model.entity.ProjectRequest;
+import com.cpt202.result.PageResult;
 import com.cpt202.repository.ProjectRepository;
 import com.cpt202.repository.ProjectRequestRepository;
 import com.cpt202.repository.RequestStatusHistoryRepository;
@@ -9,6 +12,9 @@ import com.cpt202.vo.ProjectVO;
 import com.cpt202.vo.ProjectRequestVO;
 import com.cpt202.vo.RequestStatusHistoryVO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -35,6 +41,12 @@ public class RecordServiceImpl implements RecordService {
         return projectRepository.findAllProjectVos();
     }
 
+    @Override
+    public PageResult<ProjectVO> listProjectRecordsPage(PageQueryDTO queryDTO) {
+        Page<ProjectVO> projectPage = projectRepository.findAllProjectVos(toPageable(queryDTO));
+        return PageResult.fromPage(projectPage);
+    }
+
     /**
      * 查询申请记录列表。
      *
@@ -46,6 +58,12 @@ public class RecordServiceImpl implements RecordService {
         return projectRequestRepository.findRequestVos(status);
     }
 
+    @Override
+    public PageResult<ProjectRequestVO> listRequestRecordsPage(AdminRequestRecordQueryDTO queryDTO) {
+        Page<ProjectRequestVO> requestPage = projectRequestRepository.findRequestVos(queryDTO.getStatus(), toPageable(queryDTO));
+        return PageResult.fromPage(requestPage);
+    }
+
     /**
      * 查询申请历史记录列表。
      *
@@ -54,5 +72,17 @@ public class RecordServiceImpl implements RecordService {
     @Override
     public List<RequestStatusHistoryVO> listRequestHistoryRecords() {
         return requestStatusHistoryRepository.findAllHistoryVos();
+    }
+
+    @Override
+    public PageResult<RequestStatusHistoryVO> listRequestHistoryRecordsPage(PageQueryDTO queryDTO) {
+        Page<RequestStatusHistoryVO> historyPage = requestStatusHistoryRepository.findAllHistoryVos(toPageable(queryDTO));
+        return PageResult.fromPage(historyPage);
+    }
+
+    private Pageable toPageable(PageQueryDTO queryDTO) {
+        return PageRequest.of(
+                Math.max(0, queryDTO.getPageNum() - 1),
+                queryDTO.getPageSize());
     }
 }

@@ -1,6 +1,8 @@
 package com.cpt202.service;
 
 import com.cpt202.dto.CategoryDTO;
+import com.cpt202.dto.PageQueryDTO;
+import com.cpt202.result.PageResult;
 import com.cpt202.vo.CategoryVO;
 
 import java.util.List;
@@ -20,6 +22,14 @@ public interface CategoryService {
      * @return 分类展示对象列表
      */
     List<CategoryVO> listAll();
+
+    /**
+     * 分页查询分类列表。
+     *
+     * @param queryDTO 分页查询参数
+     * @return 分类分页结果
+     */
+    PageResult<CategoryVO> listPage(PageQueryDTO queryDTO);
 
     /**
      * 根据分类主键查询分类详情。

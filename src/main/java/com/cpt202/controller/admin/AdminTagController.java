@@ -1,6 +1,8 @@
 package com.cpt202.controller.admin;
 
 import com.cpt202.dto.TagDTO;
+import com.cpt202.dto.PageQueryDTO;
+import com.cpt202.result.PageResult;
 import com.cpt202.result.Result;
 import com.cpt202.service.TagService;
 import com.cpt202.vo.TagVO;
@@ -38,6 +40,13 @@ public class AdminTagController {
     public Result<List<TagVO>> list() {
         log.info("List tags");
         return Result.success(tagService.listAll());
+    }
+
+    @GetMapping("/page")
+    @Operation(summary = "List tags by page")
+    public Result<PageResult<TagVO>> listPage(@Valid PageQueryDTO queryDTO) {
+        log.info("List tags by page, pageNum: {}, pageSize: {}", queryDTO.getPageNum(), queryDTO.getPageSize());
+        return Result.success(tagService.listPage(queryDTO));
     }
 
     /**

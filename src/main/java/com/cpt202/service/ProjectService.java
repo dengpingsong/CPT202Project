@@ -3,6 +3,7 @@ package com.cpt202.service;
 import com.cpt202.dto.ProjectDTO;
 import com.cpt202.dto.ProjectStatusUpdateDTO;
 import com.cpt202.dto.StudentProjectQueryDTO;
+import com.cpt202.dto.TeacherProjectQueryDTO;
 import com.cpt202.model.entity.Project;
 import com.cpt202.result.PageResult;
 import com.cpt202.vo.ProjectVO;
@@ -31,6 +32,15 @@ public interface ProjectService {
      * @return 项目展示对象列表
      */
     List<ProjectVO> listTeacherProjects(Long teacherId, Project.ProjectStatus status);
+
+    /**
+     * 教师端分页查询本人项目列表。
+     *
+     * @param teacherId 教师主键
+     * @param queryDTO 项目分页查询参数
+     * @return 分页项目展示对象
+     */
+    PageResult<ProjectVO> listTeacherProjectsPage(Long teacherId, TeacherProjectQueryDTO queryDTO);
 
     /**
      * 查询项目详情。

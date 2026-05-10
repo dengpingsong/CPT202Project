@@ -3,6 +3,7 @@ package com.cpt202.controller.student;
 import com.cpt202.context.BaseContext;
 import com.cpt202.dto.ProjectRequestCreateDTO;
 import com.cpt202.dto.StudentProjectRequestQueryDTO;
+import com.cpt202.result.PageResult;
 import com.cpt202.result.Result;
 import com.cpt202.service.ProjectRequestService;
 import com.cpt202.vo.ProjectRequestVO;
@@ -38,6 +39,12 @@ public class StudentProjectRequestController {
     @Operation(summary = "List student requests")
     public Result<List<ProjectRequestVO>> list(@Valid StudentProjectRequestQueryDTO queryDTO) {
         return Result.success(projectRequestService.listStudentRequests(BaseContext.getCurrentUserId()));
+    }
+
+    @GetMapping("/page")
+    @Operation(summary = "List student requests by page")
+    public Result<PageResult<ProjectRequestVO>> listPage(@Valid StudentProjectRequestQueryDTO queryDTO) {
+        return Result.success(projectRequestService.listStudentRequestsPage(BaseContext.getCurrentUserId(), queryDTO));
     }
 
     /**

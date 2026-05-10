@@ -4,7 +4,7 @@ import com.cpt202.constant.MessageConstants;
 import com.cpt202.dto.ProjectDTO;
 import com.cpt202.dto.ProjectStatusUpdateDTO;
 import com.cpt202.dto.StudentProjectQueryDTO;
-import com.cpt202.exception.BusinessException;
+import com.cpt202.dto.TeacherProjectQueryDTO;
 import com.cpt202.exception.NotFoundException;
 import com.cpt202.model.entity.Project;
 import com.cpt202.model.entity.ProjectRequest;
@@ -86,6 +86,15 @@ public class ProjectServiceImpl implements ProjectService {
                 ? projectRepository.findByTeacher_TeacherIdOrderByCreatedAtDesc(teacherId)
                 : projectRepository.findByTeacher_TeacherIdAndProjectStatusOrderByCreatedAtDesc(teacherId, status);
         return toProjectVOList(projects);
+    }
+
+    @Override
+    public PageResult<ProjectVO> listTeacherProjectsPage(Long teacherId, TeacherProjectQueryDTO queryDTO) {
+        Pageable pageable = PageRequest.of(
+                Math.max(0, queryDTO.getPageNum() - 1),
+                queryDTO.getPageSize());
+        Page<ProjectVO> projectPage = projectRepository.findTeacherProjectVos(teacherId, queryDTO.getStatus(), pageable);
+        return PageResult.fromPage(projectPage);
     }
 
     /**

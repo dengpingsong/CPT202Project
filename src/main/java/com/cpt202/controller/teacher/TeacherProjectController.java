@@ -4,6 +4,7 @@ import com.cpt202.context.BaseContext;
 import com.cpt202.dto.ProjectDTO;
 import com.cpt202.dto.ProjectStatusUpdateDTO;
 import com.cpt202.dto.TeacherProjectQueryDTO;
+import com.cpt202.result.PageResult;
 import com.cpt202.result.Result;
 import com.cpt202.service.ProjectService;
 import com.cpt202.vo.ProjectVO;
@@ -40,6 +41,12 @@ public class TeacherProjectController {
     @Operation(summary = "List teacher projects")
     public Result<List<ProjectVO>> list(@Valid TeacherProjectQueryDTO queryDTO) {
         return Result.success(projectService.listTeacherProjects(BaseContext.getCurrentUserId(), queryDTO.getStatus()));
+    }
+
+    @GetMapping("/page")
+    @Operation(summary = "List teacher projects by page")
+    public Result<PageResult<ProjectVO>> listPage(@Valid TeacherProjectQueryDTO queryDTO) {
+        return Result.success(projectService.listTeacherProjectsPage(BaseContext.getCurrentUserId(), queryDTO));
     }
 
     /**

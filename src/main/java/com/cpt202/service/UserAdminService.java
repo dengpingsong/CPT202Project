@@ -1,7 +1,9 @@
 package com.cpt202.service;
 
 import com.cpt202.model.entity.User;
+import com.cpt202.dto.AdminUserQueryDTO;
 import com.cpt202.dto.AdminUserUpdateDTO;
+import com.cpt202.result.PageResult;
 import com.cpt202.vo.UserVO;
 
 import java.util.List;
@@ -21,6 +23,14 @@ public interface UserAdminService {
      * @return 用户展示对象列表
      */
     List<UserVO> listUsers(User.UserRole role, String accountStatus);
+
+    /**
+     * 按角色和账号状态分页查询用户列表。
+     *
+     * @param queryDTO 用户查询参数
+     * @return 用户分页结果
+     */
+    PageResult<UserVO> listUsersPage(AdminUserQueryDTO queryDTO);
 
     /**
      * 修改指定用户的账号状态。

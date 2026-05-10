@@ -2,10 +2,11 @@ package com.cpt202.service.impl;
 
 import com.cpt202.constant.RedisKeyConstants;
 import com.cpt202.constant.MessageConstants;
+import com.cpt202.dto.PageQueryDTO;
 import com.cpt202.dto.TagDTO;
 import com.cpt202.exception.NotFoundException;
-import com.cpt202.exception.RuleViolationException;
 import com.cpt202.model.entity.Tag;
+import com.cpt202.result.PageResult;
 import com.cpt202.repository.TagRepository;
 import com.cpt202.service.RedisCacheService;
 import com.cpt202.service.TagService;
@@ -14,6 +15,10 @@ import com.cpt202.vo.TagVO;
 import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -53,6 +58,19 @@ public class TagServiceImpl implements TagService {
                     return tagVos;
                 });
     }
+
+            @Override
+            public PageResult<TagVO> listPage(PageQueryDTO queryDTO) {
+            Pageable pageable = PageRequest.of(
+                Math.max(0, queryDTO.getPageNum() - 1),
+                queryDTO.getPageSize(),
+                Sort.by(Sort.Direction.ASC, "tagId"));
+            Page<Tag> tagPage = tagRepository.findAll(pageable);
+            List<TagVO> tagVos = tagPage.getContent().stream()
+                .map(this::toTagVO)
+                .toList();
+            return PageResult.fromPage(tagPage, tagVos);
+            }
 
     /**
      * 根据标签主键查询标签详情。

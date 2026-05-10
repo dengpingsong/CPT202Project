@@ -1,8 +1,11 @@
 package com.cpt202.service.impl;
 
+import com.cpt202.constant.MessageConstants;
+import com.cpt202.dto.PageQueryDTO;
 import com.cpt202.dto.ProjectRequestCreateDTO;
 import com.cpt202.dto.ProjectRequestReviewDTO;
-import com.cpt202.constant.MessageConstants;
+import com.cpt202.dto.StudentProjectRequestQueryDTO;
+import com.cpt202.dto.TeacherProjectRequestQueryDTO;
 import com.cpt202.exception.BusinessException;
 import com.cpt202.exception.NotFoundException;
 import com.cpt202.exception.RuleViolationException;
@@ -16,11 +19,15 @@ import com.cpt202.repository.ProjectRequestRepository;
 import com.cpt202.repository.RequestStatusHistoryRepository;
 import com.cpt202.repository.StudentProfileRepository;
 import com.cpt202.repository.TeacherProfileRepository;
+import com.cpt202.result.PageResult;
 import com.cpt202.service.ProjectRequestValidationService;
 import com.cpt202.service.ProjectRequestService;
 import com.cpt202.vo.ProjectRequestVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -132,11 +139,26 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
     }
 
     @Override
+    public PageResult<ProjectRequestVO> listStudentRequestsPage(Long studentId, StudentProjectRequestQueryDTO queryDTO) {
+        Page<ProjectRequestVO> requestPage = requestRepository.findStudentRequestVos(studentId, toPageable(queryDTO));
+        return PageResult.fromPage(requestPage);
+    }
+
+    @Override
     public List<ProjectRequestVO> listTeacherRequests(Long teacherId, ProjectRequest.RequestStatus status) {
         List<ProjectRequest> requests = status == null
                 ? requestRepository.findByProject_Teacher_TeacherIdOrderBySubmittedAtDesc(teacherId)
                 : requestRepository.findByProject_Teacher_TeacherIdAndRequestStatusOrderBySubmittedAtDesc(teacherId, status);
         return toProjectRequestVOList(requests);
+    }
+
+    @Override
+    public PageResult<ProjectRequestVO> listTeacherRequestsPage(Long teacherId, TeacherProjectRequestQueryDTO queryDTO) {
+        boolean historyOnly = Boolean.TRUE.equals(queryDTO.getHistoryOnly());
+        Page<ProjectRequestVO> requestPage = historyOnly
+                ? requestRepository.findTeacherHistoryVos(teacherId, queryDTO.getStatus(), toPageable(queryDTO))
+                : requestRepository.findTeacherRequestVos(teacherId, queryDTO.getStatus(), toPageable(queryDTO));
+        return PageResult.fromPage(requestPage);
     }
 
     @Override
@@ -234,5 +256,11 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
         }
         project.setUpdatedAt(LocalDateTime.now());
         projectRepository.save(project);
+    }
+
+    private Pageable toPageable(PageQueryDTO queryDTO) {
+        return PageRequest.of(
+                Math.max(0, queryDTO.getPageNum() - 1),
+                queryDTO.getPageSize());
     }
 }
