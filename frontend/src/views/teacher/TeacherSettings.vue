@@ -270,7 +270,6 @@ onMounted(fetchProfile)
       role-label="Teacher"
       hint="This username is your sign-in identity across the teacher portal."
     />
-
     <div class="content-panel">
       <form class="settings-form" @submit.prevent="handleSave">
         <!-- Basic Info -->
