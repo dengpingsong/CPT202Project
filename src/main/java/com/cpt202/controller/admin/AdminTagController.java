@@ -15,8 +15,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * 管理端标签接口控制器。
- * 负责标签的查询、创建、修改和删除。
+ * Admin tag interface controller.
+ * Responsible for querying, creating, updating, and deleting tags.
  */
 @RestController
 @RequestMapping("/api/admin/tags")
@@ -31,9 +31,9 @@ public class AdminTagController {
     }
 
     /**
-     * 查询全部标签列表。
+     * List all tags.
      *
-     * @return 标签展示对象列表
+     * @return A list of tag view objects (VOs)
      */
     @GetMapping
     @Operation(summary = "List tags")
@@ -50,10 +50,10 @@ public class AdminTagController {
     }
 
     /**
-     * 根据标签主键查询标签详情。
+     * Get tag details by primary key.
      *
-     * @param tagId 标签主键
-     * @return 标签展示对象
+     * @param tagId Tag primary key
+     * @return Tag view object (VO)
      */
     @GetMapping("/{tagId}")
     @Operation(summary = "Get tag by ID")
@@ -63,10 +63,10 @@ public class AdminTagController {
     }
 
     /**
-     * 新增标签。
+     * Create a new tag.
      *
-     * @param tagDTO 标签新增参数
-     * @return 统一成功响应
+     * @param tagDTO Tag creation parameters
+     * @return Unified success response
      */
     @PostMapping
     @Operation(summary = "Create a tag")
@@ -77,11 +77,11 @@ public class AdminTagController {
     }
 
     /**
-     * 修改标签。
+     * Update a tag.
      *
-     * @param tagId 标签主键
-     * @param tagDTO 标签更新参数
-     * @return 统一成功响应
+     * @param tagId Tag primary key
+     * @param tagDTO Tag update parameters
+     * @return Unified success response
      */
     @PutMapping("/{tagId}")
     @Operation(summary = "Update a tag")
@@ -93,10 +93,10 @@ public class AdminTagController {
     }
 
     /**
-     * 删除标签。
+     * Delete a tag.
      *
-     * @param tagId 标签主键
-     * @return 统一成功响应
+     * @param tagId Tag primary key
+     * @return Unified success response
      */
     @DeleteMapping("/{tagId}")
     @Operation(summary = "Delete a tag")

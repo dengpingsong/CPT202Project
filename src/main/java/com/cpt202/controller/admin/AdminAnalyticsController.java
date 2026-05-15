@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 管理端分析统计接口。
+ * Admin management analysis and statistics interface.
  */
 @RestController
 @RequestMapping("/api/admin/analytics")
