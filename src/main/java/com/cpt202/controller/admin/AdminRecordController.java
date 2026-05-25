@@ -15,9 +15,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * 管理端记录接口控制器。
- * 用于统一查询项目记录、申请记录以及申请历史记录，
- * 方便管理端进行数据审查与运营分析。
+ * Admin record interface controller.
+ * Used for unified querying of project records, application records, and application history,
+ * facilitating data review and operational analysis for the management side.
  */
 @RestController
 @RequestMapping("/api/admin/records")

@@ -15,9 +15,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * 管理端分类接口控制器。
- * 负责接收前端对分类资源的查询与维护请求，
- * 其中查询接口返回数据，新增、修改、删除接口仅返回操作结果。
+ * Admin category interface controller.
+ * Responsible for handling frontend requests for querying and maintaining category resources.
+ * Query interfaces return data, while create, update, and delete interfaces only return the operation result.
  */
 @RestController
 @RequestMapping("/api/admin/categories")
@@ -32,9 +32,9 @@ public class AdminCategoryController {
     }
 
     /**
-     * 查询全部分类列表。
+     * List all categories.
      *
-     * @return 分类展示对象列表
+     * @return A list of category view objects (VOs)
      */
     @GetMapping
     @Operation(summary = "List categories")
@@ -51,10 +51,10 @@ public class AdminCategoryController {
     }
 
     /**
-     * 根据分类主键查询分类详情。
+     * Get category details by primary key.
      *
-     * @param categoryId 分类主键
-     * @return 分类展示对象
+     * @param categoryId Category primary key
+     * @return Category view object (VO)
      */
     @GetMapping("/{categoryId}")
     @Operation(summary = "Get category by ID")
@@ -64,10 +64,10 @@ public class AdminCategoryController {
     }
 
     /**
-     * 新增分类。
+     * Create a new category.
      *
-     * @param categoryDTO 分类新增参数
-     * @return 统一成功响应
+     * @param categoryDTO Category creation parameters
+     * @return Unified success response
      */
     @PostMapping
     @Operation(summary = "Create a category")
@@ -78,11 +78,11 @@ public class AdminCategoryController {
     }
 
     /**
-     * 修改指定分类。
+     * Update a specific category.
      *
-     * @param categoryId 分类主键
-     * @param categoryDTO 分类更新参数
-     * @return 统一成功响应
+     * @param categoryId Category primary key
+     * @param categoryDTO Category update parameters
+     * @return Unified success response
      */
     @PutMapping("/{categoryId}")
     @Operation(summary = "Update a category")
@@ -94,10 +94,10 @@ public class AdminCategoryController {
     }
 
     /**
-     * 删除指定分类。
+     * Delete a specific category.
      *
-     * @param categoryId 分类主键
-     * @return 统一成功响应
+     * @param categoryId Category primary key
+     * @return Unified success response
      */
     @DeleteMapping("/{categoryId}")
     @Operation(summary = "Delete a category")
