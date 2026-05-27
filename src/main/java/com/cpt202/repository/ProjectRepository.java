@@ -5,6 +5,7 @@ import com.cpt202.repository.specification.ProjectSpecifications;
 import com.cpt202.vo.ProjectVO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -27,6 +28,13 @@ public interface ProjectRepository extends JpaRepository<Project, Long>, JpaSpec
                                               List<Long> tagIds,
                                               Pageable pageable) {
         return findAll(ProjectSpecifications.studentQuery(keyword, categoryId, status, tagIds), pageable);
+    }
+
+    default List<Project> findStudentProjectCandidates(Long categoryId,
+                                                       Project.ProjectStatus status,
+                                                       List<Long> tagIds,
+                                                       Sort sort) {
+        return findAll(ProjectSpecifications.studentQuery(null, categoryId, status, tagIds), sort);
     }
 
     @Query("""

@@ -19,6 +19,7 @@ import com.cpt202.repository.RequestStatusHistoryRepository;
 import com.cpt202.repository.TeacherProfileRepository;
 import com.cpt202.result.PageResult;
 import com.cpt202.service.ProjectService;
+import com.cpt202.util.ProjectSearchRelevanceScorer;
 import com.cpt202.util.VoConverter;
 import com.cpt202.validation.ProjectValidationService;
 import com.cpt202.vo.ProjectVO;
@@ -32,6 +33,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -57,10 +59,15 @@ public class ProjectServiceImpl implements ProjectService {
     public PageResult<ProjectVO> listStudentProjects(StudentProjectQueryDTO queryDTO) {
         int pageNum = queryDTO.getPageNum() == null ? 1 : queryDTO.getPageNum();
         int pageSize = queryDTO.getPageSize() == null ? 10 : queryDTO.getPageSize();
+        Sort defaultSort = Sort.by(Sort.Direction.DESC, "createdAt");
+        if (hasKeyword(queryDTO.getKeyword())) {
+            return listStudentProjectsByRelevance(queryDTO, pageNum, pageSize, defaultSort);
+        }
+
         Pageable pageable = PageRequest.of(
                 Math.max(0, pageNum - 1),
                 pageSize,
-                Sort.by(Sort.Direction.DESC, "createdAt"));
+                defaultSort);
 
         Page<Project> projectPage = projectRepository.findStudentProjects(
                 queryDTO.getKeyword(),
@@ -75,6 +82,49 @@ public class ProjectServiceImpl implements ProjectService {
                 projectPage.getNumber() + 1,
                 projectPage.getSize(),
                 projectPage.getTotalPages());
+    }
+
+    private PageResult<ProjectVO> listStudentProjectsByRelevance(StudentProjectQueryDTO queryDTO,
+                                                                 int pageNum,
+                                                                 int pageSize,
+                                                                 Sort defaultSort) {
+        List<ProjectSearchResult> rankedProjects = projectRepository.findStudentProjectCandidates(
+                        queryDTO.getCategoryId(),
+                        queryDTO.getStatus(),
+                        queryDTO.getTagIds(),
+                        defaultSort).stream()
+                .map(project -> new ProjectSearchResult(project,
+                        ProjectSearchRelevanceScorer.score(project, queryDTO.getKeyword())))
+                .filter(result -> result.score() > 0.0)
+                .sorted(Comparator
+                        .comparingDouble(ProjectSearchResult::score).reversed()
+                        .thenComparing(result -> result.project().getCreatedAt(),
+                                Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(result -> result.project().getProjectId(),
+                                Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList();
+
+        int fromIndex = Math.min(Math.max(0, pageNum - 1) * pageSize, rankedProjects.size());
+        int toIndex = Math.min(fromIndex + pageSize, rankedProjects.size());
+        List<ProjectVO> records = rankedProjects.subList(fromIndex, toIndex).stream()
+                .map(ProjectSearchResult::project)
+                .map(this::toProjectVO)
+                .toList();
+        int totalPages = rankedProjects.isEmpty() ? 0 : (int) Math.ceil((double) rankedProjects.size() / pageSize);
+
+        return new PageResult<>(
+                (long) rankedProjects.size(),
+                records,
+                pageNum,
+                pageSize,
+                totalPages);
+    }
+
+    private boolean hasKeyword(String keyword) {
+        return keyword != null && !keyword.trim().isEmpty();
+    }
+
+    private record ProjectSearchResult(Project project, double score) {
     }
 
     /**
