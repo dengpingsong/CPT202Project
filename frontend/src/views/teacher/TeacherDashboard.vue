@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AppPagination from '../../components/AppPagination.vue'
 import { useResponsivePageResult } from '../../composables/useResponsivePageResult'
@@ -12,6 +12,12 @@ const showRejectModal = ref(false)
 const rejectRequestId = ref<number | null>(null)
 const rejectComment = ref('')
 const rejecting = ref(false)
+const DECISION_COMMENT_MAX_LENGTH = 500
+
+const rejectCommentLength = computed(() => rejectComment.value.length)
+const rejectCommentAtLimit = computed(
+  () => rejectCommentLength.value >= DECISION_COMMENT_MAX_LENGTH,
+)
 
 function normalizeStatus(status: string | null | undefined): string {
   return String(status || 'UNKNOWN').toUpperCase()
@@ -277,9 +283,18 @@ onMounted(() => {
             <textarea
               v-model="rejectComment"
               rows="4"
+              :maxlength="DECISION_COMMENT_MAX_LENGTH"
               class="reject-textarea"
               placeholder="Enter feedback for the student..."
             ></textarea>
+            <div class="field-footer">
+              <span
+                class="char-count"
+                :class="{ limit: rejectCommentAtLimit }"
+              >
+                {{ rejectCommentLength }} / {{ DECISION_COMMENT_MAX_LENGTH }}
+              </span>
+            </div>
           </div>
           <div class="modal-actions">
             <button
@@ -578,6 +593,21 @@ onMounted(() => {
 .reject-textarea:focus {
   border-color: var(--deep);
   box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.1);
+}
+
+.field-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.char-count {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.char-count.limit {
+  color: var(--red);
 }
 
 .modal-actions {

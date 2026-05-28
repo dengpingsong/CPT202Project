@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { teacherApi } from '../../utils/api'
 import { toast, confirm } from '../../utils/ui-feedback'
@@ -15,6 +15,12 @@ const project = ref<any>(null)
 const showRejectModal = ref(false)
 const rejectComment = ref('')
 const processing = ref(false)
+const DECISION_COMMENT_MAX_LENGTH = 500
+
+const rejectCommentLength = computed(() => rejectComment.value.length)
+const rejectCommentAtLimit = computed(
+  () => rejectCommentLength.value >= DECISION_COMMENT_MAX_LENGTH,
+)
 
 const requestId = route.params.id as string
 
@@ -115,7 +121,11 @@ function openRejectModal() {
 async function handleReject() {
   processing.value = true
   try {
-    await teacherApi.reviewRequest(requestId, 'REJECTED', rejectComment.value)
+    await teacherApi.reviewRequest(
+      requestId,
+      'REJECTED',
+      rejectComment.value.trim(),
+    )
     toast.success('Application rejected')
     showRejectModal.value = false
     await loadData()
@@ -296,9 +306,18 @@ onMounted(loadData)
             <textarea
               v-model="rejectComment"
               rows="4"
+              :maxlength="DECISION_COMMENT_MAX_LENGTH"
               class="reject-textarea"
               placeholder="Enter feedback for the student..."
             ></textarea>
+            <div class="field-footer">
+              <span
+                class="char-count"
+                :class="{ limit: rejectCommentAtLimit }"
+              >
+                {{ rejectCommentLength }} / {{ DECISION_COMMENT_MAX_LENGTH }}
+              </span>
+            </div>
           </div>
           <div class="modal-actions">
             <button class="btn-secondary" @click="showRejectModal = false">
@@ -599,6 +618,22 @@ onMounted(loadData)
 .reject-textarea:focus {
   border-color: var(--deep);
   box-shadow: 0 0 0 3px rgba(90, 43, 152, 0.14);
+}
+
+.field-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.char-count {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.char-count.limit {
+  color: var(--red);
 }
 
 .modal-actions {
