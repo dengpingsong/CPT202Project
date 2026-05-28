@@ -4,6 +4,7 @@ import com.cpt202.constant.MessageConstants;
 import com.cpt202.constant.RedisKeyConstants;
 import com.cpt202.model.entity.User;
 import com.cpt202.security.TwoFactorLoginChallenge;
+import com.cpt202.security.UserAuthState;
 import com.cpt202.service.EmailOtpMailService;
 import com.cpt202.service.RedisCacheService;
 import com.cpt202.util.TotpUtil;
@@ -139,6 +140,37 @@ class CommonAuthControllerIntegrationTest extends IntegrationTestSupport {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.msg").value(MessageConstants.INVALID_REQUEST_BODY));
+    }
+
+    /** Logout requires a bearer token because it clears the current account's cached auth state. */
+    @Test
+    void logoutShouldRejectMissingBearerToken() throws Exception {
+        mockMvc.perform(post("/api/common/auth/logout"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value(MessageConstants.INVALID_BEARER_TOKEN));
+    }
+
+    /** Logout parses the JWT and removes the cached auth state for that user. */
+    @Test
+    void logoutShouldEvictCurrentUserAuthState() throws Exception {
+        String suffix = uniqueSuffix();
+        User user = createUser(
+                "logout-user-" + suffix,
+                DEFAULT_PASSWORD,
+                "logout-user-" + suffix + "@example.com",
+                "Logout User " + suffix,
+                User.UserRole.STUDENT
+        );
+        String authStateKey = RedisKeyConstants.USER_AUTH_STATE_PREFIX + user.getUserId();
+        redisEntries.put(authStateKey, new UserAuthState(user.getUserId(), user.getRole(), user.getAccountStatus()));
+
+        mockMvc.perform(post("/api/common/auth/logout")
+                        .header("Authorization", authorizationFor(user)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1));
+
+        assertThat(redisEntries).doesNotContainKey(authStateKey);
     }
 
     /**
