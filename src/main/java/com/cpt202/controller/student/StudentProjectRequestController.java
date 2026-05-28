@@ -39,25 +39,25 @@ public class StudentProjectRequestController {
     @GetMapping
     @Operation(summary = "List student requests")
     public Result<PageResult<ProjectRequestVO>> list(@Valid StudentProjectRequestQueryDTO queryDTO) {
-        return Result.success(projectRequestService.listStudentRequestsPage(BaseContext.getCurrentUserId(), queryDTO));
+        return Result.success(projectRequestService.listStudentRequestsPage(currentStudentId(), queryDTO));
     }
 
     @GetMapping("/page")
     @Operation(summary = "List student requests by page")
     public Result<PageResult<ProjectRequestVO>> listPage(@Valid StudentProjectRequestQueryDTO queryDTO) {
-        return Result.success(projectRequestService.listStudentRequestsPage(BaseContext.getCurrentUserId(), queryDTO));
+        return Result.success(projectRequestService.listStudentRequestsPage(currentStudentId(), queryDTO));
     }
 
     @GetMapping("/summary")
     @Operation(summary = "Get student request summary")
     public Result<StudentRequestSummaryVO> summary() {
-        return Result.success(projectRequestService.getStudentRequestSummary(BaseContext.getCurrentUserId()));
+        return Result.success(projectRequestService.getStudentRequestSummary(currentStudentId()));
     }
 
     @GetMapping("/context")
     @Operation(summary = "Get student request context for a project")
     public Result<List<ProjectRequestVO>> context(@RequestParam Long projectId) {
-        return Result.success(projectRequestService.getStudentRequestContext(BaseContext.getCurrentUserId(), projectId));
+        return Result.success(projectRequestService.getStudentRequestContext(currentStudentId(), projectId));
     }
 
     /**
@@ -69,7 +69,7 @@ public class StudentProjectRequestController {
     @PostMapping
     @Operation(summary = "Submit a project request")
     public Result<Void> create(@Valid @RequestBody ProjectRequestCreateDTO projectRequestCreateDTO) {
-        projectRequestService.create(BaseContext.getCurrentUserId(), projectRequestCreateDTO);
+        projectRequestService.create(currentStudentId(), projectRequestCreateDTO);
         return Result.success();
     }
 
@@ -82,7 +82,11 @@ public class StudentProjectRequestController {
     @PutMapping("/{requestId}/withdraw")
     @Operation(summary = "Withdraw a project request")
     public Result<Void> withdraw(@PathVariable Long requestId) {
-        projectRequestService.withdraw(requestId, BaseContext.getCurrentUserId());
+        projectRequestService.withdraw(requestId, currentStudentId());
         return Result.success();
+    }
+
+    private Long currentStudentId() {
+        return BaseContext.getCurrentUserId();
     }
 }

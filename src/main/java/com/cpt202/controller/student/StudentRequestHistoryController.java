@@ -37,6 +37,10 @@ public class StudentRequestHistoryController {
     @Operation(summary = "Get request status history")
     public Result<List<RequestStatusHistoryVO>> getRequestHistory(@PathVariable Long requestId) {
         log.info("Get request history: {}", requestId);
-        return Result.success(historyService.getRequestHistory(requestId, BaseContext.getCurrentUserId()));
+        return Result.success(historyService.getRequestHistory(requestId, currentStudentId()));
+    }
+
+    private Long currentStudentId() {
+        return BaseContext.getCurrentUserId();
     }
 }

@@ -155,10 +155,35 @@ class StudentControllerIntegrationTest extends IntegrationTestSupport {
                 .andExpect(jsonPath("$.data.records[0].requestId").value(requestId))
                 .andExpect(jsonPath("$.data.records[0].requestStatus").value("PENDING"));
 
+        mockMvc.perform(get("/api/student/requests/summary")
+                        .header("Authorization", studentAuthorization))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1))
+                .andExpect(jsonPath("$.data.totalRequests").value(1))
+                .andExpect(jsonPath("$.data.pendingCount").value(1))
+                .andExpect(jsonPath("$.data.acceptedCount").value(0))
+                .andExpect(jsonPath("$.data.recentRequests[0].requestId").value(requestId));
+
+        mockMvc.perform(get("/api/student/requests/context")
+                        .header("Authorization", studentAuthorization)
+                        .param("projectId", project.getProjectId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1))
+                .andExpect(jsonPath("$.data[0].requestId").value(requestId))
+                .andExpect(jsonPath("$.data[0].requestStatus").value("PENDING"));
+
         mockMvc.perform(put("/api/student/requests/{requestId}/withdraw", requestId)
                         .header("Authorization", studentAuthorization))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1));
+
+        mockMvc.perform(get("/api/student/requests/summary")
+                        .header("Authorization", studentAuthorization))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1))
+                .andExpect(jsonPath("$.data.pendingCount").value(0))
+                .andExpect(jsonPath("$.data.withdrawnCount").value(1))
+                .andExpect(jsonPath("$.data.withdrawnProjectIds[0]").value(project.getProjectId()));
 
         ProjectRequest refreshedRequest = projectRequestRepository.findById(requestId).orElseThrow();
         Project refreshedProject = projectRepository.findById(project.getProjectId()).orElseThrow();

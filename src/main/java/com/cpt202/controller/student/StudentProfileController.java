@@ -39,7 +39,7 @@ public class StudentProfileController {
     @GetMapping("/me")
     @Operation(summary = "Get current student profile")
     public Result<StudentProfileVO> getMyProfile() {
-        Long studentId = BaseContext.getCurrentUserId();
+        Long studentId = currentStudentId();
         log.info("Get student profile: {}", studentId);
         return Result.success(profileService.getStudentProfile(studentId));
     }
@@ -53,7 +53,7 @@ public class StudentProfileController {
     @PutMapping("/me")
     @Operation(summary = "Update current student profile")
     public Result<Void> updateMyProfile(@Valid @RequestBody StudentProfileUpdateDTO studentProfileUpdateDTO) {
-        Long studentId = BaseContext.getCurrentUserId();
+        Long studentId = currentStudentId();
         log.info("Update student profile: {}, payload: {}", studentId, studentProfileUpdateDTO);
         profileService.updateStudentProfile(studentId, studentProfileUpdateDTO);
         return Result.success();
@@ -69,7 +69,7 @@ public class StudentProfileController {
     @PutMapping("/me/password")
     @Operation(summary = "Change current student password")
     public Result<Void> changeMyPassword(@Valid @RequestBody ChangePasswordDTO changePasswordDTO) {
-        Long studentId = BaseContext.getCurrentUserId();
+        Long studentId = currentStudentId();
         log.info("Change password for student: {}", studentId);
         profileService.changePassword(studentId, changePasswordDTO);
         return Result.success();
@@ -78,20 +78,24 @@ public class StudentProfileController {
     @PostMapping("/me/2fa/setup")
     @Operation(summary = "Initialize TOTP setup for current student")
     public Result<TwoFactorSetupVO> initializeTwoFactorSetup() {
-        return Result.success(profileService.initializeTwoFactorSetup(BaseContext.getCurrentUserId()));
+        return Result.success(profileService.initializeTwoFactorSetup(currentStudentId()));
     }
 
     @PostMapping("/me/2fa/enable")
     @Operation(summary = "Enable TOTP 2FA for current student")
     public Result<Void> enableTwoFactor(@Valid @RequestBody TwoFactorEnableDTO twoFactorEnableDTO) {
-        profileService.enableTwoFactor(BaseContext.getCurrentUserId(), twoFactorEnableDTO);
+        profileService.enableTwoFactor(currentStudentId(), twoFactorEnableDTO);
         return Result.success();
     }
 
     @PostMapping("/me/2fa/disable")
     @Operation(summary = "Disable TOTP 2FA for current student")
     public Result<Void> disableTwoFactor(@Valid @RequestBody TwoFactorDisableDTO twoFactorDisableDTO) {
-        profileService.disableTwoFactor(BaseContext.getCurrentUserId(), twoFactorDisableDTO);
+        profileService.disableTwoFactor(currentStudentId(), twoFactorDisableDTO);
         return Result.success();
+    }
+
+    private Long currentStudentId() {
+        return BaseContext.getCurrentUserId();
     }
 }

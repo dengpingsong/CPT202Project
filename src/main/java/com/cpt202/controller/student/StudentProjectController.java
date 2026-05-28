@@ -71,7 +71,7 @@ public class StudentProjectController {
      */
     @GetMapping("/tags")
     @Operation(summary = "Get all available tags for filtering")
-    public Result<List<TagVO>> getAlLTags() {
+    public Result<List<TagVO>> getAllTags() {
         return Result.success(tagService.listAll());
     }
 

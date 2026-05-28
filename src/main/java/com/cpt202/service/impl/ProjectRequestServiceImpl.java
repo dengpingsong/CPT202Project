@@ -33,9 +33,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -64,27 +65,13 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
     @Override
     @Transactional
     public void create(Long studentId, ProjectRequestCreateDTO dto) {
-        // 1. 查找关联实体
-        StudentProfile student = studentRepository.findById(studentId)
-                .orElseThrow(() -> new RuleViolationException(MessageConstants.STUDENT_RECORD_NOT_FOUND));
-        Project project = projectRepository.findById(dto.getProjectId())
-                .orElseThrow(() -> new RuleViolationException(MessageConstants.PROJECT_RECORD_NOT_FOUND));
+        StudentProfile student = loadStudentForSubmission(studentId);
+        Project project = loadProjectForSubmission(dto.getProjectId());
 
-        // 2. 检查截止日期、项目状态和分配限制
         projectRequestValidationService.validateRequest(studentId, project);
         validatePreferenceRank(studentId, dto.getPreferenceRank());
 
-        // 3. 构建并保存申请记录
-        LocalDateTime now = LocalDateTime.now();
-        ProjectRequest request = new ProjectRequest();
-        BeanUtils.copyProperties(dto, request, "projectId");
-        request.setRequestStatus(ProjectRequest.RequestStatus.PENDING);
-        request.setSubmittedAt(now);
-        request.setUpdatedAt(now);
-        request.setStudent(student);
-        request.setProject(project);
-
-        request = requestRepository.save(request);
+        ProjectRequest request = requestRepository.save(buildPendingRequest(dto, student, project));
         syncProjectStatusAfterRequestChange(project.getProjectId());
         saveHistory(request, null, ProjectRequest.RequestStatus.PENDING, student, MessageConstants.REQUEST_SUBMIT_REMARK);
     }
@@ -144,52 +131,31 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
                 this::toProjectRequestVO);
     }
 
-        @Override
-        public StudentRequestSummaryVO getStudentRequestSummary(Long studentId) {
-        Page<ProjectRequestVO> recentRequestPage = requestRepository.findStudentRequestVos(studentId, PageRequest.of(0, 3));
-        List<ProjectRequest> withdrawnRequests = requestRepository.findByStudent_StudentIdAndRequestStatus(
-            studentId,
-            ProjectRequest.RequestStatus.WITHDRAWN
-        );
-        List<Object[]> statusCounts = requestRepository.countStudentRequestsByStatus(studentId);
+    @Override
+    public StudentRequestSummaryVO getStudentRequestSummary(Long studentId) {
+        Page<ProjectRequestVO> recentRequestPage = findRecentStudentRequests(studentId);
+        Map<ProjectRequest.RequestStatus, Long> requestCounts = countStudentRequestsByStatus(studentId);
 
         return StudentRequestSummaryVO.builder()
-            .totalRequests(statusCounts.stream().mapToLong(row -> ((Number) row[1]).longValue()).sum())
-            .pendingCount(findCount(statusCounts, ProjectRequest.RequestStatus.PENDING))
-            .acceptedCount(findCount(statusCounts, ProjectRequest.RequestStatus.ACCEPTED))
-            .rejectedCount(findCount(statusCounts, ProjectRequest.RequestStatus.REJECTED))
-            .withdrawnCount(findCount(statusCounts, ProjectRequest.RequestStatus.WITHDRAWN))
-            .withdrawnProjectIds(withdrawnRequests.stream()
-                .map(request -> request.getProject() == null ? null : request.getProject().getProjectId())
-                .filter(projectId -> projectId != null)
-                .distinct()
-                .toList())
-            .recentRequests(recentRequestPage.getContent())
-            .build();
-        }
+                .totalRequests(totalRequestCount(requestCounts))
+                .pendingCount(requestCounts.getOrDefault(ProjectRequest.RequestStatus.PENDING, 0L))
+                .acceptedCount(requestCounts.getOrDefault(ProjectRequest.RequestStatus.ACCEPTED, 0L))
+                .rejectedCount(requestCounts.getOrDefault(ProjectRequest.RequestStatus.REJECTED, 0L))
+                .withdrawnCount(requestCounts.getOrDefault(ProjectRequest.RequestStatus.WITHDRAWN, 0L))
+                .withdrawnProjectIds(findWithdrawnProjectIds(studentId))
+                .recentRequests(recentRequestPage.getContent())
+                .build();
+    }
 
-        @Override
-        public List<ProjectRequestVO> getStudentRequestContext(Long studentId, Long projectId) {
+    @Override
+    public List<ProjectRequestVO> getStudentRequestContext(Long studentId, Long projectId) {
         Map<Long, ProjectRequestVO> requestContext = new LinkedHashMap<>();
 
-        requestRepository.findByStudent_StudentIdAndProject_ProjectIdOrderBySubmittedAtDesc(studentId, projectId)
-            .stream()
-            .map(this::toProjectRequestVO)
-            .forEach(request -> requestContext.put(request.getRequestId(), request));
+        addProjectRequestHistory(requestContext, studentId, projectId);
+        addActiveRequestSnapshot(requestContext, studentId);
 
-        requestRepository.findByStudent_StudentIdAndRequestStatusInOrderBySubmittedAtDesc(
-                studentId,
-                ACTIVE_REQUEST_STATUSES)
-            .stream()
-            .map(this::toProjectRequestVO)
-            .forEach(request -> requestContext.putIfAbsent(request.getRequestId(), request));
-
-        return requestContext.values().stream()
-            .sorted(Comparator.comparing(ProjectRequestVO::getSubmittedAt,
-                    Comparator.nullsLast(Comparator.reverseOrder()))
-                .thenComparing(ProjectRequestVO::getRequestId, Comparator.nullsLast(Comparator.reverseOrder())))
-            .toList();
-        }
+        return sortStudentRequestContext(requestContext);
+    }
 
     @Override
     public PageResult<ProjectRequestVO> listStudentRequestsPage(Long studentId, StudentProjectRequestQueryDTO queryDTO) {
@@ -234,18 +200,38 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
     public void withdraw(Long requestId, Long studentId) {
         ProjectRequest request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new NotFoundException(MessageConstants.REQUEST_NOT_FOUND));
-        if (request.getStudent() == null || !studentId.equals(request.getStudent().getStudentId())) {
-            throw new BusinessException(MessageConstants.CANNOT_WITHDRAW_OTHER_STUDENT_REQUEST);
-        }
 
         ProjectRequest.RequestStatus oldStatus = request.getRequestStatus();
-        request.setRequestStatus(ProjectRequest.RequestStatus.WITHDRAWN);
-        request.setWithdrawnAt(LocalDateTime.now());
-        request.setUpdatedAt(LocalDateTime.now());
+        ensureOwnedByStudent(request, studentId);
+        markWithdrawn(request);
 
         requestRepository.save(request);
         syncProjectStatusAfterRequestChange(request.getProject().getProjectId());
         saveHistory(request, oldStatus, ProjectRequest.RequestStatus.WITHDRAWN, request.getStudent(), MessageConstants.REQUEST_WITHDRAW_REMARK);
+    }
+
+    private StudentProfile loadStudentForSubmission(Long studentId) {
+        return studentRepository.findById(studentId)
+                .orElseThrow(() -> new RuleViolationException(MessageConstants.STUDENT_RECORD_NOT_FOUND));
+    }
+
+    private Project loadProjectForSubmission(Long projectId) {
+        return projectRepository.findById(projectId)
+                .orElseThrow(() -> new RuleViolationException(MessageConstants.PROJECT_RECORD_NOT_FOUND));
+    }
+
+    private ProjectRequest buildPendingRequest(ProjectRequestCreateDTO dto,
+                                               StudentProfile student,
+                                               Project project) {
+        LocalDateTime now = LocalDateTime.now();
+        ProjectRequest request = new ProjectRequest();
+        BeanUtils.copyProperties(dto, request, "projectId");
+        request.setRequestStatus(ProjectRequest.RequestStatus.PENDING);
+        request.setSubmittedAt(now);
+        request.setUpdatedAt(now);
+        request.setStudent(student);
+        request.setProject(project);
+        return request;
     }
 
     private ProjectRequestVO toProjectRequestVO(ProjectRequest request) {
@@ -266,14 +252,70 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
         return requestVO;
     }
 
-        private long findCount(List<Object[]> counts, ProjectRequest.RequestStatus status) {
-        return counts.stream()
-            .filter(row -> row[0] == status)
-            .map(row -> (Number) row[1])
-            .findFirst()
-            .map(Number::longValue)
-            .orElse(0L);
+    private Page<ProjectRequestVO> findRecentStudentRequests(Long studentId) {
+        return requestRepository.findStudentRequestVos(studentId, PageRequest.of(0, 3));
+    }
+
+    private Map<ProjectRequest.RequestStatus, Long> countStudentRequestsByStatus(Long studentId) {
+        Map<ProjectRequest.RequestStatus, Long> counts = new EnumMap<>(ProjectRequest.RequestStatus.class);
+        requestRepository.countStudentRequestsByStatus(studentId)
+                .forEach(row -> counts.put((ProjectRequest.RequestStatus) row[0], ((Number) row[1]).longValue()));
+        return counts;
+    }
+
+    private long totalRequestCount(Map<ProjectRequest.RequestStatus, Long> counts) {
+        return counts.values().stream().mapToLong(Long::longValue).sum();
+    }
+
+    private List<Long> findWithdrawnProjectIds(Long studentId) {
+        return requestRepository.findByStudent_StudentIdAndRequestStatus(
+                        studentId,
+                        ProjectRequest.RequestStatus.WITHDRAWN)
+                .stream()
+                .map(request -> request.getProject() == null ? null : request.getProject().getProjectId())
+                .filter(projectId -> projectId != null)
+                .distinct()
+                .toList();
+    }
+
+    private void addProjectRequestHistory(Map<Long, ProjectRequestVO> requestContext,
+                                          Long studentId,
+                                          Long projectId) {
+        requestRepository.findByStudent_StudentIdAndProject_ProjectIdOrderBySubmittedAtDesc(studentId, projectId)
+                .stream()
+                .map(this::toProjectRequestVO)
+                .forEach(request -> requestContext.put(request.getRequestId(), request));
+    }
+
+    private void addActiveRequestSnapshot(Map<Long, ProjectRequestVO> requestContext, Long studentId) {
+        requestRepository.findByStudent_StudentIdAndRequestStatusInOrderBySubmittedAtDesc(
+                        studentId,
+                        ACTIVE_REQUEST_STATUSES)
+                .stream()
+                .map(this::toProjectRequestVO)
+                .forEach(request -> requestContext.putIfAbsent(request.getRequestId(), request));
+    }
+
+    private List<ProjectRequestVO> sortStudentRequestContext(Map<Long, ProjectRequestVO> requestContext) {
+        return requestContext.values().stream()
+                .sorted(Comparator.comparing(ProjectRequestVO::getSubmittedAt,
+                                Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(ProjectRequestVO::getRequestId, Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList();
+    }
+
+    private void ensureOwnedByStudent(ProjectRequest request, Long studentId) {
+        if (request.getStudent() == null || !studentId.equals(request.getStudent().getStudentId())) {
+            throw new BusinessException(MessageConstants.CANNOT_WITHDRAW_OTHER_STUDENT_REQUEST);
         }
+    }
+
+    private void markWithdrawn(ProjectRequest request) {
+        LocalDateTime now = LocalDateTime.now();
+        request.setRequestStatus(ProjectRequest.RequestStatus.WITHDRAWN);
+        request.setWithdrawnAt(now);
+        request.setUpdatedAt(now);
+    }
 
     private void saveHistory(ProjectRequest request,
                              ProjectRequest.RequestStatus oldStatus,
