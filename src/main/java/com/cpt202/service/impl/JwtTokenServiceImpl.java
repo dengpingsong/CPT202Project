@@ -15,6 +15,7 @@ import io.jsonwebtoken.Claims;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import javax.crypto.SecretKey;
 
@@ -37,11 +38,16 @@ public class JwtTokenServiceImpl implements JwtTokenService {
 
     @Override
     public String generateToken(User user) {
+        validateTokenSubject(user);
         return JwtUtil.createToken(signingKey, jwtProperties.getExpirationSeconds(), user);
     }
 
     @Override
     public AuthContext parseToken(String token) {
+        if (!StringUtils.hasText(token)) {
+            throw new UnauthorizedAccessException(MessageConstants.INVALID_BEARER_TOKEN);
+        }
+
         Claims claims;
         try {
             claims = JwtUtil.parseToken(signingKey, token);
@@ -51,6 +57,10 @@ public class JwtTokenServiceImpl implements JwtTokenService {
 
         Long userId = claims.get(JwtClaimsConstant.USER_ID, Long.class);
         String roleValue = claims.get(JwtClaimsConstant.ROLE, String.class);
+        if (userId == null || !StringUtils.hasText(roleValue)) {
+            throw new UnauthorizedAccessException(MessageConstants.INVALID_LOGIN_STATE);
+        }
+
         User.UserRole tokenRole = parseRole(roleValue);
 
         UserAuthState user = userAuthStateService.getUserAuthState(userId);
@@ -63,6 +73,30 @@ public class JwtTokenServiceImpl implements JwtTokenService {
         }
 
         return new AuthContext(user.userId(), user.role());
+    }
+
+    @Override
+    public AuthContext parseBearerToken(String authorizationHeader) {
+        return parseToken(extractBearerToken(authorizationHeader));
+    }
+
+    private void validateTokenSubject(User user) {
+        if (user == null || user.getUserId() == null || user.getRole() == null) {
+            throw new UnauthorizedAccessException(MessageConstants.INVALID_LOGIN_STATE);
+        }
+    }
+
+    private String extractBearerToken(String authorizationHeader) {
+        String tokenPrefix = jwtProperties.getTokenPrefix();
+        if (!StringUtils.hasText(authorizationHeader) || !authorizationHeader.startsWith(tokenPrefix)) {
+            throw new UnauthorizedAccessException(MessageConstants.INVALID_BEARER_TOKEN);
+        }
+
+        String token = authorizationHeader.substring(tokenPrefix.length()).trim();
+        if (!StringUtils.hasText(token)) {
+            throw new UnauthorizedAccessException(MessageConstants.INVALID_BEARER_TOKEN);
+        }
+        return token;
     }
 
     private User.UserRole parseRole(String roleValue) {

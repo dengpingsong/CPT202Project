@@ -8,7 +8,6 @@ import com.cpt202.dto.PasswordResetRequestDTO;
 import com.cpt202.dto.RegisterUserDTO;
 import com.cpt202.dto.TwoFactorLoginVerifyDTO;
 import com.cpt202.constant.MessageConstants;
-import com.cpt202.exception.UnauthorizedAccessException;
 import com.cpt202.properties.JwtProperties;
 import com.cpt202.result.Result;
 import com.cpt202.service.AuthService;
@@ -19,7 +18,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -182,22 +180,8 @@ public class CommonAuthController {
             description = "Requires a Bearer token and clears the cached authentication state for the current account."
     )
     public Result<Void> logout(HttpServletRequest request) {
-        Long userId = jwtTokenService.parseToken(extractBearerToken(request)).userId();
+        Long userId = jwtTokenService.parseBearerToken(request.getHeader(jwtProperties.getTokenName())).userId();
         userAuthStateService.evictUserAuthState(userId);
         return Result.success();
-    }
-
-    private String extractBearerToken(HttpServletRequest request) {
-        String authorization = request.getHeader(jwtProperties.getTokenName());
-        String tokenPrefix = jwtProperties.getTokenPrefix();
-        if (!StringUtils.hasText(authorization) || !authorization.startsWith(tokenPrefix)) {
-            throw new UnauthorizedAccessException(MessageConstants.INVALID_BEARER_TOKEN);
-        }
-
-        String token = authorization.substring(tokenPrefix.length()).trim();
-        if (!StringUtils.hasText(token)) {
-            throw new UnauthorizedAccessException(MessageConstants.INVALID_BEARER_TOKEN);
-        }
-        return token;
     }
 }

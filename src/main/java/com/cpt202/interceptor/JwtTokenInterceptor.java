@@ -13,7 +13,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -44,8 +43,7 @@ public class JwtTokenInterceptor implements HandlerInterceptor {
         }
 
         try {
-            String token = extractToken(request);
-            AuthContext authContext = jwtTokenService.parseToken(token);
+            AuthContext authContext = jwtTokenService.parseBearerToken(request.getHeader(jwtProperties.getTokenName()));
             validateRole(authContext, requiredRole);
             BaseContext.setCurrent(authContext);
             return true;
@@ -58,21 +56,6 @@ public class JwtTokenInterceptor implements HandlerInterceptor {
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
         BaseContext.clear();
-    }
-
-    private String extractToken(HttpServletRequest request) {
-        String authorization = request.getHeader(jwtProperties.getTokenName());
-        String tokenPrefix = jwtProperties.getTokenPrefix();
-
-        if (!StringUtils.hasText(authorization) || !authorization.startsWith(tokenPrefix)) {
-            throw new UnauthorizedAccessException(MessageConstants.INVALID_BEARER_TOKEN);
-        }
-
-        String token = authorization.substring(tokenPrefix.length()).trim();
-        if (!StringUtils.hasText(token)) {
-            throw new UnauthorizedAccessException(MessageConstants.INVALID_BEARER_TOKEN);
-        }
-        return token;
     }
 
     private void validateRole(AuthContext authContext, User.UserRole requiredRole) {
