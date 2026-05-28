@@ -5,6 +5,7 @@ import com.cpt202.exception.BusinessException;
 import com.cpt202.model.entity.ProjectRequest;
 import com.cpt202.model.entity.RequestStatusHistory;
 import com.cpt202.model.entity.StudentProfile;
+import com.cpt202.model.entity.TeacherProfile;
 import com.cpt202.model.entity.User;
 import com.cpt202.repository.ProjectRequestRepository;
 import com.cpt202.repository.RequestStatusHistoryRepository;
@@ -56,23 +57,31 @@ class HistoryServiceImplTest {
     @Test
     void getRequestHistoryShouldMapStudentIdentityAndStatuses() {
         StudentProfile student = student(2L, "Student Two");
+        TeacherProfile teacher = teacher(8L, "Teacher Eight");
         ProjectRequest request = request(12L, student);
         RequestStatusHistory submitted = history("PENDING", "Student submitted the request.", student);
+        RequestStatusHistory reviewed = history("ACCEPTED", "Accepted.", null);
+        reviewed.setActorType(RequestStatusHistory.HistoryActorType.TEACHER);
+        reviewed.setChangedByTeacher(teacher);
         RequestStatusHistory withdrawn = history("WITHDRAWN", "Student withdrew the request.", student);
 
         when(projectRequestRepository.findById(12L)).thenReturn(Optional.of(request));
         when(requestStatusHistoryRepository.findByRequest_RequestIdOrderByChangedAtAsc(12L))
-                .thenReturn(List.of(submitted, withdrawn));
+                .thenReturn(List.of(submitted, reviewed, withdrawn));
 
         List<RequestStatusHistoryVO> results = historyService.getRequestHistory(12L, 2L);
 
-        assertThat(results).hasSize(2);
+        assertThat(results).hasSize(3);
         assertThat(results.get(0).getRequestId()).isEqualTo(12L);
         assertThat(results.get(0).getNewStatus()).isEqualTo("PENDING");
         assertThat(results.get(0).getChangedByStudentId()).isEqualTo(2L);
         assertThat(results.get(0).getChangedByStudentName()).isEqualTo("Student Two");
-        assertThat(results.get(1).getNewStatus()).isEqualTo("WITHDRAWN");
-        assertThat(results.get(1).getRemark()).isEqualTo("Student withdrew the request.");
+        assertThat(results.get(0).getActorType()).isEqualTo(RequestStatusHistory.HistoryActorType.STUDENT);
+        assertThat(results.get(1).getActorType()).isEqualTo(RequestStatusHistory.HistoryActorType.TEACHER);
+        assertThat(results.get(1).getChangedByTeacherId()).isEqualTo(8L);
+        assertThat(results.get(1).getChangedByTeacherName()).isEqualTo("Teacher Eight");
+        assertThat(results.get(2).getNewStatus()).isEqualTo("WITHDRAWN");
+        assertThat(results.get(2).getRemark()).isEqualTo("Student withdrew the request.");
     }
 
     private ProjectRequest request(Long requestId, StudentProfile student) {
@@ -92,11 +101,22 @@ class HistoryServiceImplTest {
         return student;
     }
 
+    private TeacherProfile teacher(Long teacherId, String fullName) {
+        TeacherProfile teacher = new TeacherProfile();
+        ReflectionTestUtils.setField(teacher, "teacherId", teacherId);
+        User user = new User();
+        user.setUserId(teacherId);
+        user.setFullName(fullName);
+        teacher.setUser(user);
+        return teacher;
+    }
+
     private RequestStatusHistory history(String newStatus, String remark, StudentProfile changedBy) {
         RequestStatusHistory history = new RequestStatusHistory();
         history.setNewStatus(newStatus);
         history.setRemark(remark);
         history.setChangedBy(changedBy);
+        history.setActorType(changedBy == null ? null : RequestStatusHistory.HistoryActorType.STUDENT);
         history.setChangedAt(LocalDateTime.now());
         return history;
     }

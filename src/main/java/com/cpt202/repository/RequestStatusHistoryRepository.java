@@ -23,6 +23,9 @@ public interface RequestStatusHistoryRepository extends JpaRepository<RequestSta
                 h.newStatus,
                 s.studentId,
                 su.fullName,
+                h.actorType,
+                t.teacherId,
+                tu.fullName,
                 h.remark,
                 h.changedAt
             )
@@ -30,6 +33,8 @@ public interface RequestStatusHistoryRepository extends JpaRepository<RequestSta
             left join h.request r
             left join h.changedBy s
             left join s.user su
+            left join h.changedByTeacher t
+            left join t.user tu
             order by h.changedAt asc
             """)
     List<RequestStatusHistoryVO> findAllHistoryVos();
@@ -42,6 +47,9 @@ public interface RequestStatusHistoryRepository extends JpaRepository<RequestSta
                 h.newStatus,
                 s.studentId,
                 su.fullName,
+                h.actorType,
+                t.teacherId,
+                tu.fullName,
                 h.remark,
                 h.changedAt
             )
@@ -49,6 +57,8 @@ public interface RequestStatusHistoryRepository extends JpaRepository<RequestSta
             left join h.request r
             left join h.changedBy s
             left join s.user su
+            left join h.changedByTeacher t
+            left join t.user tu
             order by h.changedAt asc
             """,
             countQuery = "select count(h) from RequestStatusHistory h")

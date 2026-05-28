@@ -92,7 +92,8 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
 
         request = requestRepository.save(request);
         syncProjectStatusAfterRequestChange(project.getProjectId());
-        saveHistory(request, null, ProjectRequest.RequestStatus.PENDING, student, MessageConstants.REQUEST_SUBMIT_REMARK);
+        saveHistory(request, null, ProjectRequest.RequestStatus.PENDING, student, null,
+                RequestStatusHistory.HistoryActorType.STUDENT, MessageConstants.REQUEST_SUBMIT_REMARK);
     }
 
     /**
@@ -137,7 +138,8 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
         request.setUpdatedAt(LocalDateTime.now());
 
         requestRepository.save(request);
-        saveHistory(request, oldStatus, targetStatus, null, decisionComment);
+        saveHistory(request, oldStatus, targetStatus, null, teacher,
+                RequestStatusHistory.HistoryActorType.TEACHER, decisionComment);
 
         if (targetStatus == ProjectRequest.RequestStatus.ACCEPTED) {
             projectRequestValidationService.onApprovalSuccess(requestId);
@@ -254,7 +256,8 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
 
         requestRepository.save(request);
         syncProjectStatusAfterRequestChange(request.getProject().getProjectId());
-        saveHistory(request, oldStatus, ProjectRequest.RequestStatus.WITHDRAWN, request.getStudent(), MessageConstants.REQUEST_WITHDRAW_REMARK);
+        saveHistory(request, oldStatus, ProjectRequest.RequestStatus.WITHDRAWN, request.getStudent(), null,
+                RequestStatusHistory.HistoryActorType.STUDENT, MessageConstants.REQUEST_WITHDRAW_REMARK);
     }
 
     private ProjectRequestVO toProjectRequestVO(ProjectRequest request) {
@@ -288,12 +291,16 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
                              ProjectRequest.RequestStatus oldStatus,
                              ProjectRequest.RequestStatus newStatus,
                              StudentProfile changedBy,
+                             TeacherProfile changedByTeacher,
+                             RequestStatusHistory.HistoryActorType actorType,
                              String remark) {
         RequestStatusHistory history = new RequestStatusHistory();
         history.setRequest(request);
         history.setOldStatus(oldStatus == null ? null : oldStatus.name());
         history.setNewStatus(newStatus.name());
         history.setChangedBy(changedBy);
+        history.setChangedByTeacher(changedByTeacher);
+        history.setActorType(actorType);
         history.setRemark(remark);
         history.setChangedAt(LocalDateTime.now());
         requestStatusHistoryRepository.save(history);

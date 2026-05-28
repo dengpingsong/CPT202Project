@@ -92,6 +92,8 @@ public class ProjectRequestValidationServiceImpl implements ProjectRequestValida
             history.setOldStatus(oldStatus == null ? null : oldStatus.name());
             history.setNewStatus(RequestStatus.REJECTED.name());
             history.setChangedBy(null);
+            history.setChangedByTeacher(null);
+            history.setActorType(RequestStatusHistory.HistoryActorType.SYSTEM);
             history.setRemark(MessageConstants.AUTO_REJECT_ALREADY_MATCHED_REMARK);
             history.setChangedAt(now);
             requestStatusHistoryRepository.save(history);

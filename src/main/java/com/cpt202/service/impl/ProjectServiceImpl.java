@@ -252,6 +252,8 @@ public class ProjectServiceImpl implements ProjectService {
             history.setOldStatus(oldStatus == null ? null : oldStatus.name());
             history.setNewStatus(ProjectRequest.RequestStatus.REJECTED.name());
             history.setChangedBy(null);
+            history.setChangedByTeacher(null);
+            history.setActorType(RequestStatusHistory.HistoryActorType.SYSTEM);
             history.setRemark(MessageConstants.AUTO_CANCEL_PROJECT_CLOSED_REMARK);
             history.setChangedAt(changedAt);
             requestStatusHistoryRepository.save(history);

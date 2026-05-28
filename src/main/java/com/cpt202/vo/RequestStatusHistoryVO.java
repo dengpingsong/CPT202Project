@@ -1,5 +1,6 @@
 package com.cpt202.vo;
 
+import com.cpt202.model.entity.RequestStatusHistory;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -31,6 +32,12 @@ public class RequestStatusHistoryVO {
     private Long changedByStudentId;
     /** 操作学生姓名。 */
     private String changedByStudentName;
+    /** Actor category responsible for the status change. */
+    private RequestStatusHistory.HistoryActorType actorType;
+    /** Teacher who triggered the change, when applicable. */
+    private Long changedByTeacherId;
+    /** Teacher name for teacher-triggered changes. */
+    private String changedByTeacherName;
     /** 备注。 */
     private String remark;
     /** 变更时间。 */

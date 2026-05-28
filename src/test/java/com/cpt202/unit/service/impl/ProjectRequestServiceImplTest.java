@@ -202,6 +202,8 @@ class ProjectRequestServiceImplTest {
         assertThat(historyCaptor.getValue().getOldStatus()).isEqualTo(ProjectRequest.RequestStatus.PENDING.name());
         assertThat(historyCaptor.getValue().getNewStatus()).isEqualTo(ProjectRequest.RequestStatus.ACCEPTED.name());
         assertThat(historyCaptor.getValue().getRemark()).isEqualTo("accepted");
+        assertThat(historyCaptor.getValue().getActorType()).isEqualTo(RequestStatusHistory.HistoryActorType.TEACHER);
+        assertThat(historyCaptor.getValue().getChangedByTeacher()).isEqualTo(teacher);
     }
 
     /** Rejects withdrawal when the request belongs to another student. */
