@@ -38,6 +38,7 @@ import java.util.LinkedHashMap;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Project Request Service Implementation.
@@ -51,6 +52,11 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
             ProjectRequest.RequestStatus.PENDING,
             ProjectRequest.RequestStatus.ACCEPTED
     );
+    private static final Set<ProjectRequest.RequestStatus> TEACHER_REVIEW_TARGET_STATUSES = Set.of(
+            ProjectRequest.RequestStatus.ACCEPTED,
+            ProjectRequest.RequestStatus.REJECTED
+    );
+    private static final int MAX_DECISION_COMMENT_LENGTH = 500;
     private final ProjectRequestRepository requestRepository;
     private final ProjectRepository projectRepository;
     private final StudentProfileRepository studentRepository;
@@ -95,6 +101,7 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
     @Override
     @Transactional
     public void review(Long requestId, Long teacherId, ProjectRequestReviewDTO dto) {
+        validateReviewDecision(dto);
 
         ProjectRequest request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new NotFoundException(MessageConstants.REQUEST_NOT_FOUND));
@@ -112,7 +119,9 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
         if (oldStatus != ProjectRequest.RequestStatus.PENDING) {
             throw new RuleViolationException(MessageConstants.REQUEST_NOT_PENDING_CANNOT_REVIEW);
         }
-        if (dto.getRequestStatus() == ProjectRequest.RequestStatus.ACCEPTED) {
+        ProjectRequest.RequestStatus targetStatus = dto.getRequestStatus();
+        String decisionComment = normalizeDecisionComment(dto.getDecisionComment());
+        if (targetStatus == ProjectRequest.RequestStatus.ACCEPTED) {
             long currentAccepted = requestRepository.countByProject_ProjectIdAndRequestStatus(
                     request.getProject().getProjectId(),
                     ProjectRequest.RequestStatus.ACCEPTED
@@ -121,16 +130,16 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
                 throw new RuleViolationException(MessageConstants.PROJECT_CAPACITY_EXCEEDED);
             }
         }
-        request.setRequestStatus(dto.getRequestStatus());
-        request.setDecisionComment(dto.getDecisionComment());
+        request.setRequestStatus(targetStatus);
+        request.setDecisionComment(decisionComment);
         request.setReviewedBy(teacher);
         request.setReviewedAt(LocalDateTime.now());
         request.setUpdatedAt(LocalDateTime.now());
 
         requestRepository.save(request);
-        saveHistory(request, oldStatus, dto.getRequestStatus(), null, dto.getDecisionComment());
+        saveHistory(request, oldStatus, targetStatus, null, decisionComment);
 
-        if (dto.getRequestStatus() == ProjectRequest.RequestStatus.ACCEPTED) {
+        if (targetStatus == ProjectRequest.RequestStatus.ACCEPTED) {
             projectRequestValidationService.onApprovalSuccess(requestId);
         } else {
             syncProjectStatusAfterRequestChange(request.getProject().getProjectId());
@@ -338,5 +347,23 @@ public class ProjectRequestServiceImpl implements ProjectRequestService {
         return PageRequest.of(
                 Math.max(0, queryDTO.getPageNum() - 1),
                 queryDTO.getPageSize());
+    }
+
+    private void validateReviewDecision(ProjectRequestReviewDTO dto) {
+        if (dto == null || !TEACHER_REVIEW_TARGET_STATUSES.contains(dto.getRequestStatus())) {
+            throw new RuleViolationException(MessageConstants.INVALID_REVIEW_DECISION_STATUS);
+        }
+        String decisionComment = dto.getDecisionComment();
+        if (decisionComment != null && decisionComment.trim().length() > MAX_DECISION_COMMENT_LENGTH) {
+            throw new RuleViolationException(MessageConstants.DECISION_COMMENT_TOO_LONG);
+        }
+    }
+
+    private String normalizeDecisionComment(String decisionComment) {
+        if (decisionComment == null) {
+            return null;
+        }
+        String normalized = decisionComment.trim();
+        return normalized.isEmpty() ? null : normalized;
     }
 }
