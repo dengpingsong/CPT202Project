@@ -26,6 +26,7 @@ import com.cpt202.service.JwtTokenService;
 import com.cpt202.service.PasswordResetMailService;
 import com.cpt202.service.RedisCacheService;
 import com.cpt202.service.TwoFactorAuthService;
+import com.cpt202.service.UserAuthStateService;
 import com.cpt202.validation.AuthValidationService;
 import com.cpt202.vo.LoginVO;
 import lombok.RequiredArgsConstructor;
@@ -63,6 +64,7 @@ public class AuthServiceImpl implements AuthService {
     private final EmailOtpMailService emailOtpMailService;
     private final RedisCacheService redisCacheService;
     private final TwoFactorAuthService twoFactorAuthService;
+    private final UserAuthStateService userAuthStateService;
     private final AuthValidationService authValidationService;
     private final PasswordUtil passwordUtil;
 
@@ -87,24 +89,13 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public LoginVO register(RegisterUserDTO registerUserDTO) {
-        String normalizedEmail = registerUserDTO.getEmail().trim().toLowerCase();
+        String normalizedEmail = normalizeEmail(registerUserDTO.getEmail());
         authValidationService.checkEmailFormat(normalizedEmail);
 
         User.UserRole role = authValidationService.inferRoleFromEmail(normalizedEmail);
 
         authValidationService.checkRegisterPayload(registerUserDTO, role);
-
-        // otp verification
-        String submittedOtp = registerUserDTO.getOtp() == null ? "" : registerUserDTO.getOtp().trim();
-        if (!StringUtils.hasText(submittedOtp)) {
-            throw new RuleViolationException(MessageConstants.EMAIL_OTP_REQUIRED);
-        }
-        String otpKey = RedisKeyConstants.EMAIL_REGISTER_OTP_PREFIX + normalizedEmail;
-        String storedOtp = redisCacheService.get(otpKey, String.class)
-                .orElseThrow(() -> new BusinessException(MessageConstants.EMAIL_OTP_EXPIRED));
-        if (!storedOtp.equals(submittedOtp)) {
-            throw new BusinessException(MessageConstants.EMAIL_OTP_INVALID);
-        }
+        verifyRegisterOtp(normalizedEmail, registerUserDTO.getOtp());
 
         authValidationService.checkUsernameUnique(registerUserDTO.getUsername());
         authValidationService.checkEmailUnique(normalizedEmail);
@@ -133,7 +124,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         // otp removed
-        redisCacheService.delete(otpKey);
+        redisCacheService.delete(registerOtpKey(normalizedEmail));
 
         return buildLoginVO(user);
     }
@@ -164,13 +155,11 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void sendEmailLoginOtp(EmailOtpRequestDTO requestDTO) {
-        String normalizedEmail = requestDTO.getEmail().trim();
+        String normalizedEmail = normalizeEmail(requestDTO.getEmail());
         authValidationService.checkEmailFormat(normalizedEmail);
 
-        String cooldownKey = RedisKeyConstants.EMAIL_LOGIN_OTP_COOLDOWN_PREFIX + normalizedEmail.toLowerCase();
-        if (redisCacheService.get(cooldownKey, String.class).isPresent()) {
-            throw new RuleViolationException(MessageConstants.EMAIL_OTP_REQUEST_TOO_FREQUENT);
-        }
+        String cooldownKey = loginOtpCooldownKey(normalizedEmail);
+        ensureOtpRequestAllowed(cooldownKey);
 
         User user = userRepository.findByEmailIgnoreCase(normalizedEmail).orElse(null);
         if (user == null || !DEFAULT_ACCOUNT_STATUS.equalsIgnoreCase(user.getAccountStatus())) {
@@ -178,8 +167,8 @@ public class AuthServiceImpl implements AuthService {
         }
 
         String otp = generateEmailOtp();
-        log.info("[DEV] Login OTP for {} = {}", normalizedEmail, otp);
-        String otpKey = RedisKeyConstants.EMAIL_LOGIN_OTP_PREFIX + normalizedEmail.toLowerCase();
+        log.debug("Generated login OTP for email={}", normalizedEmail);
+        String otpKey = loginOtpKey(normalizedEmail);
         try {
             redisCacheService.set(otpKey, otp, Duration.ofMinutes(emailLoginOtpExpirationMinutes));
             redisCacheService.set(cooldownKey, "1", Duration.ofSeconds(emailLoginOtpCooldownSeconds));
@@ -194,7 +183,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void sendEmailRegisterOtp(EmailOtpRequestDTO requestDTO){
-        String normalizedEmail = requestDTO.getEmail().trim().toLowerCase();
+        String normalizedEmail = normalizeEmail(requestDTO.getEmail());
         authValidationService.checkEmailFormat(normalizedEmail);
         authValidationService.checkRegistrableEmailDomain(normalizedEmail);
 
@@ -202,14 +191,12 @@ public class AuthServiceImpl implements AuthService {
             throw new RuleViolationException(MessageConstants.EMAIL_EXISTS);
         }
 
-        String cooldownKey = RedisKeyConstants.EMAIL_REGISTER_OTP_COOLDOWN_PREFIX + normalizedEmail;
-        if (redisCacheService.get(cooldownKey, String.class).isPresent()) {
-            throw new RuleViolationException(MessageConstants.EMAIL_OTP_REQUEST_TOO_FREQUENT);
-        }
+        String cooldownKey = registerOtpCooldownKey(normalizedEmail);
+        ensureOtpRequestAllowed(cooldownKey);
 
         String otp = generateEmailOtp();
-        log.info("[DEV] Register OTP for {} = {}", normalizedEmail, otp);
-        String otpKey = RedisKeyConstants.EMAIL_REGISTER_OTP_PREFIX + normalizedEmail;
+        log.debug("Generated register OTP for email={}", normalizedEmail);
+        String otpKey = registerOtpKey(normalizedEmail);
 
         try {
             redisCacheService.set(otpKey, otp, Duration.ofMinutes(emailLoginOtpExpirationMinutes));
@@ -227,7 +214,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginVO loginWithEmailOtp(EmailOtpLoginDTO loginDTO) {
-        String normalizedEmail = loginDTO.getEmail().trim();
+        String normalizedEmail = normalizeEmail(loginDTO.getEmail());
         authValidationService.checkEmailFormat(normalizedEmail);
 
         String submittedOtp = loginDTO.getOtp().trim();
@@ -240,15 +227,9 @@ public class AuthServiceImpl implements AuthService {
 
         authValidationService.checkAccountActive(user);
 
-        String otpKey = RedisKeyConstants.EMAIL_LOGIN_OTP_PREFIX + normalizedEmail.toLowerCase();
-        String storedOtp = redisCacheService.get(otpKey, String.class)
-                .orElseThrow(() -> new BusinessException(MessageConstants.EMAIL_OTP_EXPIRED));
+        verifyOtp(loginOtpKey(normalizedEmail), submittedOtp);
 
-        if (!storedOtp.equals(submittedOtp)) {
-            throw new BusinessException(MessageConstants.EMAIL_OTP_INVALID);
-        }
-
-        redisCacheService.delete(otpKey);
+        redisCacheService.delete(loginOtpKey(normalizedEmail));
         return buildLoginVO(user);
     }
 
@@ -269,7 +250,7 @@ public class AuthServiceImpl implements AuthService {
     public void requestPasswordReset(PasswordResetRequestDTO requestDTO) {
         passwordResetTokenRepository.deleteByExpiresAtBefore(LocalDateTime.now());
 
-        String normalizedEmail = requestDTO.getEmail().trim();
+        String normalizedEmail = normalizeEmail(requestDTO.getEmail());
         authValidationService.checkEmailFormat(normalizedEmail);
 
         User user = userRepository.findByEmailIgnoreCase(normalizedEmail).orElse(null);
@@ -319,6 +300,49 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
         passwordResetTokenRepository.save(passwordResetToken);
         invalidateOtherActiveTokens(user, passwordResetToken.getResetId(), LocalDateTime.now());
+        userAuthStateService.evictUserAuthState(user.getUserId());
+    }
+
+    private String normalizeEmail(String email) {
+        return email.trim().toLowerCase();
+    }
+
+    private void verifyRegisterOtp(String normalizedEmail, String otp) {
+        String submittedOtp = otp == null ? "" : otp.trim();
+        if (!StringUtils.hasText(submittedOtp)) {
+            throw new RuleViolationException(MessageConstants.EMAIL_OTP_REQUIRED);
+        }
+        verifyOtp(registerOtpKey(normalizedEmail), submittedOtp);
+    }
+
+    private void verifyOtp(String otpKey, String submittedOtp) {
+        String storedOtp = redisCacheService.get(otpKey, String.class)
+                .orElseThrow(() -> new BusinessException(MessageConstants.EMAIL_OTP_EXPIRED));
+        if (!storedOtp.equals(submittedOtp)) {
+            throw new BusinessException(MessageConstants.EMAIL_OTP_INVALID);
+        }
+    }
+
+    private void ensureOtpRequestAllowed(String cooldownKey) {
+        if (redisCacheService.get(cooldownKey, String.class).isPresent()) {
+            throw new RuleViolationException(MessageConstants.EMAIL_OTP_REQUEST_TOO_FREQUENT);
+        }
+    }
+
+    private String loginOtpKey(String normalizedEmail) {
+        return RedisKeyConstants.EMAIL_LOGIN_OTP_PREFIX + normalizedEmail;
+    }
+
+    private String registerOtpKey(String normalizedEmail) {
+        return RedisKeyConstants.EMAIL_REGISTER_OTP_PREFIX + normalizedEmail;
+    }
+
+    private String loginOtpCooldownKey(String normalizedEmail) {
+        return RedisKeyConstants.EMAIL_LOGIN_OTP_COOLDOWN_PREFIX + normalizedEmail;
+    }
+
+    private String registerOtpCooldownKey(String normalizedEmail) {
+        return RedisKeyConstants.EMAIL_REGISTER_OTP_COOLDOWN_PREFIX + normalizedEmail;
     }
 
     private LoginVO buildLoginVO(User user) {

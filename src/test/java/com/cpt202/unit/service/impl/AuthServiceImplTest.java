@@ -5,9 +5,11 @@ import com.cpt202.constant.RedisKeyConstants;
 import com.cpt202.dto.EmailOtpLoginDTO;
 import com.cpt202.dto.EmailOtpRequestDTO;
 import com.cpt202.dto.LoginDTO;
+import com.cpt202.dto.PasswordResetConfirmDTO;
 import com.cpt202.dto.RegisterUserDTO;
 import com.cpt202.exception.BusinessException;
 import com.cpt202.exception.RuleViolationException;
+import com.cpt202.model.entity.PasswordResetToken;
 import com.cpt202.model.entity.StudentProfile;
 import com.cpt202.model.entity.User;
 import com.cpt202.repository.PasswordResetTokenRepository;
@@ -79,6 +81,9 @@ class AuthServiceImplTest {
     private TwoFactorAuthService twoFactorAuthService;
 
     @Mock
+    private UserAuthStateService userAuthStateService;
+
+    @Mock
     private AuthValidationService authValidationService;
 
     @InjectMocks
@@ -131,11 +136,13 @@ class AuthServiceImplTest {
     @Test
     void registerStudentShouldCreateProfileAndReturnLoginVo() {
         RegisterUserDTO dto = validStudentRegisterDTO();
+        dto.setEmail("Student@Student.XJTLU.Edu.CN");
         dto.setOtp("123456");
-        String otpKey = RedisKeyConstants.EMAIL_REGISTER_OTP_PREFIX + dto.getEmail().trim().toLowerCase();
+        String normalizedEmail = "student@student.xjtlu.edu.cn";
+        String otpKey = RedisKeyConstants.EMAIL_REGISTER_OTP_PREFIX + normalizedEmail;
         when(redisCacheService.get(otpKey, String.class)).thenReturn(Optional.of("123456"));
 
-        when(authValidationService.inferRoleFromEmail(dto.getEmail().trim())).thenReturn(User.UserRole.STUDENT);
+        when(authValidationService.inferRoleFromEmail(normalizedEmail)).thenReturn(User.UserRole.STUDENT);
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User user = invocation.getArgument(0);
             user.setUserId(100L);
@@ -153,7 +160,7 @@ class AuthServiceImplTest {
 
         User savedUser = userCaptor.getValue();
         StudentProfile savedStudent = studentCaptor.getValue();
-        assertThat(savedUser.getEmail()).isEqualTo(dto.getEmail().trim());
+        assertThat(savedUser.getEmail()).isEqualTo(normalizedEmail);
         assertThat(savedUser.getPasswordHash()).isEqualTo(hash(dto.getPassword()));
         assertThat(savedStudent.getStudentNo()).isEqualTo(dto.getStudentNo());
         assertThat(savedStudent.getUser()).isEqualTo(savedUser);
@@ -212,7 +219,7 @@ class AuthServiceImplTest {
     /** Stores an OTP and sends mail for an active user. */
     @Test
     void sendEmailLoginOtpShouldStoreOtpAndSendMailForActiveUser() {
-        EmailOtpRequestDTO dto = otpRequestDTO("alice@example.com");
+        EmailOtpRequestDTO dto = otpRequestDTO("Alice@Example.COM");
         String normalizedEmail = "alice@example.com";
         String cooldownKey = RedisKeyConstants.EMAIL_LOGIN_OTP_COOLDOWN_PREFIX + normalizedEmail;
         String otpKey = RedisKeyConstants.EMAIL_LOGIN_OTP_PREFIX + normalizedEmail;
@@ -249,7 +256,7 @@ class AuthServiceImplTest {
     /** Deletes the OTP and returns a login payload after successful OTP login. */
     @Test
     void loginWithEmailOtpShouldDeleteOtpAndReturnLoginVoOnSuccess() {
-        EmailOtpLoginDTO dto = otpLoginDTO("alice@example.com", "123456");
+        EmailOtpLoginDTO dto = otpLoginDTO("Alice@Example.COM", "123456");
         User user = activeUser(5L, "alice", "alice@example.com", hash("Password123"));
         String otpKey = RedisKeyConstants.EMAIL_LOGIN_OTP_PREFIX + "alice@example.com";
 
@@ -263,6 +270,24 @@ class AuthServiceImplTest {
         assertThat(result.getToken()).isEqualTo("otp-login-token");
         assertThat(result.getTwoFactorRequired()).isFalse();
         assertThat(result.getUsername()).isEqualTo("alice");
+    }
+
+    /** Evicts cached authentication state after a password reset succeeds. */
+    @Test
+    void resetPasswordShouldEvictUserAuthStateAfterPasswordChange() {
+        User user = activeUser(6L, "alice", "alice@example.com", hash("OldPassword"));
+        PasswordResetToken token = passwordResetToken(user, "reset-token");
+        PasswordResetConfirmDTO dto = passwordResetConfirmDTO(" reset-token ", "NewPassword123");
+
+        when(passwordResetTokenRepository.findByToken("reset-token")).thenReturn(Optional.of(token));
+
+        authService.resetPassword(dto);
+
+        assertThat(user.getPasswordHash()).isEqualTo(hash("NewPassword123"));
+        assertThat(token.getUsedAt()).isNotNull();
+        verify(userRepository).save(user);
+        verify(passwordResetTokenRepository).save(token);
+        verify(userAuthStateService).evictUserAuthState(6L);
     }
 
     private RegisterUserDTO validStudentRegisterDTO() {
@@ -312,6 +337,23 @@ class AuthServiceImplTest {
         dto.setEmail(email);
         dto.setOtp(otp);
         return dto;
+    }
+
+    private PasswordResetConfirmDTO passwordResetConfirmDTO(String token, String newPassword) {
+        PasswordResetConfirmDTO dto = new PasswordResetConfirmDTO();
+        dto.setToken(token);
+        dto.setNewPassword(newPassword);
+        return dto;
+    }
+
+    private PasswordResetToken passwordResetToken(User user, String rawToken) {
+        PasswordResetToken token = new PasswordResetToken();
+        token.setResetId(99L);
+        token.setUser(user);
+        token.setToken(rawToken);
+        token.setCreatedAt(LocalDateTime.now().minusMinutes(5));
+        token.setExpiresAt(LocalDateTime.now().plusMinutes(25));
+        return token;
     }
 
     private User activeUser(Long userId, String username, String email, String passwordHash) {
