@@ -10,6 +10,7 @@ import com.cpt202.model.entity.User;
 import com.cpt202.repository.CategoryRepository;
 import com.cpt202.repository.ProjectRepository;
 import com.cpt202.repository.ProjectRequestRepository;
+import com.cpt202.repository.RequestStatusHistoryRepository;
 import com.cpt202.repository.StudentProfileRepository;
 import com.cpt202.repository.TagRepository;
 import com.cpt202.repository.TeacherProfileRepository;
@@ -70,6 +71,9 @@ public abstract class IntegrationTestSupport {
 
     @Autowired
     protected ProjectRequestRepository projectRequestRepository;
+
+    @Autowired
+    protected RequestStatusHistoryRepository requestStatusHistoryRepository;
 
     @Autowired
     protected ProjectRequestService projectRequestService;

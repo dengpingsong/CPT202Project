@@ -3,8 +3,8 @@ package com.cpt202.support;
 import com.cpt202.integration.IntegrationTestSupport;
 import com.cpt202.model.entity.StudentProfile;
 import com.cpt202.model.entity.Tag;
+import com.cpt202.model.entity.TeacherProfile;
 import com.cpt202.model.entity.User;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -25,6 +25,7 @@ public abstract class ProjectSelectionWorkflowSupport extends IntegrationTestSup
     protected User adminUser;
     protected User teacherUser;
     protected User studentUser;
+    protected TeacherProfile teacherProfile;
     protected StudentProfile studentProfile;
     protected String adminAuthorization;
     protected String teacherAuthorization;
@@ -56,7 +57,7 @@ public abstract class ProjectSelectionWorkflowSupport extends IntegrationTestSup
                 User.UserRole.STUDENT
         );
 
-        createTeacherProfile(teacherUser, prefix.substring(0, 1).toUpperCase() + "T" + suffix);
+        teacherProfile = createTeacherProfile(teacherUser, prefix.substring(0, 1).toUpperCase() + "T" + suffix);
         studentProfile = createStudentProfile(studentUser, prefix.substring(0, 1).toUpperCase() + "S" + suffix);
 
         categoryId = createCategory(prefix + "Category" + suffix).getCategoryId();
@@ -128,26 +129,34 @@ public abstract class ProjectSelectionWorkflowSupport extends IntegrationTestSup
 
         /** Student submits a request and returns the new request id. */
     protected Long studentSubmitsRequest(Long projectId, String notes) throws Exception {
+        return studentSubmitsRequest(projectId, 1, notes);
+    }
+
+        /** Student submits a request with an explicit preference rank and returns the new request id. */
+    protected Long studentSubmitsRequest(Long projectId, int preferenceRank, String notes) throws Exception {
         mockMvc.perform(post("/api/student/requests")
                         .header("Authorization", studentAuthorization)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "projectId", projectId,
-                                "preferenceRank", 1,
+                                "preferenceRank", preferenceRank,
                                 "notes", notes))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1));
 
-        MvcResult requestList = mockMvc.perform(get("/api/student/requests")
+        mockMvc.perform(get("/api/student/requests")
                         .header("Authorization", studentAuthorization)
                         .param("pageNum", "1")
                         .param("pageSize", "50"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(1))
-                .andExpect(jsonPath("$.data.records[0].requestStatus").value("PENDING"))
-                .andReturn();
+                .andExpect(jsonPath("$.data.records[0].requestStatus").value("PENDING"));
 
-        return readFirstRequestId(requestList);
+        return projectRequestRepository
+                .findByStudent_StudentIdAndProject_ProjectIdOrderBySubmittedAtDesc(
+                        studentProfile.getStudentId(), projectId)
+                .get(0)
+                .getRequestId();
     }
 
         /** Teacher sees the request in the pending list. */
@@ -251,9 +260,4 @@ public abstract class ProjectSelectionWorkflowSupport extends IntegrationTestSup
                 .andExpect(jsonPath("$.data[*].tagName").value(hasItem(tagB.getTagName())));
     }
 
-    private Long readFirstRequestId(MvcResult result) throws Exception {
-                JsonNode data = objectMapper.readTree(result.getResponse().getContentAsString()).path("data");
-                JsonNode requestList = data.has("records") ? data.path("records") : data;
-        return requestList.get(0).path("requestId").asLong();
-    }
 }
