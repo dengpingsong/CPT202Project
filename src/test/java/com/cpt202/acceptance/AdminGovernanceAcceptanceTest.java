@@ -246,7 +246,7 @@ class AdminGovernanceAcceptanceTest extends IntegrationTestSupport {
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "categoryName", "  " + categoryName + "  ",
                                 "description", "Duplicate category instance"))))
-                .andExpect(status().isOk())
+                .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.msg").value(MessageConstants.CATEGORY_NAME_EXISTS));
     }
@@ -272,7 +272,7 @@ class AdminGovernanceAcceptanceTest extends IntegrationTestSupport {
                         .content(objectMapper.writeValueAsString(Map.of(
                                 "tagName", "  " + tagName + "  ",
                                 "description", "Duplicate tag instance"))))
-                .andExpect(status().isOk())
+                .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.msg").value(MessageConstants.TAG_NAME_EXISTS));
     }

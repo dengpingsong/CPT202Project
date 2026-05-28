@@ -130,6 +130,17 @@ class CommonAuthControllerIntegrationTest extends IntegrationTestSupport {
         assertThat(redisEntries).doesNotContainKey(otpKey);
     }
 
+    /** Invalid request JSON should return a real client-error status and the standard response wrapper. */
+    @Test
+    void malformedJsonShouldReturnBadRequestWithWrappedError() throws Exception {
+        mockMvc.perform(post("/api/common/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"alice\","))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.msg").value(MessageConstants.INVALID_REQUEST_BODY));
+    }
+
     /**
      * Full 2FA login flow:
      * 1. submit username/password to receive a challenge token

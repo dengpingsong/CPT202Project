@@ -30,7 +30,21 @@
 - `msg`：错误消息，成功时通常为 `null`
 - `data`：实际返回数据
 
-### 1.3 接口设计规范
+### 1.3 HTTP 状态码约定
+
+接口保留统一响应结构，同时使用语义化 HTTP 状态码帮助前端和测试工具区分错误类型：
+
+| 场景 | HTTP 状态码 | 响应体 |
+|---|---:|---|
+| 请求成功 | `200 OK` | `{"code":1,"msg":null,"data":...}` |
+| 请求体格式错误或参数校验失败 | `400 Bad Request` | `{"code":0,"msg":"...","data":null}` |
+| 未登录、令牌无效或角色不匹配 | `401 Unauthorized` | `{"code":0,"msg":"...","data":null}` |
+| 资源不存在 | `404 Not Found` | `{"code":0,"msg":"...","data":null}` |
+| 业务状态冲突，如名称重复 | `409 Conflict` | `{"code":0,"msg":"...","data":null}` |
+| 业务规则不满足 | `422 Unprocessable Entity` | `{"code":0,"msg":"...","data":null}` |
+| 服务端未预期错误 | `500 Internal Server Error` | `{"code":0,"msg":"...","data":null}` |
+
+### 1.4 接口设计规范
 
 - 查询类接口返回业务数据，如 `Result<VO>`、`Result<List<VO>>`
 - 新增、修改、删除、审核、绑定等命令类接口统一返回 `Result<Void>`
