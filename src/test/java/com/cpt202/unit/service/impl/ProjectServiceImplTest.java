@@ -240,6 +240,62 @@ class ProjectServiceImplTest {
                 .containsExactly("Machine Learning Recommendation System", "Learning Management Dashboard");
     }
 
+    /** Derives the visible status from real request counts instead of stale project columns. */
+    @Test
+    void listTeacherProjectsShouldShowPartiallyAssignedWhenAcceptedRequestsExist() {
+        Project project = project(15L, teacherProfile(5L), Project.ProjectStatus.AVAILABLE);
+        project.setCurrentAgreedCount(0);
+        when(projectRepository.findByTeacher_TeacherIdOrderByCreatedAtDesc(5L)).thenReturn(List.of(project));
+        when(projectRequestRepository.countByProject_ProjectIdAndRequestStatus(15L, ProjectRequest.RequestStatus.ACCEPTED))
+                .thenReturn(1L);
+        when(projectRequestRepository.countByProject_ProjectIdAndRequestStatus(15L, ProjectRequest.RequestStatus.PENDING))
+                .thenReturn(0L);
+
+        List<ProjectVO> projects = projectService.listTeacherProjects(5L, null);
+
+        assertThat(projects).hasSize(1);
+        assertThat(projects.get(0).getProjectStatus()).isEqualTo(Project.ProjectStatus.AGREED);
+        assertThat(projects.get(0).getCurrentAgreedCount()).isEqualTo(1);
+    }
+
+    /** Applies teacher status filters to the derived status shown in the UI. */
+    @Test
+    void listTeacherProjectsShouldFilterByDerivedStatus() {
+        Project staleOpenProject = project(17L, teacherProfile(7L), Project.ProjectStatus.AVAILABLE);
+        Project openProject = project(18L, teacherProfile(7L), Project.ProjectStatus.AVAILABLE);
+        when(projectRepository.findByTeacher_TeacherIdOrderByCreatedAtDesc(7L))
+                .thenReturn(List.of(staleOpenProject, openProject));
+        when(projectRequestRepository.countByProject_ProjectIdAndRequestStatus(17L, ProjectRequest.RequestStatus.ACCEPTED))
+                .thenReturn(1L);
+        when(projectRequestRepository.countByProject_ProjectIdAndRequestStatus(17L, ProjectRequest.RequestStatus.PENDING))
+                .thenReturn(0L);
+        when(projectRequestRepository.countByProject_ProjectIdAndRequestStatus(18L, ProjectRequest.RequestStatus.ACCEPTED))
+                .thenReturn(0L);
+        when(projectRequestRepository.countByProject_ProjectIdAndRequestStatus(18L, ProjectRequest.RequestStatus.PENDING))
+                .thenReturn(0L);
+
+        List<ProjectVO> projects = projectService.listTeacherProjects(7L, Project.ProjectStatus.AGREED);
+
+        assertThat(projects).extracting(ProjectVO::getProjectId).containsExactly(17L);
+    }
+
+    /** Shows an open project with pending requests as REQUESTED for the UI label "Has pending requests". */
+    @Test
+    void listTeacherProjectsShouldShowRequestedWhenPendingRequestsExist() {
+        Project project = project(16L, teacherProfile(6L), Project.ProjectStatus.AVAILABLE);
+        when(projectRepository.findByTeacher_TeacherIdOrderByCreatedAtDesc(6L)).thenReturn(List.of(project));
+        when(projectRequestRepository.countByProject_ProjectIdAndRequestStatus(16L, ProjectRequest.RequestStatus.ACCEPTED))
+                .thenReturn(0L);
+        when(projectRequestRepository.countByProject_ProjectIdAndRequestStatus(16L, ProjectRequest.RequestStatus.PENDING))
+                .thenReturn(2L);
+
+        List<ProjectVO> projects = projectService.listTeacherProjects(6L, null);
+
+        assertThat(projects).hasSize(1);
+        assertThat(projects.get(0).getProjectStatus()).isEqualTo(Project.ProjectStatus.REQUESTED);
+        assertThat(projects.get(0).getCurrentAgreedCount()).isZero();
+    }
+
     private ProjectDTO projectDTO(Long categoryId, String title, Integer maxStudents) {
         ProjectDTO dto = new ProjectDTO();
         dto.setCategoryId(categoryId);
