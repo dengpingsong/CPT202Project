@@ -288,10 +288,7 @@ onMounted(() => {
               placeholder="Enter feedback for the student..."
             ></textarea>
             <div class="field-footer">
-              <span
-                class="char-count"
-                :class="{ limit: rejectCommentAtLimit }"
-              >
+              <span class="char-count" :class="{ limit: rejectCommentAtLimit }">
                 {{ rejectCommentLength }} / {{ DECISION_COMMENT_MAX_LENGTH }}
               </span>
             </div>
