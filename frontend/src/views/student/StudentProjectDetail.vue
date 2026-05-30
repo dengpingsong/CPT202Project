@@ -71,9 +71,9 @@ const buttonState = computed(() => {
       canWithdraw: false,
     }
   }
-  const validStatuses = ['AVAILABLE', 'AGREED', 'REQUESTED'];
-  const currentStatus = normalizeStatus(project.value.projectStatus);
-  
+  const validStatuses = ['AVAILABLE', 'AGREED', 'REQUESTED']
+  const currentStatus = normalizeStatus(project.value.projectStatus)
+
   if (!validStatuses.includes(currentStatus)) {
     return {
       disabled: true,
