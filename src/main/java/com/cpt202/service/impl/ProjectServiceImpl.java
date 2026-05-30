@@ -182,6 +182,14 @@ public class ProjectServiceImpl implements ProjectService {
         project.setCreatedAt(now);
         project.setUpdatedAt(now);
         Project savedProject = projectRepository.save(project);
+        saveProjectStatusHistory(
+            savedProject,
+            null,
+            Project.ProjectStatus.AVAILABLE.name(),
+            teacher,
+            "Project created",
+            now
+        );
         return toProjectVO(savedProject);
     }
 
@@ -222,14 +230,14 @@ public class ProjectServiceImpl implements ProjectService {
         }
         projectRepository.save(project);
 
-        ProjectStatusHistory history = new ProjectStatusHistory();
-        history.setProject(project);
-        history.setOldStatus(oldStatus == null ? null : oldStatus.name());
-        history.setNewStatus(projectStatusUpdateDTO.getProjectStatus().name());
-        history.setChangedBy(project.getTeacher());
-        history.setRemark(projectStatusUpdateDTO.getRemark());
-        history.setChangedAt(now);
-        projectStatusHistoryRepository.save(history);
+        saveProjectStatusHistory(
+            project,
+            oldStatus.name(),
+            projectStatusUpdateDTO.getProjectStatus().name(),
+            project.getTeacher(),
+            projectStatusUpdateDTO.getRemark(),
+            now
+        );
     }
 
     // --- Validation logic moved to ProjectValidationService ---
@@ -271,6 +279,17 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = getProjectEntity(projectId);
         projectValidationService.checkProjectOwnership(project, teacherId);
         return project;
+    }
+
+    private void saveProjectStatusHistory(Project project,String oldStatus,String newStatus,TeacherProfile teacher,String remark,LocalDateTime changedAt) {
+        ProjectStatusHistory history = new ProjectStatusHistory();
+        history.setProject(project);
+        history.setOldStatus(oldStatus);
+        history.setNewStatus(newStatus);
+        history.setChangedBy(teacher);
+        history.setRemark(remark);
+        history.setChangedAt(changedAt);
+        projectStatusHistoryRepository.save(history);
     }
 
     private ProjectVO toProjectVO(Project project) {
