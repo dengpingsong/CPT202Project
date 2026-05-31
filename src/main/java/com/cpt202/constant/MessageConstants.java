@@ -53,6 +53,7 @@ public final class MessageConstants {
     public static final String PROJECT_STATUS_ARCHIVED_DISABLED = "The system currently only supports CLOSED status. Please do not set ARCHIVED.";
     public static final String PROJECT_STATUS_TRANSITION_INVALID = "The current project status does not allow this change.";
     public static final String PROJECT_CLOSE_DATE_INVALID = "Project application deadline must be in the future.";
+    public static final String PROJECT_CAPACITY_INVALID = "The maximum number of admissions cannot be less than the current number of admissions";
     public static final String PROJECT_CAPACITY_EXCEEDED = "Project capacity is full. No more requests can be accepted.";
     public static final String PROJECT_REQUEST_ALREADY_EXISTS = "You have already applied for this project. Duplicate requests are not allowed.";
     public static final String PROJECT_PREFERENCE_RANK_DUPLICATED = "Preference rank cannot be duplicated. Please choose a different rank.";
