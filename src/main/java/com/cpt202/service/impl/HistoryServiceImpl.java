@@ -56,6 +56,10 @@ public class HistoryServiceImpl implements HistoryService {
         historyVO.setChangedByStudentId(history.getChangedBy() == null ? null : history.getChangedBy().getStudentId());
         historyVO.setChangedByStudentName(history.getChangedBy() == null || history.getChangedBy().getUser() == null
                 ? null : history.getChangedBy().getUser().getFullName());
+        historyVO.setActorType(history.getActorType());
+        historyVO.setChangedByTeacherId(history.getChangedByTeacher() == null ? null : history.getChangedByTeacher().getTeacherId());
+        historyVO.setChangedByTeacherName(history.getChangedByTeacher() == null || history.getChangedByTeacher().getUser() == null
+                ? null : history.getChangedByTeacher().getUser().getFullName());
 
         return historyVO;
     }

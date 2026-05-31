@@ -132,19 +132,25 @@ public class ProjectServiceImpl implements ProjectService {
      */
     @Override
     public List<ProjectVO> listTeacherProjects(Long teacherId, Project.ProjectStatus status) {
-        List<Project> projects = status == null
-                ? projectRepository.findByTeacher_TeacherIdOrderByCreatedAtDesc(teacherId)
-                : projectRepository.findByTeacher_TeacherIdAndProjectStatusOrderByCreatedAtDesc(teacherId, status);
-        return VoConverter.toList(projects, this::toProjectVO);
+        return filterByDerivedStatus(
+                VoConverter.toList(projectRepository.findByTeacher_TeacherIdOrderByCreatedAtDesc(teacherId), this::toProjectVO),
+                status);
     }
 
     @Override
     public PageResult<ProjectVO> listTeacherProjectsPage(Long teacherId, TeacherProjectQueryDTO queryDTO) {
-        Pageable pageable = PageRequest.of(
-                Math.max(0, queryDTO.getPageNum() - 1),
-                queryDTO.getPageSize());
-        Page<ProjectVO> projectPage = projectRepository.findTeacherProjectVos(teacherId, queryDTO.getStatus(), pageable);
-        return PageResult.fromPage(projectPage);
+        int pageNum = queryDTO.getPageNum() == null ? 1 : queryDTO.getPageNum();
+        int pageSize = queryDTO.getPageSize() == null ? 10 : queryDTO.getPageSize();
+        List<ProjectVO> projects = listTeacherProjects(teacherId, queryDTO.getStatus());
+        int fromIndex = Math.min(Math.max(0, pageNum - 1) * pageSize, projects.size());
+        int toIndex = Math.min(fromIndex + pageSize, projects.size());
+        int totalPages = projects.isEmpty() ? 0 : (int) Math.ceil((double) projects.size() / pageSize);
+        return new PageResult<>(
+                (long) projects.size(),
+                projects.subList(fromIndex, toIndex),
+                pageNum,
+                pageSize,
+                totalPages);
     }
 
     /**
@@ -260,6 +266,8 @@ public class ProjectServiceImpl implements ProjectService {
             history.setOldStatus(oldStatus == null ? null : oldStatus.name());
             history.setNewStatus(ProjectRequest.RequestStatus.REJECTED.name());
             history.setChangedBy(null);
+            history.setChangedByTeacher(null);
+            history.setActorType(RequestStatusHistory.HistoryActorType.SYSTEM);
             history.setRemark(MessageConstants.AUTO_CANCEL_PROJECT_CLOSED_REMARK);
             history.setChangedAt(changedAt);
             requestStatusHistoryRepository.save(history);
@@ -295,11 +303,51 @@ public class ProjectServiceImpl implements ProjectService {
     private ProjectVO toProjectVO(Project project) {
         ProjectVO projectVO = new ProjectVO();
         BeanUtils.copyProperties(project, projectVO);
+        long acceptedCount = projectRequestRepository.countByProject_ProjectIdAndRequestStatus(
+                project.getProjectId(),
+                ProjectRequest.RequestStatus.ACCEPTED
+        );
+        long pendingCount = projectRequestRepository.countByProject_ProjectIdAndRequestStatus(
+                project.getProjectId(),
+                ProjectRequest.RequestStatus.PENDING
+        );
+
+        projectVO.setCurrentAgreedCount((int) acceptedCount);
+        projectVO.setProjectStatus(resolveDisplayStatus(project, acceptedCount, pendingCount));
         projectVO.setTeacherId(project.getTeacher() == null ? null : project.getTeacher().getTeacherId());
         projectVO.setTeacherName(project.getTeacher() == null || project.getTeacher().getUser() == null
                 ? null : project.getTeacher().getUser().getFullName());
         projectVO.setCategoryId(project.getCategory() == null ? null : project.getCategory().getCategoryId());
         projectVO.setCategoryName(project.getCategory() == null ? null : project.getCategory().getCategoryName());
         return projectVO;
+    }
+
+    private List<ProjectVO> filterByDerivedStatus(List<ProjectVO> projects, Project.ProjectStatus status) {
+        if (status == null) {
+            return projects;
+        }
+        Project.ProjectStatus normalizedStatus = status == Project.ProjectStatus.ARCHIVED
+                ? Project.ProjectStatus.CLOSED
+                : status;
+        return projects.stream()
+                .filter(project -> project.getProjectStatus() == normalizedStatus)
+                .toList();
+    }
+
+    private Project.ProjectStatus resolveDisplayStatus(Project project, long acceptedCount, long pendingCount) {
+        if (project.getProjectStatus() == Project.ProjectStatus.CLOSED
+                || project.getProjectStatus() == Project.ProjectStatus.ARCHIVED) {
+            return Project.ProjectStatus.CLOSED;
+        }
+        if (project.getMaxStudents() != null && acceptedCount >= project.getMaxStudents()) {
+            return Project.ProjectStatus.CLOSED;
+        }
+        if (acceptedCount > 0) {
+            return Project.ProjectStatus.AGREED;
+        }
+        if (pendingCount > 0) {
+            return Project.ProjectStatus.REQUESTED;
+        }
+        return Project.ProjectStatus.AVAILABLE;
     }
 }

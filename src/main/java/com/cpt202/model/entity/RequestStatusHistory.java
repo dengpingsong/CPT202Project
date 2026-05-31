@@ -15,6 +15,12 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 public class RequestStatusHistory {
+    public enum HistoryActorType {
+        STUDENT,
+        TEACHER,
+        SYSTEM
+    }
+
     /** Primary key of the request status history record. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -40,6 +46,16 @@ public class RequestStatusHistory {
     @JoinColumn(name = "changed_by", referencedColumnName = "student_id")
     private StudentProfile changedBy;
 
+    /** Actor type responsible for the status change. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "actor_type")
+    private HistoryActorType actorType;
+
+    /** Teacher who triggered the change, when the change is teacher-driven. */
+    @ManyToOne
+    @JoinColumn(name = "changed_by_teacher", referencedColumnName = "teacher_id")
+    private TeacherProfile changedByTeacher;
+
     /** Optional remark explaining the status update. */
     @Column(name = "remark")
     private String remark;
@@ -50,11 +66,14 @@ public class RequestStatusHistory {
 
     @Builder
     public RequestStatusHistory(ProjectRequest request, String oldStatus, String newStatus,
-                                StudentProfile changedBy, String remark, LocalDateTime changedAt) {
+                                StudentProfile changedBy, HistoryActorType actorType,
+                                TeacherProfile changedByTeacher, String remark, LocalDateTime changedAt) {
         this.request = request;
         this.oldStatus = oldStatus;
         this.newStatus = newStatus;
         this.changedBy = changedBy;
+        this.actorType = actorType;
+        this.changedByTeacher = changedByTeacher;
         this.remark = remark;
         this.changedAt = changedAt;
     }

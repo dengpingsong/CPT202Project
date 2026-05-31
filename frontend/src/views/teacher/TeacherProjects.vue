@@ -90,9 +90,9 @@ function normalizeStatus(status: string | null | undefined): string {
 
 function statusText(status: string): string {
   const map: Record<string, string> = {
-    AVAILABLE: 'Available',
-    REQUESTED: 'Requested',
-    AGREED: 'Agreed',
+    AVAILABLE: 'Open',
+    REQUESTED: 'Has pending requests',
+    AGREED: 'Partially assigned',
     CLOSED: 'Closed',
   }
   return map[normalizeStatus(status)] || normalizeStatus(status)
@@ -254,7 +254,7 @@ async function saveAllChanges() {
     originalProjectStatus.value !== editProjectStatus.value &&
     ['AGREED', 'CLOSED'].includes(editProjectStatus.value)
   ) {
-    const label = editProjectStatus.value === 'AGREED' ? 'Agreed' : 'Closed'
+    const label = statusText(editProjectStatus.value)
     statusConfirmMessage.value = `Are you sure you want to change the status to "${label}"? This will take effect immediately.`
     pendingConfirmAction = executeSave
     showStatusConfirm.value = true
@@ -303,9 +303,9 @@ onMounted(async () => {
             @change="loadProjects(1)"
           >
             <option value="">All Project Status</option>
-            <option value="AVAILABLE">Available</option>
-            <option value="REQUESTED">Requested</option>
-            <option value="AGREED">Agreed</option>
+            <option value="AVAILABLE">Open</option>
+            <option value="REQUESTED">Has pending requests</option>
+            <option value="AGREED">Partially assigned</option>
             <option value="CLOSED">Closed</option>
           </select>
         </span>
@@ -465,8 +465,8 @@ onMounted(async () => {
                 <div class="form-group">
                   <label>Project Status</label>
                   <select v-model="editProjectStatus" class="form-control">
-                    <option value="AVAILABLE">Available</option>
-                    <option value="AGREED">Agreed</option>
+                    <option value="AVAILABLE">Open</option>
+                    <option value="AGREED">Partially assigned</option>
                     <option value="CLOSED">Closed</option>
                   </select>
                 </div>

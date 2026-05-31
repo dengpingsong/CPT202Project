@@ -2,6 +2,7 @@ package com.cpt202.dto;
 
 import com.cpt202.model.entity.ProjectRequest;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
@@ -17,5 +18,6 @@ public class ProjectRequestReviewDTO {
     private ProjectRequest.RequestStatus requestStatus;
 
     /** 审核意见或备注。 */
+    @Size(max = 500, message = "Decision comment cannot exceed 500 characters.")
     private String decisionComment;
 }

@@ -105,6 +105,30 @@ class ProjectRequestServiceImplTest {
         verify(teacherProfileRepository, never()).findById(any());
     }
 
+    /** Rejects review decisions outside the teacher accept/reject workflow. */
+    @Test
+    void reviewShouldRejectInvalidDecisionStatus() {
+        ProjectRequestReviewDTO reviewDTO = reviewDTO(ProjectRequest.RequestStatus.WITHDRAWN, "not a teacher decision");
+
+        RuleViolationException exception = assertThrows(RuleViolationException.class,
+                () -> projectRequestService.review(30L, 7L, reviewDTO));
+
+        assertThat(exception.getMessage()).isEqualTo(MessageConstants.INVALID_REVIEW_DECISION_STATUS);
+        verify(requestRepository, never()).findById(any());
+    }
+
+    /** Rejects overly long review comments before mutating request state. */
+    @Test
+    void reviewShouldRejectOverlongDecisionComment() {
+        ProjectRequestReviewDTO reviewDTO = reviewDTO(ProjectRequest.RequestStatus.REJECTED, "x".repeat(501));
+
+        RuleViolationException exception = assertThrows(RuleViolationException.class,
+                () -> projectRequestService.review(30L, 7L, reviewDTO));
+
+        assertThat(exception.getMessage()).isEqualTo(MessageConstants.DECISION_COMMENT_TOO_LONG);
+        verify(requestRepository, never()).findById(any());
+    }
+
     /** Rejects review when the request is no longer pending. */
     @Test
     void reviewShouldRejectWhenRequestIsNotPending() {
@@ -157,7 +181,7 @@ class ProjectRequestServiceImplTest {
         StudentProfile student = studentProfile(7L, user(107L, User.UserRole.STUDENT));
         Project project = project(14L, teacher, 2, Project.ProjectStatus.REQUESTED);
         ProjectRequest request = request(33L, project, student, ProjectRequest.RequestStatus.PENDING);
-        ProjectRequestReviewDTO reviewDTO = reviewDTO(ProjectRequest.RequestStatus.ACCEPTED, "accepted");
+        ProjectRequestReviewDTO reviewDTO = reviewDTO(ProjectRequest.RequestStatus.ACCEPTED, "  accepted  ");
 
         when(requestRepository.findById(33L)).thenReturn(Optional.of(request));
         when(teacherProfileRepository.findById(teacherId)).thenReturn(Optional.of(teacher));
@@ -174,9 +198,12 @@ class ProjectRequestServiceImplTest {
 
         assertThat(requestCaptor.getValue().getRequestStatus()).isEqualTo(ProjectRequest.RequestStatus.ACCEPTED);
         assertThat(requestCaptor.getValue().getReviewedBy()).isEqualTo(teacher);
+        assertThat(requestCaptor.getValue().getDecisionComment()).isEqualTo("accepted");
         assertThat(historyCaptor.getValue().getOldStatus()).isEqualTo(ProjectRequest.RequestStatus.PENDING.name());
         assertThat(historyCaptor.getValue().getNewStatus()).isEqualTo(ProjectRequest.RequestStatus.ACCEPTED.name());
         assertThat(historyCaptor.getValue().getRemark()).isEqualTo("accepted");
+        assertThat(historyCaptor.getValue().getActorType()).isEqualTo(RequestStatusHistory.HistoryActorType.TEACHER);
+        assertThat(historyCaptor.getValue().getChangedByTeacher()).isEqualTo(teacher);
     }
 
     /** Rejects withdrawal when the request belongs to another student. */

@@ -99,6 +99,8 @@ public final class MessageConstants {
     public static final String PROJECT_RECORD_NOT_FOUND = "Project record not found.";
 
     public static final String REQUEST_NOT_PENDING_CANNOT_REVIEW = "This request is not in pending status and cannot be reviewed again.";
+    public static final String INVALID_REVIEW_DECISION_STATUS = "Teacher review decision must be ACCEPTED or REJECTED.";
+    public static final String DECISION_COMMENT_TOO_LONG = "Decision comment cannot exceed 500 characters.";
     public static final String AUTO_REJECT_ALREADY_MATCHED = "System auto-rejected: Already matched elsewhere.";
     public static final String AUTO_REJECT_ALREADY_MATCHED_REMARK = "System auto-rejected: The student has been accepted into another project.";
     public static final String REQUEST_SUBMIT_REMARK = "Student submitted the request.";
