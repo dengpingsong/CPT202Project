@@ -9,6 +9,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Admin project interface controller.
+ * Manages project-related resources, such as project tags and details.
+ */
 @RestController
 @RequestMapping("/api/admin/projects")
 @RequiredArgsConstructor

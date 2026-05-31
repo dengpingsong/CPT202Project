@@ -32,7 +32,7 @@ public class TwoFactorAuthServiceImpl implements TwoFactorAuthService {
     private final UserRepository userRepository;
     private final RedisCacheService redisCacheService;
 
-    @Value("${app.frontend-base-url}")
+    @Value("${app.frontend-base-url:http://localhost:${server.port}}")
     private String frontendBaseUrl;
 
     @Value("${app.totp-issuer:}")

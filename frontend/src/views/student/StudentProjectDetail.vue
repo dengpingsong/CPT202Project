@@ -71,13 +71,10 @@ const buttonState = computed(() => {
       canWithdraw: false,
     }
   }
-  const validStatuses = ['AVAILABLE', 'AGREED', 'REQUESTED']
-  const currentStatus = normalizeStatus(project.value.projectStatus)
-
-  if (!validStatuses.includes(currentStatus)) {
+  if (normalizeStatus(project.value.projectStatus) !== 'AVAILABLE') {
     return {
       disabled: true,
-      text: currentStatus === 'CLOSED' ? 'Closed' : 'Not Available',
+      text: 'Not Available',
       hint: 'This project is not accepting applications.',
       canWithdraw: false,
     }

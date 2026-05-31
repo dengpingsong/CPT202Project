@@ -19,6 +19,7 @@ import com.cpt202.repository.RequestStatusHistoryRepository;
 import com.cpt202.repository.TeacherProfileRepository;
 import com.cpt202.result.PageResult;
 import com.cpt202.service.ProjectService;
+import com.cpt202.util.ProjectSearchRelevanceScorer;
 import com.cpt202.util.VoConverter;
 import com.cpt202.validation.ProjectValidationService;
 import com.cpt202.vo.ProjectVO;
@@ -32,6 +33,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -57,10 +59,15 @@ public class ProjectServiceImpl implements ProjectService {
     public PageResult<ProjectVO> listStudentProjects(StudentProjectQueryDTO queryDTO) {
         int pageNum = queryDTO.getPageNum() == null ? 1 : queryDTO.getPageNum();
         int pageSize = queryDTO.getPageSize() == null ? 10 : queryDTO.getPageSize();
+        Sort defaultSort = Sort.by(Sort.Direction.DESC, "createdAt");
+        if (hasKeyword(queryDTO.getKeyword())) {
+            return listStudentProjectsByRelevance(queryDTO, pageNum, pageSize, defaultSort);
+        }
+
         Pageable pageable = PageRequest.of(
                 Math.max(0, pageNum - 1),
                 pageSize,
-                Sort.by(Sort.Direction.DESC, "createdAt"));
+                defaultSort);
 
         Page<Project> projectPage = projectRepository.findStudentProjects(
                 queryDTO.getKeyword(),
@@ -77,24 +84,73 @@ public class ProjectServiceImpl implements ProjectService {
                 projectPage.getTotalPages());
     }
 
+    private PageResult<ProjectVO> listStudentProjectsByRelevance(StudentProjectQueryDTO queryDTO,
+                                                                 int pageNum,
+                                                                 int pageSize,
+                                                                 Sort defaultSort) {
+        List<ProjectSearchResult> rankedProjects = projectRepository.findStudentProjectCandidates(
+                        queryDTO.getCategoryId(),
+                        queryDTO.getStatus(),
+                        queryDTO.getTagIds(),
+                        defaultSort).stream()
+                .map(project -> new ProjectSearchResult(project,
+                        ProjectSearchRelevanceScorer.score(project, queryDTO.getKeyword())))
+                .filter(result -> result.score() > 0.0)
+                .sorted(Comparator
+                        .comparingDouble(ProjectSearchResult::score).reversed()
+                        .thenComparing(result -> result.project().getCreatedAt(),
+                                Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(result -> result.project().getProjectId(),
+                                Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList();
+
+        int fromIndex = Math.min(Math.max(0, pageNum - 1) * pageSize, rankedProjects.size());
+        int toIndex = Math.min(fromIndex + pageSize, rankedProjects.size());
+        List<ProjectVO> records = rankedProjects.subList(fromIndex, toIndex).stream()
+                .map(ProjectSearchResult::project)
+                .map(this::toProjectVO)
+                .toList();
+        int totalPages = rankedProjects.isEmpty() ? 0 : (int) Math.ceil((double) rankedProjects.size() / pageSize);
+
+        return new PageResult<>(
+                (long) rankedProjects.size(),
+                records,
+                pageNum,
+                pageSize,
+                totalPages);
+    }
+
+    private boolean hasKeyword(String keyword) {
+        return keyword != null && !keyword.trim().isEmpty();
+    }
+
+    private record ProjectSearchResult(Project project, double score) {
+    }
+
     /**
      * 查询教师端项目列表。
      */
     @Override
     public List<ProjectVO> listTeacherProjects(Long teacherId, Project.ProjectStatus status) {
-        List<Project> projects = status == null
-                ? projectRepository.findByTeacher_TeacherIdOrderByCreatedAtDesc(teacherId)
-                : projectRepository.findByTeacher_TeacherIdAndProjectStatusOrderByCreatedAtDesc(teacherId, status);
-        return VoConverter.toList(projects, this::toProjectVO);
+        return filterByDerivedStatus(
+                VoConverter.toList(projectRepository.findByTeacher_TeacherIdOrderByCreatedAtDesc(teacherId), this::toProjectVO),
+                status);
     }
 
     @Override
     public PageResult<ProjectVO> listTeacherProjectsPage(Long teacherId, TeacherProjectQueryDTO queryDTO) {
-        Pageable pageable = PageRequest.of(
-                Math.max(0, queryDTO.getPageNum() - 1),
-                queryDTO.getPageSize());
-        Page<ProjectVO> projectPage = projectRepository.findTeacherProjectVos(teacherId, queryDTO.getStatus(), pageable);
-        return PageResult.fromPage(projectPage);
+        int pageNum = queryDTO.getPageNum() == null ? 1 : queryDTO.getPageNum();
+        int pageSize = queryDTO.getPageSize() == null ? 10 : queryDTO.getPageSize();
+        List<ProjectVO> projects = listTeacherProjects(teacherId, queryDTO.getStatus());
+        int fromIndex = Math.min(Math.max(0, pageNum - 1) * pageSize, projects.size());
+        int toIndex = Math.min(fromIndex + pageSize, projects.size());
+        int totalPages = projects.isEmpty() ? 0 : (int) Math.ceil((double) projects.size() / pageSize);
+        return new PageResult<>(
+                (long) projects.size(),
+                projects.subList(fromIndex, toIndex),
+                pageNum,
+                pageSize,
+                totalPages);
     }
 
     /**
@@ -226,11 +282,51 @@ public class ProjectServiceImpl implements ProjectService {
     private ProjectVO toProjectVO(Project project) {
         ProjectVO projectVO = new ProjectVO();
         BeanUtils.copyProperties(project, projectVO);
+        long acceptedCount = projectRequestRepository.countByProject_ProjectIdAndRequestStatus(
+                project.getProjectId(),
+                ProjectRequest.RequestStatus.ACCEPTED
+        );
+        long pendingCount = projectRequestRepository.countByProject_ProjectIdAndRequestStatus(
+                project.getProjectId(),
+                ProjectRequest.RequestStatus.PENDING
+        );
+
+        projectVO.setCurrentAgreedCount((int) acceptedCount);
+        projectVO.setProjectStatus(resolveDisplayStatus(project, acceptedCount, pendingCount));
         projectVO.setTeacherId(project.getTeacher() == null ? null : project.getTeacher().getTeacherId());
         projectVO.setTeacherName(project.getTeacher() == null || project.getTeacher().getUser() == null
                 ? null : project.getTeacher().getUser().getFullName());
         projectVO.setCategoryId(project.getCategory() == null ? null : project.getCategory().getCategoryId());
         projectVO.setCategoryName(project.getCategory() == null ? null : project.getCategory().getCategoryName());
         return projectVO;
+    }
+
+    private List<ProjectVO> filterByDerivedStatus(List<ProjectVO> projects, Project.ProjectStatus status) {
+        if (status == null) {
+            return projects;
+        }
+        Project.ProjectStatus normalizedStatus = status == Project.ProjectStatus.ARCHIVED
+                ? Project.ProjectStatus.CLOSED
+                : status;
+        return projects.stream()
+                .filter(project -> project.getProjectStatus() == normalizedStatus)
+                .toList();
+    }
+
+    private Project.ProjectStatus resolveDisplayStatus(Project project, long acceptedCount, long pendingCount) {
+        if (project.getProjectStatus() == Project.ProjectStatus.CLOSED
+                || project.getProjectStatus() == Project.ProjectStatus.ARCHIVED) {
+            return Project.ProjectStatus.CLOSED;
+        }
+        if (project.getMaxStudents() != null && acceptedCount >= project.getMaxStudents()) {
+            return Project.ProjectStatus.CLOSED;
+        }
+        if (acceptedCount > 0) {
+            return Project.ProjectStatus.AGREED;
+        }
+        if (pendingCount > 0) {
+            return Project.ProjectStatus.REQUESTED;
+        }
+        return Project.ProjectStatus.AVAILABLE;
     }
 }

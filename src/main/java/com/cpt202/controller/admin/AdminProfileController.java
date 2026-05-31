@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 管理员个人资料接口。
+ * Admin profile API.
  */
 @RestController
 @RequestMapping("/api/admin/profile")

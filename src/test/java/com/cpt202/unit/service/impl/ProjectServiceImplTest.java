@@ -3,6 +3,7 @@ package com.cpt202.unit.service.impl;
 import com.cpt202.constant.MessageConstants;
 import com.cpt202.dto.ProjectDTO;
 import com.cpt202.dto.ProjectStatusUpdateDTO;
+import com.cpt202.dto.StudentProjectQueryDTO;
 import com.cpt202.exception.BusinessException;
 import com.cpt202.model.entity.Category;
 import com.cpt202.model.entity.Project;
@@ -17,6 +18,7 @@ import com.cpt202.repository.ProjectRequestRepository;
 import com.cpt202.repository.ProjectStatusHistoryRepository;
 import com.cpt202.repository.RequestStatusHistoryRepository;
 import com.cpt202.repository.TeacherProfileRepository;
+import com.cpt202.result.PageResult;
 import com.cpt202.service.impl.ProjectServiceImpl;
 import com.cpt202.validation.ProjectValidationService;
 import com.cpt202.vo.ProjectVO;
@@ -27,6 +29,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 import java.util.Optional;
@@ -197,6 +200,102 @@ class ProjectServiceImplTest {
         assertThat(history.getRemark()).isEqualTo("manual close");
     }
 
+    /** Ranks typo-tolerant search results by service-level relevance scoring. */
+    @Test
+    void listStudentProjectsShouldRankFuzzyKeywordMatchesByRelevance() {
+        Project exactLikeMatch = searchableProject(
+                101L,
+                "Machine Learning Recommendation System",
+                "Build a recommender with ranking models",
+                "Python, SQL",
+                "Artificial Intelligence",
+                LocalDateTime.now().minusDays(2));
+        Project weakMatch = searchableProject(
+                102L,
+                "Learning Management Dashboard",
+                "Manage classroom content",
+                "Vue",
+                "Education",
+                LocalDateTime.now().minusDays(1));
+        Project unrelated = searchableProject(
+                103L,
+                "Library Seat Booking",
+                "Reserve study space",
+                "Vue",
+                "Facilities",
+                LocalDateTime.now());
+        StudentProjectQueryDTO queryDTO = new StudentProjectQueryDTO();
+        queryDTO.setKeyword("machne learning");
+        queryDTO.setPageNum(1);
+        queryDTO.setPageSize(10);
+
+        when(projectRepository.findStudentProjectCandidates(eq(null), eq(null), eq(null), any(Sort.class)))
+                .thenReturn(List.of(weakMatch, unrelated, exactLikeMatch));
+
+        PageResult<ProjectVO> result = projectService.listStudentProjects(queryDTO);
+
+        assertThat(result.getTotal()).isEqualTo(2);
+        assertThat(result.getRecords())
+                .extracting(ProjectVO::getTitle)
+                .containsExactly("Machine Learning Recommendation System", "Learning Management Dashboard");
+    }
+
+    /** Derives the visible status from real request counts instead of stale project columns. */
+    @Test
+    void listTeacherProjectsShouldShowPartiallyAssignedWhenAcceptedRequestsExist() {
+        Project project = project(15L, teacherProfile(5L), Project.ProjectStatus.AVAILABLE);
+        project.setCurrentAgreedCount(0);
+        when(projectRepository.findByTeacher_TeacherIdOrderByCreatedAtDesc(5L)).thenReturn(List.of(project));
+        when(projectRequestRepository.countByProject_ProjectIdAndRequestStatus(15L, ProjectRequest.RequestStatus.ACCEPTED))
+                .thenReturn(1L);
+        when(projectRequestRepository.countByProject_ProjectIdAndRequestStatus(15L, ProjectRequest.RequestStatus.PENDING))
+                .thenReturn(0L);
+
+        List<ProjectVO> projects = projectService.listTeacherProjects(5L, null);
+
+        assertThat(projects).hasSize(1);
+        assertThat(projects.get(0).getProjectStatus()).isEqualTo(Project.ProjectStatus.AGREED);
+        assertThat(projects.get(0).getCurrentAgreedCount()).isEqualTo(1);
+    }
+
+    /** Applies teacher status filters to the derived status shown in the UI. */
+    @Test
+    void listTeacherProjectsShouldFilterByDerivedStatus() {
+        Project staleOpenProject = project(17L, teacherProfile(7L), Project.ProjectStatus.AVAILABLE);
+        Project openProject = project(18L, teacherProfile(7L), Project.ProjectStatus.AVAILABLE);
+        when(projectRepository.findByTeacher_TeacherIdOrderByCreatedAtDesc(7L))
+                .thenReturn(List.of(staleOpenProject, openProject));
+        when(projectRequestRepository.countByProject_ProjectIdAndRequestStatus(17L, ProjectRequest.RequestStatus.ACCEPTED))
+                .thenReturn(1L);
+        when(projectRequestRepository.countByProject_ProjectIdAndRequestStatus(17L, ProjectRequest.RequestStatus.PENDING))
+                .thenReturn(0L);
+        when(projectRequestRepository.countByProject_ProjectIdAndRequestStatus(18L, ProjectRequest.RequestStatus.ACCEPTED))
+                .thenReturn(0L);
+        when(projectRequestRepository.countByProject_ProjectIdAndRequestStatus(18L, ProjectRequest.RequestStatus.PENDING))
+                .thenReturn(0L);
+
+        List<ProjectVO> projects = projectService.listTeacherProjects(7L, Project.ProjectStatus.AGREED);
+
+        assertThat(projects).extracting(ProjectVO::getProjectId).containsExactly(17L);
+    }
+
+    /** Shows an open project with pending requests as REQUESTED for the UI label "Has pending requests". */
+    @Test
+    void listTeacherProjectsShouldShowRequestedWhenPendingRequestsExist() {
+        Project project = project(16L, teacherProfile(6L), Project.ProjectStatus.AVAILABLE);
+        when(projectRepository.findByTeacher_TeacherIdOrderByCreatedAtDesc(6L)).thenReturn(List.of(project));
+        when(projectRequestRepository.countByProject_ProjectIdAndRequestStatus(16L, ProjectRequest.RequestStatus.ACCEPTED))
+                .thenReturn(0L);
+        when(projectRequestRepository.countByProject_ProjectIdAndRequestStatus(16L, ProjectRequest.RequestStatus.PENDING))
+                .thenReturn(2L);
+
+        List<ProjectVO> projects = projectService.listTeacherProjects(6L, null);
+
+        assertThat(projects).hasSize(1);
+        assertThat(projects.get(0).getProjectStatus()).isEqualTo(Project.ProjectStatus.REQUESTED);
+        assertThat(projects.get(0).getCurrentAgreedCount()).isZero();
+    }
+
     private ProjectDTO projectDTO(Long categoryId, String title, Integer maxStudents) {
         ProjectDTO dto = new ProjectDTO();
         dto.setCategoryId(categoryId);
@@ -239,6 +338,22 @@ class ProjectServiceImplTest {
         project.setTeacher(teacherProfile);
         project.setProjectStatus(status);
         project.setMaxStudents(2);
+        return project;
+    }
+
+    private Project searchableProject(Long projectId,
+                                      String title,
+                                      String description,
+                                      String requiredSkills,
+                                      String topicArea,
+                                      LocalDateTime createdAt) {
+        Project project = project(projectId, teacherProfile(projectId), Project.ProjectStatus.AVAILABLE);
+        project.setTitle(title);
+        project.setDescription(description);
+        project.setRequiredSkills(requiredSkills);
+        project.setTopicArea(topicArea);
+        project.setCurrentAgreedCount(0);
+        project.setCreatedAt(createdAt);
         return project;
     }
 

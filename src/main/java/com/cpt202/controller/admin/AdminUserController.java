@@ -12,8 +12,8 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * 管理端用户接口控制器。
- * 提供用户列表查询与账号状态修改能力。
+ * Admin user interface controller.
+ * Provides capabilities for querying user lists and modifying account status.
  */
 @RestController
 @RequestMapping("/api/admin/users")
@@ -27,10 +27,10 @@ public class AdminUserController {
     }
 
     /**
-     * 按角色和账号状态筛选用户列表。
+     * Filter user list by role and account status.
      *
-     * @param queryDTO 用户查询参数
-     * @return 用户展示对象列表
+     * @param queryDTO User query parameters
+     * @return A paged list of user view objects (VOs)
      */
     @GetMapping
     @Operation(summary = "List users")
@@ -45,11 +45,11 @@ public class AdminUserController {
     }
 
     /**
-     * 修改指定用户的账号状态。
+     * Update the account status of a specific user.
      *
-     * @param userId 用户主键
-     * @param accountStatus 账号状态
-     * @return 统一成功响应
+     * @param userId User primary key
+     * @param accountStatus Account status
+     * @return Unified success response
      */
     @PutMapping("/{userId}/status")
     @Operation(summary = "Update user status")
@@ -60,11 +60,11 @@ public class AdminUserController {
     }
 
     /**
-     * 修改指定用户的基础信息。
+     * Update the basic information of a specific user.
      *
-     * @param userId 用户主键
-     * @param updateDTO 用户基础信息
-     * @return 统一成功响应
+     * @param userId User primary key
+     * @param updateDTO User basic information parameters
+     * @return Unified success response
      */
     @PutMapping("/{userId}")
     @Operation(summary = "Update user basic information")
