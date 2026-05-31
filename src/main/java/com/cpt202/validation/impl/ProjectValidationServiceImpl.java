@@ -41,4 +41,15 @@ public class ProjectValidationServiceImpl implements ProjectValidationService {
             throw new BusinessException(MessageConstants.CANNOT_OPERATE_OTHER_TEACHER_PROJECT);
         }
     }
+
+    @Override
+    public void checkProjectCapacity(Integer newMaxStudents, Integer currentAgreedCount) {
+        if (newMaxStudents == null || currentAgreedCount == null) {
+            return;
+        }
+        
+        if (newMaxStudents < currentAgreedCount) {
+            throw new BusinessException(MessageConstants.PROJECT_CAPACITY_INVALID); 
+        }
+    }
 }

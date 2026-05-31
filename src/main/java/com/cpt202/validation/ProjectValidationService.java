@@ -32,4 +32,6 @@ public interface ProjectValidationService {
      * @param teacherId 教师主键
      */
     void checkProjectOwnership(Project project, Long teacherId);
+
+    void checkProjectCapacity(Integer newMaxStudents, Integer currentAgreedCount);
 }
