@@ -132,7 +132,10 @@ jobs:
           test -n "$JWT_SECRET" || { echo "::error::Missing secret JWT_SECRET"; exit 1; }
           test -n "$SPRING_MAIL_USERNAME" || echo "::warning::SPRING_MAIL_USERNAME not set; password reset emails will be disabled"
           test -n "$SPRING_MAIL_PASSWORD" || echo "::warning::SPRING_MAIL_PASSWORD not set; password reset emails will be disabled"
-          test -n "$APP_FRONTEND_BASE_URL" || echo "::warning::APP_FRONTEND_BASE_URL not set; reset links will fall back to localhost"
+          if [ -z "$APP_FRONTEND_BASE_URL" ]; then
+            APP_FRONTEND_BASE_URL="https://$ALIYUN_HOST:9002"
+            echo "APP_FRONTEND_BASE_URL not set; constructed from ALIYUN_HOST (dev): $APP_FRONTEND_BASE_URL"
+          fi
 
       - name: Deploy application and MySQL on Aliyun Server
         uses: appleboy/ssh-action@v1.0.3
@@ -207,7 +210,11 @@ jobs:
             MAIL_PASSWORD_VAL='${{ secrets.SPRING_MAIL_PASSWORD }}'
             [ -n "$MAIL_PASSWORD_VAL" ] && echo "SPRING_MAIL_PASSWORD=$MAIL_PASSWORD_VAL" >> /opt/cpt202-dev/.env || true
             FRONTEND_BASE_URL_VAL='${{ secrets.APP_FRONTEND_BASE_URL }}'
-            [ -n "$FRONTEND_BASE_URL_VAL" ] && echo "APP_FRONTEND_BASE_URL=$FRONTEND_BASE_URL_VAL" >> /opt/cpt202-dev/.env || true
+            if [ -n "$FRONTEND_BASE_URL_VAL" ]; then
+              echo "APP_FRONTEND_BASE_URL=$FRONTEND_BASE_URL_VAL" >> /opt/cpt202-dev/.env
+            else
+              echo "APP_FRONTEND_BASE_URL=https://$ALIYUN_HOST:9002" >> /opt/cpt202-dev/.env
+            fi
             chmod 600 /opt/cpt202-dev/.env
 
             cd /opt/cpt202-dev
